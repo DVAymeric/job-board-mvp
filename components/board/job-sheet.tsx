@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CompanyAvatar } from "@/components/board/company-avatar";
+import { ContactsSection } from "@/components/board/contacts-section";
 import { toast } from "sonner";
 import { XIcon } from "lucide-react";
 import {
@@ -245,6 +246,12 @@ export function JobSheet({
               </Button>
             </div>
           </div>
+
+          <ContactsSection
+            jobId={job.id}
+            contacts={job.contacts}
+            onChange={(contacts) => onUpdated({ ...job, contacts })}
+          />
 
           <div className="space-y-1 text-sm">
             <p>

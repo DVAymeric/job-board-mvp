@@ -12,14 +12,17 @@ import {
   extractCompanyDomain,
 } from "@/lib/company-logo";
 import {
+  addContactSchema,
   addTagToJobSchema,
   archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
+  deleteContactSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
+  updateContactSchema,
   updateJobDetailsSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
@@ -353,5 +356,87 @@ export async function removeTagFromJob(
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible de retirer ce tag" };
+  }
+}
+
+export async function addContact(
+  jobId: string,
+  input: { name: string; role: string; linkedinUrl?: string }
+): Promise<
+  ActionResult<{
+    contact: {
+      id: string;
+      name: string;
+      role: string | null;
+      linkedinUrl: string | null;
+    };
+  }>
+> {
+  const parsed = addContactSchema.safeParse({ jobId, ...input });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible d'ajouter ce contact"),
+    };
+  }
+  try {
+    const contact = await prisma.contact.create({
+      data: {
+        jobId: parsed.data.jobId,
+        name: parsed.data.name,
+        role: parsed.data.role,
+        linkedinUrl: parsed.data.linkedinUrl || null,
+      },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: { contact } };
+  } catch {
+    return { ok: false, error: "Impossible d'ajouter ce contact" };
+  }
+}
+
+export async function updateContact(
+  contactId: string,
+  input: { name: string; role: string; linkedinUrl?: string }
+): Promise<ActionResult<null>> {
+  const parsed = updateContactSchema.safeParse({ contactId, ...input });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible de modifier ce contact"),
+    };
+  }
+  try {
+    await prisma.contact.update({
+      where: { id: parsed.data.contactId },
+      data: {
+        name: parsed.data.name,
+        role: parsed.data.role,
+        linkedinUrl: parsed.data.linkedinUrl || null,
+      },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible de modifier ce contact" };
+  }
+}
+
+export async function deleteContact(
+  contactId: string
+): Promise<ActionResult<null>> {
+  const parsed = deleteContactSchema.safeParse({ contactId });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible de supprimer ce contact"),
+    };
+  }
+  try {
+    await prisma.contact.delete({ where: { id: parsed.data.contactId } });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible de supprimer ce contact" };
   }
 }

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeUrl } from "@/lib/url";
-import { STATUS } from "@/lib/constants";
+import { CONTACT_ROLE, STATUS } from "@/lib/constants";
 
 const urlSchema = z
   .string()
@@ -73,4 +73,39 @@ export const addTagToJobSchema = z.object({
 export const removeTagFromJobSchema = z.object({
   jobId: jobIdSchema,
   tagId: jobIdSchema,
+});
+
+const contactRoleSchema = z.enum(
+  [
+    CONTACT_ROLE.RECRUITER,
+    CONTACT_ROLE.MANAGER,
+    CONTACT_ROLE.REFERRAL,
+    CONTACT_ROLE.OTHER,
+  ],
+  { error: "Rôle invalide" }
+);
+
+const contactLinkedinUrlSchema = z
+  .string()
+  .trim()
+  .url("URL LinkedIn invalide")
+  .optional()
+  .or(z.literal(""));
+
+export const addContactSchema = z.object({
+  jobId: jobIdSchema,
+  name: z.string().trim().min(1, "Nom requis"),
+  role: contactRoleSchema,
+  linkedinUrl: contactLinkedinUrlSchema,
+});
+
+export const updateContactSchema = z.object({
+  contactId: jobIdSchema,
+  name: z.string().trim().min(1, "Nom requis"),
+  role: contactRoleSchema,
+  linkedinUrl: contactLinkedinUrlSchema,
+});
+
+export const deleteContactSchema = z.object({
+  contactId: jobIdSchema,
 });

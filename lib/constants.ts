@@ -61,3 +61,30 @@ export const FOLLOW_UP_BADGE_CLASSNAME =
 export function isJobStatus(value: string): value is JobStatus {
   return value in STATUS_CONFIG;
 }
+
+export const CONTACT_ROLE = {
+  RECRUITER: "RECRUITER",
+  MANAGER: "MANAGER",
+  REFERRAL: "REFERRAL",
+  OTHER: "OTHER",
+} as const;
+
+export type ContactRole = (typeof CONTACT_ROLE)[keyof typeof CONTACT_ROLE];
+
+export const CONTACT_ROLE_ORDER: ContactRole[] = [
+  CONTACT_ROLE.RECRUITER,
+  CONTACT_ROLE.MANAGER,
+  CONTACT_ROLE.REFERRAL,
+  CONTACT_ROLE.OTHER,
+];
+
+export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
+  RECRUITER: "Recruteur",
+  MANAGER: "Manager",
+  REFERRAL: "Referral",
+  OTHER: "Autre",
+};
+
+export function isContactRole(value: string): value is ContactRole {
+  return value in CONTACT_ROLE_LABELS;
+}

@@ -12,11 +12,14 @@ import {
 } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
+  addContact: vi.fn(),
   addTagToJob: vi.fn(),
   archiveJob: vi.fn(),
+  deleteContact: vi.fn(),
   deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
   removeTagFromJob: vi.fn(),
+  updateContact: vi.fn(),
   updateJobDetails: vi.fn(),
 }));
 
@@ -143,6 +146,33 @@ describe("JobSheet — tags", () => {
 
     expect(removeTagFromJob).toHaveBeenCalledWith("job-1", "tag-1");
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+  });
+});
+
+describe("JobSheet — contacts", () => {
+  it("renders the job's existing contacts", () => {
+    render(
+      <JobSheet
+        job={{
+          ...baseJob,
+          contacts: [
+            {
+              id: "contact-1",
+              jobId: "job-1",
+              name: "Jane Doe",
+              role: "RECRUITER",
+              linkedinUrl: null,
+              createdAt: new Date("2026-01-01"),
+              updatedAt: new Date("2026-01-01"),
+            },
+          ],
+        }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByDisplayValue("Jane Doe")).toBeInTheDocument();
   });
 });
 

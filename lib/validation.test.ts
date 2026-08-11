@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  addContactSchema,
   addTagToJobSchema,
   archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
+  deleteContactSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
+  updateContactSchema,
   updateJobDetailsSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
@@ -207,5 +210,77 @@ describe("removeTagFromJobSchema", () => {
     expect(removeTagFromJobSchema.safeParse({ jobId: "job-1" }).success).toBe(
       false
     );
+  });
+});
+
+describe("addContactSchema", () => {
+  it("accepts a valid contact with linkedinUrl", () => {
+    const result = addContactSchema.safeParse({
+      jobId: "job-1",
+      name: "Jane Doe",
+      role: "RECRUITER",
+      linkedinUrl: "https://linkedin.com/in/janedoe",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an omitted linkedinUrl", () => {
+    const result = addContactSchema.safeParse({
+      jobId: "job-1",
+      name: "Jane Doe",
+      role: "OTHER",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing name", () => {
+    const result = addContactSchema.safeParse({
+      jobId: "job-1",
+      name: "  ",
+      role: "OTHER",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid role", () => {
+    const result = addContactSchema.safeParse({
+      jobId: "job-1",
+      name: "Jane Doe",
+      role: "CEO",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a malformed linkedinUrl", () => {
+    const result = addContactSchema.safeParse({
+      jobId: "job-1",
+      name: "Jane Doe",
+      role: "OTHER",
+      linkedinUrl: "not a url",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateContactSchema", () => {
+  it("requires a contactId instead of a jobId", () => {
+    const result = updateContactSchema.safeParse({
+      contactId: "contact-1",
+      name: "Jane Doe",
+      role: "MANAGER",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("deleteContactSchema", () => {
+  it("accepts a non-empty contactId", () => {
+    expect(
+      deleteContactSchema.safeParse({ contactId: "contact-1" }).success
+    ).toBe(true);
+  });
+
+  it("rejects a missing contactId", () => {
+    expect(deleteContactSchema.safeParse({}).success).toBe(false);
   });
 });
