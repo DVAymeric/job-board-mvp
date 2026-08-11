@@ -30,7 +30,7 @@ export function JobSheet({
   onUpdated: (job: Job) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [titleCompany, setTitleCompany] = useState(job?.titleCompany ?? "");
+  const [titleCompany, setTitleCompany] = useState(job?.title ?? "");
   const [saving, setSaving] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [marking, setMarking] = useState(false);
@@ -52,7 +52,7 @@ export function JobSheet({
       toast.error(result.error);
       return;
     }
-    onUpdated({ ...job, titleCompany: titleCompany.trim() || null });
+    onUpdated({ ...job, title: titleCompany.trim() || null });
     toast.success("Offre mise à jour");
   }
 
@@ -112,7 +112,7 @@ export function JobSheet({
               />
               <Button
                 onClick={handleSaveTitle}
-                disabled={saving || titleCompany === (job.titleCompany ?? "")}
+                disabled={saving || titleCompany === (job.title ?? "")}
               >
                 Enregistrer
               </Button>

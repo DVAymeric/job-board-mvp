@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 
 function getDisplayName(job: Job): string {
-  if (job.titleCompany) return job.titleCompany;
+  if (job.title) return job.title;
   try {
     return new URL(job.url).hostname.replace(/^www\./, "");
   } catch {

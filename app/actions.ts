@@ -41,7 +41,7 @@ export async function createJob(input: {
     const job = await prisma.job.create({
       data: {
         url,
-        titleCompany: input.titleCompany?.trim() || null,
+        title: input.titleCompany?.trim() || null,
         status: input.status,
         lastFollowUp: input.status === STATUS.APPLIED ? new Date() : null,
       },
@@ -103,7 +103,7 @@ export async function updateJobDetails(
   try {
     await prisma.job.update({
       where: { id },
-      data: { titleCompany: titleCompany.trim() || null },
+      data: { title: titleCompany.trim() || null },
     });
     revalidatePath("/board");
     return { ok: true, data: null };

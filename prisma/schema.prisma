@@ -8,11 +8,57 @@ datasource db {
 }
 
 model Job {
-  id           String    @id @default(uuid())
-  url          String    @unique
-  titleCompany String?
-  status       String    @default("TO_APPLY") // TO_APPLY | APPLIED | INTERVIEW | REJECTED
-  lastFollowUp DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             String    @id @default(uuid())
+  url            String    @unique
+  title          String?
+  companyName    String?
+  companyLogoUrl String?
+  notes          String?
+  status         String    @default("TO_APPLY") // TO_APPLY | APPLIED | INTERVIEW | REJECTED
+  archived       Boolean   @default(false)
+  order          Int       @default(0)
+  lastFollowUp   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  contacts      Contact[]
+  tags          JobTag[]
+  statusHistory StatusHistory[]
+}
+
+model Contact {
+  id          String  @id @default(uuid())
+  jobId       String
+  job         Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  name        String
+  role        String?
+  linkedinUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  jobs JobTag[]
+}
+
+model JobTag {
+  jobId String
+  tagId String
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  tag   Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([jobId, tagId])
+}
+
+model StatusHistory {
+  id     String @id @default(uuid())
+  jobId  String
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status String
+
+  changedAt DateTime @default(now())
 }
