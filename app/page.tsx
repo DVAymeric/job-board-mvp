@@ -102,7 +102,7 @@ export default function Home() {
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Suivi de candidatures
           </p>
-          <h1 className="font-heading text-2xl text-heading">
+          <h1 className="font-heading text-xl text-heading">
             Colle une offre
           </h1>
           <p className="text-sm text-muted-foreground">
