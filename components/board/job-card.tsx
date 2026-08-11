@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Job } from "@prisma/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CompanyAvatar } from "@/components/board/company-avatar";
 import {
   FOLLOW_UP_BADGE_CLASSNAME,
   FOLLOW_UP_DAYS,
@@ -67,13 +68,16 @@ export function JobCard({
       )}
     >
       <CardContent className="space-y-2">
-        <div>
-          <p className="font-heading text-sm leading-snug text-heading">
-            {getDisplayTitle(job)}
-          </p>
-          {job.title && job.companyName && (
-            <p className="text-xs text-muted-foreground">{job.companyName}</p>
-          )}
+        <div className="flex items-start gap-2">
+          <CompanyAvatar job={job} />
+          <div className="min-w-0">
+            <p className="font-heading text-sm leading-snug text-heading">
+              {getDisplayTitle(job)}
+            </p>
+            {job.title && job.companyName && (
+              <p className="text-xs text-muted-foreground">{job.companyName}</p>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge className={STATUS_CONFIG[job.status as JobStatus]?.badgeClassName}>

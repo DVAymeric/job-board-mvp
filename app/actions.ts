@@ -7,6 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
 import {
+  buildBrandfetchLogoUrl,
+  buildClearbitLogoUrl,
+  extractCompanyDomain,
+} from "@/lib/company-logo";
+import {
   archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
@@ -72,10 +77,57 @@ export async function fetchJobMetadata(
   }
 }
 
+const LOGO_FETCH_TIMEOUT_MS = 3000;
+
+async function logoUrlResolves(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: AbortSignal.timeout(LOGO_FETCH_TIMEOUT_MS),
+    });
+    return (
+      response.ok &&
+      (response.headers.get("content-type") ?? "").startsWith("image/")
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchCompanyLogo(
+  rawUrl: string
+): Promise<ActionResult<{ logoUrl: string | null }>> {
+  const empty = { logoUrl: null };
+  const parsed = checkJobUrlSchema.safeParse(rawUrl);
+  if (!parsed.success) {
+    return { ok: true, data: empty };
+  }
+  const domain = extractCompanyDomain(parsed.data);
+  if (!domain) {
+    return { ok: true, data: empty };
+  }
+
+  const clearbitUrl = buildClearbitLogoUrl(domain);
+  if (await logoUrlResolves(clearbitUrl)) {
+    return { ok: true, data: { logoUrl: clearbitUrl } };
+  }
+
+  const brandfetchClientId = process.env.BRANDFETCH_CLIENT_ID;
+  if (brandfetchClientId) {
+    const brandfetchUrl = buildBrandfetchLogoUrl(domain, brandfetchClientId);
+    if (await logoUrlResolves(brandfetchUrl)) {
+      return { ok: true, data: { logoUrl: brandfetchUrl } };
+    }
+  }
+
+  return { ok: true, data: empty };
+}
+
 export async function createJob(input: {
   url: string;
   title?: string;
   companyName?: string;
+  companyLogoUrl?: string;
   status: JobStatus;
 }): Promise<ActionResult<{ id: string }>> {
   const parsed = createJobSchema.safeParse(input);
@@ -85,13 +137,14 @@ export async function createJob(input: {
       error: firstIssueMessage(parsed.error, "Offre invalide"),
     };
   }
-  const { url, title, companyName, status } = parsed.data;
+  const { url, title, companyName, companyLogoUrl, status } = parsed.data;
   try {
     const job = await prisma.job.create({
       data: {
         url,
         title: title || null,
         companyName: companyName || null,
+        companyLogoUrl: companyLogoUrl || null,
         status,
         lastFollowUp: status === STATUS.APPLIED ? new Date() : null,
       },

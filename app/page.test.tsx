@@ -2,11 +2,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Home from "@/app/page";
-import { checkJobUrl, createJob, fetchJobMetadata } from "@/app/actions";
+import {
+  checkJobUrl,
+  createJob,
+  fetchCompanyLogo,
+  fetchJobMetadata,
+} from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
   checkJobUrl: vi.fn(),
   createJob: vi.fn(),
+  fetchCompanyLogo: vi.fn(),
   fetchJobMetadata: vi.fn(),
 }));
 
@@ -22,6 +28,11 @@ describe("Home — nouvelle candidature", () => {
     vi.mocked(fetchJobMetadata).mockResolvedValue({
       ok: true,
       data: { title: null, companyName: null },
+    });
+    vi.mocked(fetchCompanyLogo).mockReset();
+    vi.mocked(fetchCompanyLogo).mockResolvedValue({
+      ok: true,
+      data: { logoUrl: null },
     });
   });
 
@@ -69,8 +80,37 @@ describe("Home — nouvelle candidature", () => {
       url: "https://example.com/job",
       title: "Développeur",
       companyName: "Acme",
+      companyLogoUrl: "",
       status: "TO_APPLY",
     });
+  });
+
+  it("includes the fetched company logo when submitting", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/job" },
+    });
+    vi.mocked(fetchCompanyLogo).mockResolvedValue({
+      ok: true,
+      data: { logoUrl: "https://logo.clearbit.com/example.com?size=128" },
+    });
+    vi.mocked(createJob).mockResolvedValue({ ok: true, data: { id: "job-1" } });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+    await screen.findByPlaceholderText("Titre du poste");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(createJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyLogoUrl: "https://logo.clearbit.com/example.com?size=128",
+      })
+    );
   });
 
   it("pre-fills title and company from fetched metadata, still editable", async () => {

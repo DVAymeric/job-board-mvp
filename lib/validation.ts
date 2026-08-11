@@ -23,6 +23,7 @@ export const createJobSchema = z.object({
   url: urlSchema,
   title: z.string().trim().optional(),
   companyName: z.string().trim().optional(),
+  companyLogoUrl: z.url().optional().or(z.literal("")),
   status: z.enum([STATUS.TO_APPLY, STATUS.APPLIED], {
     error: "Statut initial invalide",
   }),

@@ -67,6 +67,24 @@ describe("createJobSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts a valid companyLogoUrl", () => {
+    const result = createJobSchema.safeParse({
+      url: "example.com/job",
+      status: "TO_APPLY",
+      companyLogoUrl: "https://logo.clearbit.com/acme.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a malformed companyLogoUrl", () => {
+    const result = createJobSchema.safeParse({
+      url: "example.com/job",
+      status: "TO_APPLY",
+      companyLogoUrl: "not a url",
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("updateJobStatusSchema", () => {

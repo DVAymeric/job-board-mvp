@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { CompanyAvatar } from "@/components/board/company-avatar";
 import { toast } from "sonner";
 import {
   archiveJob,
@@ -115,7 +116,10 @@ export function JobSheet({
     <Sheet open={!!job} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Détails de la candidature</SheetTitle>
+          <div className="flex items-center gap-2">
+            <CompanyAvatar job={job} />
+            <SheetTitle>Détails de la candidature</SheetTitle>
+          </div>
           <SheetDescription>
             <a
               href={job.url}

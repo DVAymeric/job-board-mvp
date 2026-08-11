@@ -14,7 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { checkJobUrl, createJob, fetchJobMetadata } from "@/app/actions";
+import {
+  checkJobUrl,
+  createJob,
+  fetchCompanyLogo,
+  fetchJobMetadata,
+} from "@/app/actions";
 import { STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -30,6 +35,7 @@ export default function Home() {
   const [view, setView] = useState<ViewState>({ kind: "idle" });
   const [title, setTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [companyLogoUrl, setCompanyLogoUrl] = useState("");
   const [initialStatus, setInitialStatus] = useState<JobStatus>(
     STATUS.TO_APPLY
   );
@@ -51,10 +57,14 @@ export default function Home() {
       setView({ kind: "known", job: result.data.job as Job });
     } else {
       const normalizedUrl = result.data.normalizedUrl;
-      const metadata = await fetchJobMetadata(normalizedUrl);
+      const [metadata, logo] = await Promise.all([
+        fetchJobMetadata(normalizedUrl),
+        fetchCompanyLogo(normalizedUrl),
+      ]);
       setView({ kind: "new", normalizedUrl });
       setTitle(metadata.ok ? metadata.data.title ?? "" : "");
       setCompanyName(metadata.ok ? metadata.data.companyName ?? "" : "");
+      setCompanyLogoUrl(logo.ok ? logo.data.logoUrl ?? "" : "");
       setInitialStatus(STATUS.TO_APPLY);
     }
   }
@@ -66,6 +76,7 @@ export default function Home() {
       url: view.normalizedUrl,
       title,
       companyName,
+      companyLogoUrl,
       status: initialStatus,
     });
     setSaving(false);
@@ -77,6 +88,7 @@ export default function Home() {
     setUrl("");
     setTitle("");
     setCompanyName("");
+    setCompanyLogoUrl("");
     setInitialStatus(STATUS.TO_APPLY);
     setView({ kind: "idle" });
   }
