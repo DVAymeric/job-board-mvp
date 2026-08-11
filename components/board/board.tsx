@@ -94,6 +94,17 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
               statusChanged && targetStatus === STATUS.APPLIED
                 ? new Date()
                 : j.lastFollowUp,
+            statusHistory: statusChanged
+              ? [
+                  ...j.statusHistory,
+                  {
+                    id: crypto.randomUUID(),
+                    jobId: j.id,
+                    status: targetStatus,
+                    changedAt: new Date(),
+                  },
+                ]
+              : j.statusHistory,
           };
         }
         const order = orderById.get(j.id);

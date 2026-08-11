@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CompanyAvatar } from "@/components/board/company-avatar";
 import { ContactsSection } from "@/components/board/contacts-section";
+import { StatusTimeline } from "@/components/board/status-timeline";
 import { toast } from "sonner";
 import { XIcon } from "lucide-react";
 import {
@@ -302,6 +303,8 @@ export function JobSheet({
                 : "jamais"}
             </p>
           </div>
+
+          <StatusTimeline history={job.statusHistory} />
 
           <Button variant="outline" onClick={handleMarkFollowUp} disabled={marking}>
             Marquer comme relancé aujourd&apos;hui

@@ -194,6 +194,37 @@ describe("JobSheet — notes", () => {
   });
 });
 
+describe("JobSheet — timeline de statut", () => {
+  it("renders the job's status history entries", () => {
+    render(
+      <JobSheet
+        job={{
+          ...baseJob,
+          statusHistory: [
+            {
+              id: "sh-1",
+              jobId: "job-1",
+              status: "TO_APPLY",
+              changedAt: new Date("2026-01-01"),
+            },
+            {
+              id: "sh-2",
+              jobId: "job-1",
+              status: "APPLIED",
+              changedAt: new Date("2026-01-05"),
+            },
+          ],
+        }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Historique de statut")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+});
+
 describe("JobSheet — contacts", () => {
   it("renders the job's existing contacts", () => {
     render(
