@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { Job } from "@prisma/client";
 import {
   DndContext,
   PointerSensor,
@@ -17,19 +16,21 @@ import { JobSheet } from "@/components/board/job-sheet";
 import { needsFollowUp } from "@/components/board/job-card";
 import { STATUS, STATUS_ORDER } from "@/lib/constants";
 import { computeReorderedColumn } from "@/lib/board-reorder";
-import { matchesJobQuery } from "@/lib/job-filters";
+import { matchesJobQuery, matchesSelectedTags } from "@/lib/job-filters";
+import type { JobWithRelations } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { reorderJobs, updateJobStatus } from "@/app/actions";
 import { toast } from "sonner";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
-export function Board({ initialJobs }: { initialJobs: Job[] }) {
+export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
   const [jobs, setJobs] = useState(initialJobs);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [followUpOnly, setFollowUpOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -43,12 +44,23 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
     return () => clearTimeout(timeout);
   }, [search]);
 
+  const allTags = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const job of jobs) {
+      for (const jt of job.tags) byId.set(jt.tagId, jt.tag.name);
+    }
+    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [jobs]);
+
   const visibleJobs = useMemo(
     () =>
       jobs
         .filter((j) => (followUpOnly ? needsFollowUp(j) : true))
-        .filter((j) => matchesJobQuery(j, debouncedSearch)),
-    [jobs, followUpOnly, debouncedSearch]
+        .filter((j) => matchesJobQuery(j, debouncedSearch))
+        .filter((j) => matchesSelectedTags(j, selectedTagIds)),
+    [jobs, followUpOnly, debouncedSearch, selectedTagIds]
   );
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId) ?? null;
@@ -105,7 +117,7 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
     }
   }
 
-  function handleUpdated(updated: Job) {
+  function handleUpdated(updated: JobWithRelations) {
     setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
   }
 
@@ -136,7 +148,33 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
         </div>
       </div>
 
-      {debouncedSearch.trim() && visibleJobs.length === 0 ? (
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {allTags.map((tag) => {
+            const selected = selectedTagIds.includes(tag.id);
+            return (
+              <Button
+                key={tag.id}
+                type="button"
+                variant={selected ? "default" : "outline"}
+                size="xs"
+                onClick={() =>
+                  setSelectedTagIds((prev) =>
+                    selected
+                      ? prev.filter((id) => id !== tag.id)
+                      : [...prev, tag.id]
+                  )
+                }
+              >
+                {tag.name}
+              </Button>
+            );
+          })}
+        </div>
+      )}
+
+      {(debouncedSearch.trim() || selectedTagIds.length > 0) &&
+      visibleJobs.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           Aucune candidature ne correspond
         </p>

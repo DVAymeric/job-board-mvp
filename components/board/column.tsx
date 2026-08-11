@@ -2,9 +2,9 @@
 
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { Job } from "@prisma/client";
 import { JobCard } from "@/components/board/job-card";
 import { JobStatus, STATUS_CONFIG } from "@/lib/constants";
+import type { JobWithRelations } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function Column({
@@ -13,7 +13,7 @@ export function Column({
   onOpenJob,
 }: {
   status: JobStatus;
-  jobs: Job[];
+  jobs: JobWithRelations[];
   onOpenJob: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });

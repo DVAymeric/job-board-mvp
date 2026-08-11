@@ -12,11 +12,13 @@ import {
   extractCompanyDomain,
 } from "@/lib/company-logo";
 import {
+  addTagToJobSchema,
   archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  removeTagFromJobSchema,
   reorderJobsSchema,
   updateJobDetailsSchema,
   updateJobStatusSchema,
@@ -296,5 +298,60 @@ export async function reorderJobs(
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible de réordonner les candidatures" };
+  }
+}
+
+export async function addTagToJob(
+  jobId: string,
+  tagName: string
+): Promise<ActionResult<{ tag: { id: string; name: string } }>> {
+  const parsed = addTagToJobSchema.safeParse({ jobId, tagName });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible d'ajouter ce tag"),
+    };
+  }
+  try {
+    const tag = await prisma.tag.upsert({
+      where: { name: parsed.data.tagName },
+      create: { name: parsed.data.tagName },
+      update: {},
+    });
+    await prisma.jobTag.upsert({
+      where: {
+        jobId_tagId: { jobId: parsed.data.jobId, tagId: tag.id },
+      },
+      create: { jobId: parsed.data.jobId, tagId: tag.id },
+      update: {},
+    });
+    revalidatePath("/board");
+    return { ok: true, data: { tag: { id: tag.id, name: tag.name } } };
+  } catch {
+    return { ok: false, error: "Impossible d'ajouter ce tag" };
+  }
+}
+
+export async function removeTagFromJob(
+  jobId: string,
+  tagId: string
+): Promise<ActionResult<null>> {
+  const parsed = removeTagFromJobSchema.safeParse({ jobId, tagId });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible de retirer ce tag"),
+    };
+  }
+  try {
+    await prisma.jobTag.delete({
+      where: {
+        jobId_tagId: { jobId: parsed.data.jobId, tagId: parsed.data.tagId },
+      },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible de retirer ce tag" };
   }
 }

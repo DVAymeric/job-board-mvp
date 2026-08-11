@@ -1,14 +1,22 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Job } from "@prisma/client";
+import type { JobWithRelations } from "@/lib/types";
 import { JobSheet } from "@/components/board/job-sheet";
-import { archiveJob, deleteJob, updateJobDetails } from "@/app/actions";
+import {
+  addTagToJob,
+  archiveJob,
+  deleteJob,
+  removeTagFromJob,
+  updateJobDetails,
+} from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
+  addTagToJob: vi.fn(),
   archiveJob: vi.fn(),
   deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
+  removeTagFromJob: vi.fn(),
   updateJobDetails: vi.fn(),
 }));
 
@@ -16,7 +24,7 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-const baseJob: Job = {
+const baseJob: JobWithRelations = {
   id: "job-1",
   url: "https://example.com/job",
   title: "Développeur",
@@ -29,6 +37,9 @@ const baseJob: Job = {
   lastFollowUp: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
+  tags: [],
+  contacts: [],
+  statusHistory: [],
 };
 
 describe("JobSheet — édition titre / entreprise", () => {
@@ -60,6 +71,78 @@ describe("JobSheet — édition titre / entreprise", () => {
     expect(onUpdated).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Développeur senior", companyName: "Beta" })
     );
+  });
+});
+
+describe("JobSheet — tags", () => {
+  beforeEach(() => {
+    vi.mocked(addTagToJob).mockReset();
+    vi.mocked(removeTagFromJob).mockReset();
+  });
+
+  it("shows the job's existing tags", () => {
+    render(
+      <JobSheet
+        job={{
+          ...baseJob,
+          tags: [
+            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } },
+          ],
+        }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Remote")).toBeInTheDocument();
+  });
+
+  it("adds a new tag by name", async () => {
+    const user = userEvent.setup();
+    vi.mocked(addTagToJob).mockResolvedValue({
+      ok: true,
+      data: { tag: { id: "tag-1", name: "Remote" } },
+    });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    await user.type(screen.getByPlaceholderText("Ajouter un tag..."), "Remote");
+    await user.click(screen.getByRole("button", { name: "Ajouter le tag" }));
+
+    expect(addTagToJob).toHaveBeenCalledWith("job-1", "Remote");
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tags: [{ jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } }],
+      })
+    );
+  });
+
+  it("removes an existing tag", async () => {
+    const user = userEvent.setup();
+    vi.mocked(removeTagFromJob).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobSheet
+        job={{
+          ...baseJob,
+          tags: [
+            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } },
+          ],
+        }}
+        onOpenChange={vi.fn()}
+        onUpdated={onUpdated}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retirer le tag Remote" }));
+
+    expect(removeTagFromJob).toHaveBeenCalledWith("job-1", "tag-1");
+    expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
   });
 });
 

@@ -58,3 +58,19 @@ export const deleteJobSchema = z.object({
 export const reorderJobsSchema = z.object({
   orderedIds: z.array(jobIdSchema).min(1, "Liste vide"),
 });
+
+const tagNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Nom de tag invalide")
+  .max(40, "Nom de tag trop long (40 caractères max)");
+
+export const addTagToJobSchema = z.object({
+  jobId: jobIdSchema,
+  tagName: tagNameSchema,
+});
+
+export const removeTagFromJobSchema = z.object({
+  jobId: jobIdSchema,
+  tagId: jobIdSchema,
+});

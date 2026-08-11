@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Job } from "@prisma/client";
-import { matchesJobQuery } from "@/lib/job-filters";
+import { matchesJobQuery, matchesSelectedTags } from "@/lib/job-filters";
+import type { JobWithRelations } from "@/lib/types";
 
 function job(overrides: Partial<Job>): Job {
   return {
@@ -17,6 +18,19 @@ function job(overrides: Partial<Job>): Job {
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     ...overrides,
+  };
+}
+
+function jobWithTags(tagIds: string[]): JobWithRelations {
+  return {
+    ...job({}),
+    contacts: [],
+    statusHistory: [],
+    tags: tagIds.map((tagId) => ({
+      jobId: "job-1",
+      tagId,
+      tag: { id: tagId, name: tagId },
+    })),
   };
 }
 
@@ -48,5 +62,21 @@ describe("matchesJobQuery", () => {
         "beta"
       )
     ).toBe(false);
+  });
+});
+
+describe("matchesSelectedTags", () => {
+  it("matches anything when no tag is selected", () => {
+    expect(matchesSelectedTags(jobWithTags([]), [])).toBe(true);
+  });
+
+  it("matches a job carrying at least one of the selected tags", () => {
+    expect(matchesSelectedTags(jobWithTags(["remote", "senior"]), ["senior"])).toBe(
+      true
+    );
+  });
+
+  it("does not match a job carrying none of the selected tags", () => {
+    expect(matchesSelectedTags(jobWithTags(["remote"]), ["senior"])).toBe(false);
   });
 });

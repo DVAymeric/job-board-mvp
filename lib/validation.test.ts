@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  addTagToJobSchema,
   archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  removeTagFromJobSchema,
   reorderJobsSchema,
   updateJobDetailsSchema,
   updateJobStatusSchema,
@@ -168,6 +170,41 @@ describe("reorderJobsSchema", () => {
 
   it("rejects a list containing an empty id", () => {
     expect(reorderJobsSchema.safeParse({ orderedIds: ["a", ""] }).success).toBe(
+      false
+    );
+  });
+});
+
+describe("addTagToJobSchema", () => {
+  it("accepts a trimmed tag name", () => {
+    const result = addTagToJobSchema.safeParse({ jobId: "job-1", tagName: "  Remote  " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.tagName).toBe("Remote");
+  });
+
+  it("rejects an empty tag name", () => {
+    expect(
+      addTagToJobSchema.safeParse({ jobId: "job-1", tagName: "   " }).success
+    ).toBe(false);
+  });
+
+  it("rejects a tag name longer than 40 characters", () => {
+    expect(
+      addTagToJobSchema.safeParse({ jobId: "job-1", tagName: "a".repeat(41) })
+        .success
+    ).toBe(false);
+  });
+});
+
+describe("removeTagFromJobSchema", () => {
+  it("accepts non-empty jobId and tagId", () => {
+    expect(
+      removeTagFromJobSchema.safeParse({ jobId: "job-1", tagId: "tag-1" }).success
+    ).toBe(true);
+  });
+
+  it("rejects a missing tagId", () => {
+    expect(removeTagFromJobSchema.safeParse({ jobId: "job-1" }).success).toBe(
       false
     );
   });

@@ -1,13 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Job } from "@prisma/client";
+import type { JobWithRelations } from "@/lib/types";
 import { Board } from "@/components/board/board";
 
 vi.mock("@/app/actions", () => ({
+  addTagToJob: vi.fn(),
   archiveJob: vi.fn(),
   deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
+  removeTagFromJob: vi.fn(),
   reorderJobs: vi.fn(),
   updateJobDetails: vi.fn(),
   updateJobStatus: vi.fn(),
@@ -17,7 +19,7 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-function job(overrides: Partial<Job>): Job {
+function job(overrides: Partial<JobWithRelations>): JobWithRelations {
   return {
     id: overrides.id ?? "job-1",
     url: "https://example.com/careers/dev",
@@ -31,11 +33,14 @@ function job(overrides: Partial<Job>): Job {
     lastFollowUp: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
+    tags: [],
+    contacts: [],
+    statusHistory: [],
     ...overrides,
   };
 }
 
-const jobs: Job[] = [
+const jobs: JobWithRelations[] = [
   job({ id: "job-1", title: "Développeur Backend", companyName: "Acme" }),
   job({ id: "job-2", title: "Chef de projet", companyName: "Beta SAS", status: "APPLIED" }),
 ];
@@ -86,5 +91,30 @@ describe("Board search", () => {
       await screen.findByText("Aucune candidature ne correspond")
     ).toBeInTheDocument();
     expect(screen.queryByText("Développeur Frontend")).not.toBeInTheDocument();
+  });
+});
+
+describe("Board tag filter", () => {
+  it("filters cards to those carrying the selected tag", async () => {
+    const user = userEvent.setup();
+    const taggedJobs = [
+      job({
+        id: "job-1",
+        title: "Développeur Backend",
+        tags: [
+          { jobId: "job-1", tagId: "tag-remote", tag: { id: "tag-remote", name: "Remote" } },
+        ],
+      }),
+      job({ id: "job-2", title: "Chef de projet", tags: [] }),
+    ];
+    render(<Board initialJobs={taggedJobs} />);
+
+    expect(screen.getByText("Développeur Backend")).toBeInTheDocument();
+    expect(screen.getByText("Chef de projet")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Remote" }));
+
+    expect(screen.getByText("Développeur Backend")).toBeInTheDocument();
+    expect(screen.queryByText("Chef de projet")).not.toBeInTheDocument();
   });
 });

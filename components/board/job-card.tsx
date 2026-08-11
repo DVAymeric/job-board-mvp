@@ -13,6 +13,7 @@ import {
   STATUS_CONFIG,
   JobStatus,
 } from "@/lib/constants";
+import type { JobWithRelations } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function getDisplayTitle(job: Job): string {
@@ -37,7 +38,7 @@ export function JobCard({
   job,
   onOpen,
 }: {
-  job: Job;
+  job: JobWithRelations;
   onOpen: (id: string) => void;
 }) {
   const {
@@ -86,6 +87,11 @@ export function JobCard({
           {needsFollowUp(job) && (
             <Badge className={FOLLOW_UP_BADGE_CLASSNAME}>Relancer ?</Badge>
           )}
+          {job.tags.map((jt) => (
+            <Badge key={jt.tagId} variant="secondary">
+              {jt.tag.name}
+            </Badge>
+          ))}
         </div>
         <p className="font-mono text-xs text-muted-foreground">
           Ajouté le {new Date(job.createdAt).toLocaleDateString("fr-FR")}

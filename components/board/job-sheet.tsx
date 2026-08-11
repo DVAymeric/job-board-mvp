@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Job } from "@prisma/client";
+import type { JobWithRelations } from "@/lib/types";
 import {
   Sheet,
   SheetContent,
@@ -23,12 +23,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { CompanyAvatar } from "@/components/board/company-avatar";
 import { toast } from "sonner";
+import { XIcon } from "lucide-react";
 import {
+  addTagToJob,
   archiveJob,
   deleteJob,
   markFollowUpToday,
+  removeTagFromJob,
   updateJobDetails,
 } from "@/app/actions";
 
@@ -40,9 +44,9 @@ export function JobSheet({
   onUpdated,
   onDeleted,
 }: {
-  job: Job | null;
+  job: JobWithRelations | null;
   onOpenChange: (open: boolean) => void;
-  onUpdated: (job: Job) => void;
+  onUpdated: (job: JobWithRelations) => void;
   onDeleted: (id: string) => void;
 }) {
   const [title, setTitle] = useState(job?.title ?? "");
@@ -51,6 +55,8 @@ export function JobSheet({
   const [marking, setMarking] = useState(false);
   const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] =
     useState("");
+  const [newTagName, setNewTagName] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
 
   if (!job) {
     return (
@@ -88,6 +94,35 @@ export function JobSheet({
     }
     onUpdated({ ...job, lastFollowUp: new Date() });
     toast.success("Relance enregistrée");
+  }
+
+  async function handleAddTag() {
+    if (!job || !newTagName.trim()) return;
+    setAddingTag(true);
+    const result = await addTagToJob(job.id, newTagName.trim());
+    setAddingTag(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    const { tag } = result.data;
+    if (!job.tags.some((jt) => jt.tagId === tag.id)) {
+      onUpdated({
+        ...job,
+        tags: [...job.tags, { jobId: job.id, tagId: tag.id, tag }],
+      });
+    }
+    setNewTagName("");
+  }
+
+  async function handleRemoveTag(tagId: string) {
+    if (!job) return;
+    const result = await removeTagFromJob(job.id, tagId);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onUpdated({ ...job, tags: job.tags.filter((jt) => jt.tagId !== tagId) });
   }
 
   async function handleArchive() {
@@ -165,6 +200,48 @@ export function JobSheet({
                 }
               >
                 Enregistrer
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-new-tag" className="text-sm font-medium">
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {job.tags.map((jt) => (
+                <Badge key={jt.tagId} variant="secondary" className="gap-1 pr-1">
+                  {jt.tag.name}
+                  <button
+                    type="button"
+                    aria-label={`Retirer le tag ${jt.tag.name}`}
+                    onClick={() => handleRemoveTag(jt.tagId)}
+                    className="rounded-full hover:bg-secondary-foreground/10"
+                  >
+                    <XIcon className="size-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                id="job-new-tag"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Ajouter un tag..."
+                disabled={addingTag}
+              />
+              <Button
+                onClick={handleAddTag}
+                disabled={addingTag || !newTagName.trim()}
+              >
+                Ajouter le tag
               </Button>
             </div>
           </div>
