@@ -24,6 +24,7 @@ import {
   reorderJobsSchema,
   updateContactSchema,
   updateJobDetailsSchema,
+  updateJobNotesSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
 
@@ -238,6 +239,29 @@ export async function updateJobDetails(
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible de mettre à jour l'offre" };
+  }
+}
+
+export async function updateJobNotes(
+  id: string,
+  notes: string
+): Promise<ActionResult<null>> {
+  const parsed = updateJobNotesSchema.safeParse({ id, notes });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer les notes"),
+    };
+  }
+  try {
+    await prisma.job.update({
+      where: { id: parsed.data.id },
+      data: { notes: parsed.data.notes.trim() || null },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible d'enregistrer les notes" };
   }
 }
 

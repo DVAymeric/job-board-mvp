@@ -43,6 +43,11 @@ export const updateJobDetailsSchema = z.object({
   companyName: z.string(),
 });
 
+export const updateJobNotesSchema = z.object({
+  id: jobIdSchema,
+  notes: z.string(),
+});
+
 export const markFollowUpTodaySchema = z.object({
   id: jobIdSchema,
 });

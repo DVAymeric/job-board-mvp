@@ -12,6 +12,7 @@ import {
   reorderJobsSchema,
   updateContactSchema,
   updateJobDetailsSchema,
+  updateJobNotesSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
 
@@ -128,6 +129,26 @@ describe("updateJobDetailsSchema", () => {
   it("rejects a missing id", () => {
     const result = updateJobDetailsSchema.safeParse({ title: "x", companyName: "y" });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("updateJobNotesSchema", () => {
+  it("accepts empty notes (clears the field)", () => {
+    expect(
+      updateJobNotesSchema.safeParse({ id: "job-1", notes: "" }).success
+    ).toBe(true);
+  });
+
+  it("accepts free-form multiline notes", () => {
+    const result = updateJobNotesSchema.safeParse({
+      id: "job-1",
+      notes: "Ligne 1\nLigne 2",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing id", () => {
+    expect(updateJobNotesSchema.safeParse({ notes: "x" }).success).toBe(false);
   });
 });
 

@@ -9,6 +9,7 @@ import {
   deleteJob,
   removeTagFromJob,
   updateJobDetails,
+  updateJobNotes,
 } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
@@ -21,6 +22,7 @@ vi.mock("@/app/actions", () => ({
   removeTagFromJob: vi.fn(),
   updateContact: vi.fn(),
   updateJobDetails: vi.fn(),
+  updateJobNotes: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -146,6 +148,49 @@ describe("JobSheet — tags", () => {
 
     expect(removeTagFromJob).toHaveBeenCalledWith("job-1", "tag-1");
     expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ tags: [] }));
+  });
+});
+
+describe("JobSheet — notes", () => {
+  beforeEach(() => {
+    vi.mocked(updateJobNotes).mockReset();
+  });
+
+  it("loads the job's existing notes into the textarea", () => {
+    render(
+      <JobSheet
+        job={{ ...baseJob, notes: "Contact via une connexion LinkedIn" }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText("Notes")).toHaveValue(
+      "Contact via une connexion LinkedIn"
+    );
+  });
+
+  it("saves notes via a dedicated button", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateJobNotes).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    const notesField = screen.getByLabelText("Notes");
+    const saveButton = screen.getByRole("button", { name: "Enregistrer les notes" });
+    expect(saveButton).toBeDisabled();
+
+    await user.type(notesField, "Relancer après l'entretien");
+    expect(saveButton).toBeEnabled();
+    await user.click(saveButton);
+
+    expect(updateJobNotes).toHaveBeenCalledWith("job-1", "Relancer après l'entretien");
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ notes: "Relancer après l'entretien" })
+    );
   });
 });
 

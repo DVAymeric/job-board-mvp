@@ -22,6 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CompanyAvatar } from "@/components/board/company-avatar";
@@ -35,6 +36,7 @@ import {
   markFollowUpToday,
   removeTagFromJob,
   updateJobDetails,
+  updateJobNotes,
 } from "@/app/actions";
 
 const PERMANENT_DELETE_PHRASE = "SUPPRIMER";
@@ -58,6 +60,8 @@ export function JobSheet({
     useState("");
   const [newTagName, setNewTagName] = useState("");
   const [addingTag, setAddingTag] = useState(false);
+  const [notes, setNotes] = useState(job?.notes ?? "");
+  const [savingNotes, setSavingNotes] = useState(false);
 
   if (!job) {
     return (
@@ -82,6 +86,19 @@ export function JobSheet({
       companyName: companyName.trim() || null,
     });
     toast.success("Offre mise à jour");
+  }
+
+  async function handleSaveNotes() {
+    if (!job) return;
+    setSavingNotes(true);
+    const result = await updateJobNotes(job.id, notes);
+    setSavingNotes(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onUpdated({ ...job, notes: notes.trim() || null });
+    toast.success("Notes enregistrées");
   }
 
   async function handleMarkFollowUp() {
@@ -252,6 +269,26 @@ export function JobSheet({
             contacts={job.contacts}
             onChange={(contacts) => onUpdated({ ...job, contacts })}
           />
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-notes" className="text-sm font-medium">
+              Notes
+            </label>
+            <Textarea
+              id="job-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              disabled={savingNotes}
+              placeholder="Notes libres sur cette candidature..."
+            />
+            <Button
+              size="sm"
+              onClick={handleSaveNotes}
+              disabled={savingNotes || notes === (job.notes ?? "")}
+            >
+              Enregistrer les notes
+            </Button>
+          </div>
 
           <div className="space-y-1 text-sm">
             <p>
