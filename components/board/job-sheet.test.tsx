@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Job } from "@prisma/client";
 import { JobSheet } from "@/components/board/job-sheet";
-import { archiveJob, deleteJob } from "@/app/actions";
+import { archiveJob, deleteJob, updateJobDetails } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
   archiveJob: vi.fn(),
@@ -30,6 +30,38 @@ const baseJob: Job = {
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
+
+describe("JobSheet — édition titre / entreprise", () => {
+  beforeEach(() => {
+    vi.mocked(updateJobDetails).mockReset();
+  });
+
+  it("edits title and company name as two separate fields", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateJobDetails).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    const titleInput = screen.getByLabelText("Titre du poste");
+    const companyInput = screen.getByLabelText("Entreprise");
+    expect(titleInput).toHaveValue("Développeur");
+    expect(companyInput).toHaveValue("Acme");
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "Développeur senior");
+    await user.clear(companyInput);
+    await user.type(companyInput, "Beta");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateJobDetails).toHaveBeenCalledWith("job-1", "Développeur senior", "Beta");
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Développeur senior", companyName: "Beta" })
+    );
+  });
+});
 
 describe("JobSheet — archivage", () => {
   beforeEach(() => {

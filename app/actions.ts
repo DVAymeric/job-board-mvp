@@ -47,7 +47,8 @@ export async function checkJobUrl(
 
 export async function createJob(input: {
   url: string;
-  titleCompany?: string;
+  title?: string;
+  companyName?: string;
   status: JobStatus;
 }): Promise<ActionResult<{ id: string }>> {
   const parsed = createJobSchema.safeParse(input);
@@ -57,12 +58,13 @@ export async function createJob(input: {
       error: firstIssueMessage(parsed.error, "Offre invalide"),
     };
   }
-  const { url, titleCompany, status } = parsed.data;
+  const { url, title, companyName, status } = parsed.data;
   try {
     const job = await prisma.job.create({
       data: {
         url,
-        title: titleCompany || null,
+        title: title || null,
+        companyName: companyName || null,
         status,
         lastFollowUp: status === STATUS.APPLIED ? new Date() : null,
       },
@@ -129,9 +131,10 @@ export async function markFollowUpToday(
 
 export async function updateJobDetails(
   id: string,
-  titleCompany: string
+  title: string,
+  companyName: string
 ): Promise<ActionResult<null>> {
-  const parsed = updateJobDetailsSchema.safeParse({ id, titleCompany });
+  const parsed = updateJobDetailsSchema.safeParse({ id, title, companyName });
   if (!parsed.success) {
     return {
       ok: false,
@@ -141,7 +144,10 @@ export async function updateJobDetails(
   try {
     await prisma.job.update({
       where: { id: parsed.data.id },
-      data: { title: parsed.data.titleCompany.trim() || null },
+      data: {
+        title: parsed.data.title.trim() || null,
+        companyName: parsed.data.companyName.trim() || null,
+      },
     });
     revalidatePath("/board");
     return { ok: true, data: null };

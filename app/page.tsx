@@ -28,7 +28,8 @@ type ViewState =
 export default function Home() {
   const [url, setUrl] = useState("");
   const [view, setView] = useState<ViewState>({ kind: "idle" });
-  const [titleCompany, setTitleCompany] = useState("");
+  const [title, setTitle] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [initialStatus, setInitialStatus] = useState<JobStatus>(
     STATUS.TO_APPLY
   );
@@ -50,7 +51,8 @@ export default function Home() {
       setView({ kind: "known", job: result.data.job as Job });
     } else {
       setView({ kind: "new", normalizedUrl: result.data.normalizedUrl });
-      setTitleCompany("");
+      setTitle("");
+      setCompanyName("");
       setInitialStatus(STATUS.TO_APPLY);
     }
   }
@@ -60,7 +62,8 @@ export default function Home() {
     setSaving(true);
     const result = await createJob({
       url: view.normalizedUrl,
-      titleCompany,
+      title,
+      companyName,
       status: initialStatus,
     });
     setSaving(false);
@@ -70,7 +73,8 @@ export default function Home() {
     }
     toast.success("Candidature enregistrée");
     setUrl("");
-    setTitleCompany("");
+    setTitle("");
+    setCompanyName("");
     setInitialStatus(STATUS.TO_APPLY);
     setView({ kind: "idle" });
   }
@@ -150,9 +154,15 @@ export default function Home() {
               Nouvelle offre — ajoute-la à ton suivi.
             </p>
             <Input
-              placeholder="Titre / Entreprise (optionnel)"
-              value={titleCompany}
-              onChange={(e) => setTitleCompany(e.target.value)}
+              placeholder="Titre du poste"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={saving}
+            />
+            <Input
+              placeholder="Entreprise"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
               disabled={saving}
             />
             <Select

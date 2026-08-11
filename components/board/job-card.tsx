@@ -13,8 +13,9 @@ import {
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-function getDisplayName(job: Job): string {
+function getDisplayTitle(job: Job): string {
   if (job.title) return job.title;
+  if (job.companyName) return job.companyName;
   try {
     return new URL(job.url).hostname.replace(/^www\./, "");
   } catch {
@@ -60,9 +61,14 @@ export function JobCard({
       )}
     >
       <CardContent className="space-y-2">
-        <p className="font-heading text-sm leading-snug text-heading">
-          {getDisplayName(job)}
-        </p>
+        <div>
+          <p className="font-heading text-sm leading-snug text-heading">
+            {getDisplayTitle(job)}
+          </p>
+          {job.title && job.companyName && (
+            <p className="text-xs text-muted-foreground">{job.companyName}</p>
+          )}
+        </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <Badge className={STATUS_CONFIG[job.status as JobStatus]?.badgeClassName}>
             {STATUS_CONFIG[job.status as JobStatus]?.label ?? job.status}

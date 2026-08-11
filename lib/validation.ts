@@ -21,7 +21,8 @@ export const checkJobUrlSchema = urlSchema;
 
 export const createJobSchema = z.object({
   url: urlSchema,
-  titleCompany: z.string().trim().optional(),
+  title: z.string().trim().optional(),
+  companyName: z.string().trim().optional(),
   status: z.enum([STATUS.TO_APPLY, STATUS.APPLIED], {
     error: "Statut initial invalide",
   }),
@@ -37,7 +38,8 @@ export const updateJobStatusSchema = z.object({
 
 export const updateJobDetailsSchema = z.object({
   id: jobIdSchema,
-  titleCompany: z.string(),
+  title: z.string(),
+  companyName: z.string(),
 });
 
 export const markFollowUpTodaySchema = z.object({

@@ -44,7 +44,8 @@ export function JobSheet({
   onUpdated: (job: Job) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [titleCompany, setTitleCompany] = useState(job?.title ?? "");
+  const [title, setTitle] = useState(job?.title ?? "");
+  const [companyName, setCompanyName] = useState(job?.companyName ?? "");
   const [saving, setSaving] = useState(false);
   const [marking, setMarking] = useState(false);
   const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] =
@@ -61,13 +62,17 @@ export function JobSheet({
   async function handleSaveTitle() {
     if (!job) return;
     setSaving(true);
-    const result = await updateJobDetails(job.id, titleCompany);
+    const result = await updateJobDetails(job.id, title, companyName);
     setSaving(false);
     if (!result.ok) {
       toast.error(result.error);
       return;
     }
-    onUpdated({ ...job, title: titleCompany.trim() || null });
+    onUpdated({
+      ...job,
+      title: title.trim() || null,
+      companyName: companyName.trim() || null,
+    });
     toast.success("Offre mise à jour");
   }
 
@@ -125,16 +130,35 @@ export function JobSheet({
 
         <div className="flex flex-col gap-4 px-4">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Titre / Entreprise</label>
+            <label htmlFor="job-title" className="text-sm font-medium">
+              Titre du poste
+            </label>
+            <Input
+              id="job-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={saving}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-company" className="text-sm font-medium">
+              Entreprise
+            </label>
             <div className="flex gap-2">
               <Input
-                value={titleCompany}
-                onChange={(e) => setTitleCompany(e.target.value)}
+                id="job-company"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
                 disabled={saving}
               />
               <Button
                 onClick={handleSaveTitle}
-                disabled={saving || titleCompany === (job.title ?? "")}
+                disabled={
+                  saving ||
+                  (title === (job.title ?? "") &&
+                    companyName === (job.companyName ?? ""))
+                }
               >
                 Enregistrer
               </Button>

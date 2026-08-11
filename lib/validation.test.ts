@@ -31,17 +31,19 @@ describe("createJobSchema", () => {
   it("accepts a valid TO_APPLY payload", () => {
     const result = createJobSchema.safeParse({
       url: "example.com/job",
-      titleCompany: "Dev - Acme",
+      title: "Développeur",
+      companyName: "Acme",
       status: "TO_APPLY",
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.url).toBe("https://example.com/job");
-      expect(result.data.titleCompany).toBe("Dev - Acme");
+      expect(result.data.title).toBe("Développeur");
+      expect(result.data.companyName).toBe("Acme");
     }
   });
 
-  it("accepts an omitted titleCompany", () => {
+  it("accepts omitted title/companyName", () => {
     const result = createJobSchema.safeParse({
       url: "example.com/job",
       status: "APPLIED",
@@ -90,13 +92,17 @@ describe("updateJobStatusSchema", () => {
 });
 
 describe("updateJobDetailsSchema", () => {
-  it("accepts an empty titleCompany (clears the field)", () => {
-    const result = updateJobDetailsSchema.safeParse({ id: "job-1", titleCompany: "" });
+  it("accepts empty title/companyName (clears the fields)", () => {
+    const result = updateJobDetailsSchema.safeParse({
+      id: "job-1",
+      title: "",
+      companyName: "",
+    });
     expect(result.success).toBe(true);
   });
 
   it("rejects a missing id", () => {
-    const result = updateJobDetailsSchema.safeParse({ titleCompany: "x" });
+    const result = updateJobDetailsSchema.safeParse({ title: "x", companyName: "y" });
     expect(result.success).toBe(false);
   });
 });
