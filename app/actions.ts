@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
+import { buildJobsCsv } from "@/lib/csv-export";
 import {
   buildBrandfetchLogoUrl,
   buildClearbitLogoUrl,
@@ -488,5 +489,17 @@ export async function deleteContact(
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible de supprimer ce contact" };
+  }
+}
+
+export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
+  try {
+    const jobs = await prisma.job.findMany({
+      include: { tags: { include: { tag: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    return { ok: true, data: { csv: buildJobsCsv(jobs) } };
+  } catch {
+    return { ok: false, error: "Impossible de générer l'export CSV" };
   }
 }

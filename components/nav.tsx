@@ -1,8 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportJobsCsv } from "@/app/actions";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const LINKS = [
   { href: "/", label: "Accueil" },
@@ -13,13 +18,33 @@ const LINKS = [
 
 export function Nav() {
   const pathname = usePathname();
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    const result = await exportJobsCsv();
+    setExporting(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    const blob = new Blob([result.data.csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `candidatures-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <header className="flex items-center gap-1 border-b border-border bg-card px-4 py-3">
       <span className="mr-4 font-heading text-base italic text-heading">
         Suivi de candidatures
       </span>
-      <nav className="flex items-center gap-4">
+      <nav className="flex flex-1 items-center gap-4">
         {LINKS.map((link) => (
           <Link
             key={link.href}
@@ -35,6 +60,10 @@ export function Nav() {
           </Link>
         ))}
       </nav>
+      <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+        {exporting && <Loader2 className="animate-spin" />}
+        Exporter CSV
+      </Button>
     </header>
   );
 }
