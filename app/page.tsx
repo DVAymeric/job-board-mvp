@@ -134,7 +134,7 @@ export default function Home() {
         )}
 
         {view.kind === "new" && (
-          <div className="space-y-3 rounded-lg border border-border p-4">
+          <div className="space-y-3 rounded-lg border-2 border-accent-border bg-card p-4">
             <p className="text-sm text-muted-foreground">
               Nouvelle offre — ajoute-la à ton suivi.
             </p>

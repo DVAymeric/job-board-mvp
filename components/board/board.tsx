@@ -77,7 +77,7 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Board</h1>
+        <h1 className="text-lg font-semibold text-heading">Board</h1>
         <Button
           variant={followUpOnly ? "default" : "outline"}
           size="sm"
@@ -89,6 +89,7 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
       </div>
 
       <DndContext
+        id="job-board-dnd"
         sensors={sensors}
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}

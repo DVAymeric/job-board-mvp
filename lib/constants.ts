@@ -22,24 +22,28 @@ export const STATUS_CONFIG: Record<
 > = {
   TO_APPLY: {
     label: "À postuler",
-    badgeClassName: "bg-muted text-muted-foreground",
+    badgeClassName:
+      "bg-[#e4edf8] text-[#344966] dark:bg-[#1c2b3a] dark:text-[#b4cded]",
   },
   APPLIED: {
     label: "Postulé",
     badgeClassName:
-      "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+      "bg-[#dbe3ec] text-[#24384f] dark:bg-[#26384a] dark:text-[#dbe8f7]",
   },
   INTERVIEW: {
     label: "Entretien",
     badgeClassName:
-      "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+      "bg-[#eef2e0] text-[#5c6b3a] dark:bg-[#333d24] dark:text-[#d3dcb5]",
   },
   REJECTED: {
     label: "Refusé",
     badgeClassName:
-      "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+      "bg-[#e8e6e2] text-[#5a5650] dark:bg-[#2c2b28] dark:text-[#c9c5be]",
   },
 };
+
+export const FOLLOW_UP_BADGE_CLASSNAME =
+  "bg-[#f3e2df] text-[#b3554a] dark:bg-[#3a2823] dark:text-[#e8a99b]";
 
 export function isJobStatus(value: string): value is JobStatus {
   return value in STATUS_CONFIG;

@@ -20,7 +20,9 @@ export function Column({
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <div className="mb-2 flex items-center gap-2 px-1">
-        <h2 className="text-sm font-semibold">{STATUS_CONFIG[status].label}</h2>
+        <h2 className="text-sm font-semibold text-heading">
+          {STATUS_CONFIG[status].label}
+        </h2>
         <span className="text-xs text-muted-foreground">{jobs.length}</span>
       </div>
       <div

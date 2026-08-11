@@ -4,7 +4,13 @@ import { useDraggable } from "@dnd-kit/core";
 import type { Job } from "@prisma/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FOLLOW_UP_DAYS, STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
+import {
+  FOLLOW_UP_BADGE_CLASSNAME,
+  FOLLOW_UP_DAYS,
+  STATUS,
+  STATUS_CONFIG,
+  JobStatus,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 function getDisplayName(job: Job): string {
@@ -53,7 +59,8 @@ export function JobCard({
       )}
     >
       <CardContent className="space-y-2">
-        <p className="text-sm font-medium leading-snug">
+        <div className="h-1 w-8 rounded-full bg-gradient-to-r from-accent-border to-primary" />
+        <p className="text-sm font-medium leading-snug text-heading">
           {getDisplayName(job)}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -61,9 +68,7 @@ export function JobCard({
             {STATUS_CONFIG[job.status as JobStatus]?.label ?? job.status}
           </Badge>
           {needsFollowUp(job) && (
-            <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-              Relancer ?
-            </Badge>
+            <Badge className={FOLLOW_UP_BADGE_CLASSNAME}>Relancer ?</Badge>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
