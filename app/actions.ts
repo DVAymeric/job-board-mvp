@@ -153,6 +153,7 @@ export async function createJob(input: {
         companyLogoUrl: companyLogoUrl || null,
         status,
         lastFollowUp: status === STATUS.APPLIED ? new Date() : null,
+        statusHistory: { create: { status } },
       },
     });
     revalidatePath("/board");
@@ -184,6 +185,7 @@ export async function updateJobStatus(
         ...(parsed.data.status === STATUS.APPLIED
           ? { lastFollowUp: new Date() }
           : {}),
+        statusHistory: { create: { status: parsed.data.status } },
       },
     });
     revalidatePath("/board");
