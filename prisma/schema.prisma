@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id           String    @id @default(uuid())
+  url          String    @unique
+  titleCompany String?
+  status       String    @default("TO_APPLY") // TO_APPLY | APPLIED | INTERVIEW | REJECTED
+  lastFollowUp DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
