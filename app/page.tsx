@@ -79,7 +79,18 @@ export default function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4">
-      <div className="w-full max-w-xl space-y-4">
+      <div className="w-full max-w-xl space-y-6">
+        <div className="space-y-1 text-center">
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Suivi de candidatures
+          </p>
+          <h1 className="font-heading text-2xl text-heading">
+            Colle une offre
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            On vérifie si tu l&apos;as déjà suivie, sinon on l&apos;ajoute.
+          </p>
+        </div>
         <div className="flex gap-2">
           <Input
             autoFocus

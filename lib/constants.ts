@@ -18,32 +18,45 @@ export const STATUS_ORDER: JobStatus[] = [
 
 export const STATUS_CONFIG: Record<
   JobStatus,
-  { label: string; badgeClassName: string }
+  {
+    label: string;
+    badgeClassName: string;
+    accentBorderClassName: string;
+    accentBorderLeftClassName: string;
+  }
 > = {
   TO_APPLY: {
     label: "À postuler",
     badgeClassName:
-      "bg-[#e4edf8] text-[#344966] dark:bg-[#1c2b3a] dark:text-[#b4cded]",
+      "bg-[#eeedf5] text-[#54506a] dark:bg-[#332e42] dark:text-[#d3cbe0]",
+    accentBorderClassName: "border-[#c8c6d7] dark:border-[#948aa6]",
+    accentBorderLeftClassName: "border-l-[#c8c6d7] dark:border-l-[#948aa6]",
   },
   APPLIED: {
     label: "Postulé",
     badgeClassName:
-      "bg-[#dbe3ec] text-[#24384f] dark:bg-[#26384a] dark:text-[#dbe8f7]",
+      "bg-[#f1e6f3] text-[#6b3f74] dark:bg-[#3b2c42] dark:text-[#e4c7ea]",
+    accentBorderClassName: "border-[#bfacc8] dark:border-[#b79bc4]",
+    accentBorderLeftClassName: "border-l-[#bfacc8] dark:border-l-[#b79bc4]",
   },
   INTERVIEW: {
     label: "Entretien",
     badgeClassName:
-      "bg-[#eef2e0] text-[#5c6b3a] dark:bg-[#333d24] dark:text-[#d3dcb5]",
+      "bg-[#ebdcf0] text-[#5b2569] dark:bg-[#402a4b] dark:text-[#e3b4ef]",
+    accentBorderClassName: "border-[#783f8e] dark:border-[#9a54b4]",
+    accentBorderLeftClassName: "border-l-[#783f8e] dark:border-l-[#9a54b4]",
   },
   REJECTED: {
     label: "Refusé",
     badgeClassName:
-      "bg-[#e8e6e2] text-[#5a5650] dark:bg-[#2c2b28] dark:text-[#c9c5be]",
+      "bg-[#e6e2ea] text-[#4a4063] dark:bg-[#2c2734] dark:text-[#c7c0d4]",
+    accentBorderClassName: "border-[#4a4063] dark:border-[#6b5c80]",
+    accentBorderLeftClassName: "border-l-[#4a4063] dark:border-l-[#6b5c80]",
   },
 };
 
 export const FOLLOW_UP_BADGE_CLASSNAME =
-  "bg-[#f3e2df] text-[#b3554a] dark:bg-[#3a2823] dark:text-[#e8a99b]";
+  "bg-[#e3c9ec] text-[#4f1271] dark:bg-[#4a2b57] dark:text-[#ebc6f5]";
 
 export function isJobStatus(value: string): value is JobStatus {
   return value in STATUS_CONFIG;

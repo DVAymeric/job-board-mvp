@@ -54,13 +54,13 @@ export function JobCard({
       {...attributes}
       onClick={() => onOpen(job.id)}
       className={cn(
-        "cursor-grab touch-none select-none active:cursor-grabbing",
+        "cursor-grab touch-none select-none border-l-4 active:cursor-grabbing",
+        STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName,
         isDragging && "z-10 opacity-60"
       )}
     >
       <CardContent className="space-y-2">
-        <div className="h-1 w-8 rounded-full bg-gradient-to-r from-accent-border to-primary" />
-        <p className="text-sm font-medium leading-snug text-heading">
+        <p className="font-heading text-sm leading-snug text-heading">
           {getDisplayName(job)}
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -71,7 +71,7 @@ export function JobCard({
             <Badge className={FOLLOW_UP_BADGE_CLASSNAME}>Relancer ?</Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="font-mono text-xs text-muted-foreground">
           Ajouté le {new Date(job.createdAt).toLocaleDateString("fr-FR")}
         </p>
       </CardContent>

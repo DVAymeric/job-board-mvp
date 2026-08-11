@@ -17,19 +17,28 @@ export function Column({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
+  const accent = STATUS_CONFIG[status];
+
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <div className="mb-2 flex items-center gap-2 px-1">
-        <h2 className="text-sm font-semibold text-heading">
-          {STATUS_CONFIG[status].label}
+      <div
+        className={cn(
+          "mb-2 flex items-baseline gap-2 border-b-2 px-1 pb-1.5",
+          accent.accentBorderClassName
+        )}
+      >
+        <h2 className="font-heading text-base text-heading">
+          {accent.label}
         </h2>
-        <span className="text-xs text-muted-foreground">{jobs.length}</span>
+        <span className="font-mono text-xs text-muted-foreground">
+          {jobs.length}
+        </span>
       </div>
       <div
         ref={setNodeRef}
         className={cn(
           "flex flex-1 flex-col gap-2 rounded-lg border border-dashed border-border p-2 transition-colors",
-          isOver && "border-primary bg-muted/50"
+          isOver && cn(accent.accentBorderClassName, "bg-muted/50")
         )}
       >
         {jobs.length === 0 && (
