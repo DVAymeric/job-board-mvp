@@ -33,14 +33,11 @@ import { XIcon } from "lucide-react";
 import {
   addTagToJob,
   archiveJob,
-  deleteJob,
   markFollowUpToday,
   removeTagFromJob,
   updateJobDetails,
   updateJobNotes,
 } from "@/app/actions";
-
-const PERMANENT_DELETE_PHRASE = "SUPPRIMER";
 
 export function JobSheet({
   job,
@@ -57,8 +54,6 @@ export function JobSheet({
   const [companyName, setCompanyName] = useState(job?.companyName ?? "");
   const [saving, setSaving] = useState(false);
   const [marking, setMarking] = useState(false);
-  const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] =
-    useState("");
   const [newTagName, setNewTagName] = useState("");
   const [addingTag, setAddingTag] = useState(false);
   const [notes, setNotes] = useState(job?.notes ?? "");
@@ -153,17 +148,6 @@ export function JobSheet({
     }
     onDeleted(job.id);
     toast.success("Candidature archivée");
-  }
-
-  async function handlePermanentDelete() {
-    if (!job) return;
-    const result = await deleteJob(job.id);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    onDeleted(job.id);
-    toast.success("Candidature supprimée définitivement");
   }
 
   return (
@@ -328,43 +312,6 @@ export function JobSheet({
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
                 <AlertDialogAction variant="destructive" onClick={handleArchive}>
                   Confirmer l&apos;archivage
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          <AlertDialog
-            onOpenChange={(open) => {
-              if (!open) setPermanentDeleteConfirmation("");
-            }}
-          >
-            <AlertDialogTrigger
-              render={<Button variant="ghost" size="sm" className="text-destructive" />}
-            >
-              Supprimer définitivement
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Cette action efface la candidature sans passer par les
-                  archives et ne peut pas être annulée. Tape{" "}
-                  <strong>{PERMANENT_DELETE_PHRASE}</strong> pour confirmer.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <Input
-                value={permanentDeleteConfirmation}
-                onChange={(e) => setPermanentDeleteConfirmation(e.target.value)}
-                placeholder={PERMANENT_DELETE_PHRASE}
-              />
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction
-                  variant="destructive"
-                  disabled={permanentDeleteConfirmation !== PERMANENT_DELETE_PHRASE}
-                  onClick={handlePermanentDelete}
-                >
-                  Supprimer définitivement (irréversible)
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

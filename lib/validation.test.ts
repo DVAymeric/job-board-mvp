@@ -10,6 +10,7 @@ import {
   markFollowUpTodaySchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
+  unarchiveJobSchema,
   updateContactSchema,
   updateJobDetailsSchema,
   updateJobNotesSchema,
@@ -169,6 +170,16 @@ describe("archiveJobSchema", () => {
 
   it("rejects a missing id", () => {
     expect(archiveJobSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe("unarchiveJobSchema", () => {
+  it("accepts a non-empty id", () => {
+    expect(unarchiveJobSchema.safeParse({ id: "job-1" }).success).toBe(true);
+  });
+
+  it("rejects a missing id", () => {
+    expect(unarchiveJobSchema.safeParse({}).success).toBe(false);
   });
 });
 

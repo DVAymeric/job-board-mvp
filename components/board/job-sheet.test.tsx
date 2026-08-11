@@ -6,7 +6,6 @@ import { JobSheet } from "@/components/board/job-sheet";
 import {
   addTagToJob,
   archiveJob,
-  deleteJob,
   removeTagFromJob,
   updateJobDetails,
   updateJobNotes,
@@ -17,7 +16,6 @@ vi.mock("@/app/actions", () => ({
   addTagToJob: vi.fn(),
   archiveJob: vi.fn(),
   deleteContact: vi.fn(),
-  deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
   removeTagFromJob: vi.fn(),
   updateContact: vi.fn(),
@@ -255,7 +253,6 @@ describe("JobSheet — contacts", () => {
 describe("JobSheet — archivage", () => {
   beforeEach(() => {
     vi.mocked(archiveJob).mockReset();
-    vi.mocked(deleteJob).mockReset();
   });
 
   it("shows no confirmation dialog before any button is clicked", () => {
@@ -264,10 +261,9 @@ describe("JobSheet — archivage", () => {
     );
     expect(screen.queryByText(/archives/i)).not.toBeInTheDocument();
     expect(archiveJob).not.toHaveBeenCalled();
-    expect(deleteJob).not.toHaveBeenCalled();
   });
 
-  it("requires explicit confirmation before archiving, and does not hard-delete", async () => {
+  it("requires explicit confirmation before archiving", async () => {
     const user = userEvent.setup();
     vi.mocked(archiveJob).mockResolvedValue({ ok: true, data: null });
     const onDeleted = vi.fn();
@@ -283,7 +279,6 @@ describe("JobSheet — archivage", () => {
     await user.click(screen.getByRole("button", { name: "Confirmer l'archivage" }));
 
     expect(archiveJob).toHaveBeenCalledWith("job-1");
-    expect(deleteJob).not.toHaveBeenCalled();
     expect(onDeleted).toHaveBeenCalledWith("job-1");
   });
 
@@ -297,52 +292,5 @@ describe("JobSheet — archivage", () => {
     await user.click(screen.getByRole("button", { name: "Annuler" }));
 
     expect(archiveJob).not.toHaveBeenCalled();
-  });
-});
-
-describe("JobSheet — suppression définitive", () => {
-  beforeEach(() => {
-    vi.mocked(archiveJob).mockReset();
-    vi.mocked(deleteJob).mockReset();
-  });
-
-  it("keeps the permanent-delete confirm button disabled until the exact phrase is typed", async () => {
-    const user = userEvent.setup();
-    render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
-    );
-
-    await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
-    const confirmButton = screen.getByRole("button", {
-      name: "Supprimer définitivement (irréversible)",
-    });
-    expect(confirmButton).toBeDisabled();
-
-    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "supprimer");
-    expect(confirmButton).toBeDisabled();
-
-    await user.clear(screen.getByPlaceholderText("SUPPRIMER"));
-    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "SUPPRIMER");
-    expect(confirmButton).toBeEnabled();
-  });
-
-  it("permanently deletes only once the confirmation phrase matches", async () => {
-    const user = userEvent.setup();
-    vi.mocked(deleteJob).mockResolvedValue({ ok: true, data: null });
-    const onDeleted = vi.fn();
-
-    render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
-    );
-
-    await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
-    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "SUPPRIMER");
-    await user.click(
-      screen.getByRole("button", { name: "Supprimer définitivement (irréversible)" })
-    );
-
-    expect(deleteJob).toHaveBeenCalledWith("job-1");
-    expect(archiveJob).not.toHaveBeenCalled();
-    expect(onDeleted).toHaveBeenCalledWith("job-1");
   });
 });

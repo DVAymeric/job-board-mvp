@@ -56,6 +56,10 @@ export const archiveJobSchema = z.object({
   id: jobIdSchema,
 });
 
+export const unarchiveJobSchema = z.object({
+  id: jobIdSchema,
+});
+
 export const deleteJobSchema = z.object({
   id: jobIdSchema,
 });

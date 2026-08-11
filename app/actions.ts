@@ -22,6 +22,7 @@ import {
   markFollowUpTodaySchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
+  unarchiveJobSchema,
   updateContactSchema,
   updateJobDetailsSchema,
   updateJobNotesSchema,
@@ -278,6 +279,7 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
   try {
     await prisma.job.delete({ where: { id: parsed.data.id } });
     revalidatePath("/board");
+    revalidatePath("/archives");
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible de supprimer l'offre" };
@@ -298,9 +300,31 @@ export async function archiveJob(id: string): Promise<ActionResult<null>> {
       data: { archived: true },
     });
     revalidatePath("/board");
+    revalidatePath("/archives");
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible d'archiver l'offre" };
+  }
+}
+
+export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
+  const parsed = unarchiveJobSchema.safeParse({ id });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible de désarchiver l'offre"),
+    };
+  }
+  try {
+    await prisma.job.update({
+      where: { id: parsed.data.id },
+      data: { archived: false },
+    });
+    revalidatePath("/board");
+    revalidatePath("/archives");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible de désarchiver l'offre" };
   }
 }
 
