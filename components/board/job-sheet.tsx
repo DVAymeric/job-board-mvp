@@ -10,6 +10,17 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -32,7 +43,6 @@ export function JobSheet({
 }) {
   const [titleCompany, setTitleCompany] = useState(job?.title ?? "");
   const [saving, setSaving] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [marking, setMarking] = useState(false);
 
   if (!job) {
@@ -71,10 +81,6 @@ export function JobSheet({
 
   async function handleDelete() {
     if (!job) return;
-    if (!confirmingDelete) {
-      setConfirmingDelete(true);
-      return;
-    }
     const result = await deleteJob(job.id);
     if (!result.ok) {
       toast.error(result.error);
@@ -138,13 +144,25 @@ export function JobSheet({
         </div>
 
         <SheetFooter>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            onBlur={() => setConfirmingDelete(false)}
-          >
-            {confirmingDelete ? "Confirmer la suppression" : "Supprimer"}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger render={<Button variant="destructive" />}>
+              Supprimer
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer cette candidature ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action est irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction variant="destructive" onClick={handleDelete}>
+                  Confirmer la suppression
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </SheetFooter>
       </SheetContent>
     </Sheet>
