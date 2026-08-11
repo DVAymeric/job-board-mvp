@@ -1,0 +1,44 @@
+import { describe, expect, it } from "vitest";
+import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
+
+describe("extractJobMetadataFromHtml", () => {
+  it("prefers og:title over the <title> tag", () => {
+    const html = `
+      <html><head>
+        <title>Fallback Title</title>
+        <meta property="og:title" content="Développeur Backend" />
+      </head></html>
+    `;
+    expect(extractJobMetadataFromHtml(html).title).toBe("Développeur Backend");
+  });
+
+  it("falls back to the <title> tag when og:title is missing", () => {
+    const html = `<html><head><title>  Ingénieur QA  </title></head></html>`;
+    expect(extractJobMetadataFromHtml(html).title).toBe("Ingénieur QA");
+  });
+
+  it("extracts og:site_name as the company name", () => {
+    const html = `<meta property="og:site_name" content="Acme Corp" />`;
+    expect(extractJobMetadataFromHtml(html).companyName).toBe("Acme Corp");
+  });
+
+  it("handles meta attributes in any order (content before property)", () => {
+    const html = `<meta content="Beta SAS" property="og:site_name" />`;
+    expect(extractJobMetadataFromHtml(html).companyName).toBe("Beta SAS");
+  });
+
+  it("returns null title and companyName when nothing is found", () => {
+    const html = `<html><body>No metadata here</body></html>`;
+    expect(extractJobMetadataFromHtml(html)).toEqual({
+      title: null,
+      companyName: null,
+    });
+  });
+
+  it("decodes common HTML entities", () => {
+    const html = `<meta property="og:title" content="R&amp;D Engineer &#39;Remote&#39;" />`;
+    expect(extractJobMetadataFromHtml(html).title).toBe(
+      "R&D Engineer 'Remote'"
+    );
+  });
+});

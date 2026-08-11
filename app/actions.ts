@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
+import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
 import {
   archiveJobSchema,
   checkJobUrlSchema,
@@ -42,6 +43,31 @@ export async function checkJobUrl(
     return { ok: true, data: { found: false, normalizedUrl: url } };
   } catch {
     return { ok: false, error: "Impossible de vérifier cette offre" };
+  }
+}
+
+const METADATA_FETCH_TIMEOUT_MS = 5000;
+
+export async function fetchJobMetadata(
+  rawUrl: string
+): Promise<ActionResult<{ title: string | null; companyName: string | null }>> {
+  const parsed = checkJobUrlSchema.safeParse(rawUrl);
+  const empty = { title: null, companyName: null };
+  if (!parsed.success) {
+    return { ok: true, data: empty };
+  }
+  try {
+    const response = await fetch(parsed.data, {
+      signal: AbortSignal.timeout(METADATA_FETCH_TIMEOUT_MS),
+      headers: { Accept: "text/html" },
+    });
+    if (!response.ok) {
+      return { ok: true, data: empty };
+    }
+    const html = await response.text();
+    return { ok: true, data: extractJobMetadataFromHtml(html) };
+  } catch {
+    return { ok: true, data: empty };
   }
 }
 

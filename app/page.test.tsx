@@ -2,11 +2,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Home from "@/app/page";
-import { checkJobUrl, createJob } from "@/app/actions";
+import { checkJobUrl, createJob, fetchJobMetadata } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
   checkJobUrl: vi.fn(),
   createJob: vi.fn(),
+  fetchJobMetadata: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -17,6 +18,11 @@ describe("Home — nouvelle candidature", () => {
   beforeEach(() => {
     vi.mocked(checkJobUrl).mockReset();
     vi.mocked(createJob).mockReset();
+    vi.mocked(fetchJobMetadata).mockReset();
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: null, companyName: null },
+    });
   });
 
   it("shows separate title and company fields once a new url is checked", async () => {
@@ -65,5 +71,54 @@ describe("Home — nouvelle candidature", () => {
       companyName: "Acme",
       status: "TO_APPLY",
     });
+  });
+
+  it("pre-fills title and company from fetched metadata, still editable", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/job" },
+    });
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: "Développeur Backend", companyName: "Acme" },
+    });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+
+    const titleInput = await screen.findByPlaceholderText("Titre du poste");
+    expect(titleInput).toHaveValue("Développeur Backend");
+    expect(screen.getByPlaceholderText("Entreprise")).toHaveValue("Acme");
+
+    await user.clear(titleInput);
+    await user.type(titleInput, "Autre titre");
+    expect(titleInput).toHaveValue("Autre titre");
+  });
+
+  it("leaves the fields empty for manual entry when the metadata fetch fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/job" },
+    });
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: null, companyName: null },
+    });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+
+    expect(await screen.findByPlaceholderText("Titre du poste")).toHaveValue("");
+    expect(screen.getByPlaceholderText("Entreprise")).toHaveValue("");
   });
 });

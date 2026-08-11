@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { checkJobUrl, createJob } from "@/app/actions";
+import { checkJobUrl, createJob, fetchJobMetadata } from "@/app/actions";
 import { STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
 import { toast } from "sonner";
 
@@ -50,9 +50,11 @@ export default function Home() {
     if (result.data.found) {
       setView({ kind: "known", job: result.data.job as Job });
     } else {
-      setView({ kind: "new", normalizedUrl: result.data.normalizedUrl });
-      setTitle("");
-      setCompanyName("");
+      const normalizedUrl = result.data.normalizedUrl;
+      const metadata = await fetchJobMetadata(normalizedUrl);
+      setView({ kind: "new", normalizedUrl });
+      setTitle(metadata.ok ? metadata.data.title ?? "" : "");
+      setCompanyName(metadata.ok ? metadata.data.companyName ?? "" : "");
       setInitialStatus(STATUS.TO_APPLY);
     }
   }
