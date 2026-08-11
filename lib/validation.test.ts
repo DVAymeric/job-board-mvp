@@ -5,6 +5,7 @@ import {
   createJobSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  reorderJobsSchema,
   updateJobDetailsSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
@@ -134,5 +135,22 @@ describe("deleteJobSchema", () => {
 
   it("rejects a missing id", () => {
     expect(deleteJobSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe("reorderJobsSchema", () => {
+  it("accepts a non-empty list of ids", () => {
+    const result = reorderJobsSchema.safeParse({ orderedIds: ["a", "b", "c"] });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty list", () => {
+    expect(reorderJobsSchema.safeParse({ orderedIds: [] }).success).toBe(false);
+  });
+
+  it("rejects a list containing an empty id", () => {
+    expect(reorderJobsSchema.safeParse({ orderedIds: ["a", ""] }).success).toBe(
+      false
+    );
   });
 });

@@ -53,3 +53,7 @@ export const archiveJobSchema = z.object({
 export const deleteJobSchema = z.object({
   id: jobIdSchema,
 });
+
+export const reorderJobsSchema = z.object({
+  orderedIds: z.array(jobIdSchema).min(1, "Liste vide"),
+});

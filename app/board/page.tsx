@@ -4,7 +4,7 @@ import { Board } from "@/components/board/board";
 export default async function BoardPage() {
   const jobs = await prisma.job.findMany({
     where: { archived: false },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ order: "asc" }, { createdAt: "desc" }],
   });
 
   return (

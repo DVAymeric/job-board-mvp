@@ -8,6 +8,7 @@ vi.mock("@/app/actions", () => ({
   archiveJob: vi.fn(),
   deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
+  reorderJobs: vi.fn(),
   updateJobDetails: vi.fn(),
   updateJobStatus: vi.fn(),
 }));

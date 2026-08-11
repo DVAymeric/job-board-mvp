@@ -1,6 +1,7 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Job } from "@prisma/client";
 import { JobCard } from "@/components/board/job-card";
 import { JobStatus, STATUS_CONFIG } from "@/lib/constants";
@@ -46,9 +47,14 @@ export function Column({
             Aucune candidature ici
           </p>
         )}
-        {jobs.map((job) => (
-          <JobCard key={job.id} job={job} onOpen={onOpenJob} />
-        ))}
+        <SortableContext
+          items={jobs.map((job) => job.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {jobs.map((job) => (
+            <JobCard key={job.id} job={job} onOpen={onOpenJob} />
+          ))}
+        </SortableContext>
       </div>
     </div>
   );

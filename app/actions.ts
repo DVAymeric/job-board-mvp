@@ -12,6 +12,7 @@ import {
   createJobSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  reorderJobsSchema,
   updateJobDetailsSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
@@ -216,5 +217,31 @@ export async function archiveJob(id: string): Promise<ActionResult<null>> {
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible d'archiver l'offre" };
+  }
+}
+
+export async function reorderJobs(
+  orderedIds: string[]
+): Promise<ActionResult<null>> {
+  const parsed = reorderJobsSchema.safeParse({ orderedIds });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(
+        parsed.error,
+        "Impossible de réordonner les candidatures"
+      ),
+    };
+  }
+  try {
+    await prisma.$transaction(
+      parsed.data.orderedIds.map((id, index) =>
+        prisma.job.update({ where: { id }, data: { order: index } })
+      )
+    );
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible de réordonner les candidatures" };
   }
 }

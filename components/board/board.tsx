@@ -15,10 +15,11 @@ import { Input } from "@/components/ui/input";
 import { Column } from "@/components/board/column";
 import { JobSheet } from "@/components/board/job-sheet";
 import { needsFollowUp } from "@/components/board/job-card";
-import { STATUS_ORDER, isJobStatus } from "@/lib/constants";
+import { STATUS, STATUS_ORDER } from "@/lib/constants";
+import { computeReorderedColumn } from "@/lib/board-reorder";
 import { matchesJobQuery } from "@/lib/job-filters";
 import { cn } from "@/lib/utils";
-import { updateJobStatus } from "@/app/actions";
+import { reorderJobs, updateJobStatus } from "@/app/actions";
 import { toast } from "sonner";
 
 const SEARCH_DEBOUNCE_MS = 200;
@@ -55,30 +56,52 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over) return;
-    const newStatus = over.id.toString();
-    if (!isJobStatus(newStatus)) return;
 
-    const job = jobs.find((j) => j.id === active.id);
-    if (!job || job.status === newStatus) return;
+    const activeId = active.id.toString();
+    const overId = over.id.toString();
+    if (activeId === overId) return;
+
+    const activeJob = jobs.find((j) => j.id === activeId);
+    if (!activeJob) return;
+
+    const reordered = computeReorderedColumn(jobs, activeId, overId);
+    if (!reordered) return;
+    const { targetStatus, orderedIds } = reordered;
+    const statusChanged = activeJob.status !== targetStatus;
 
     const previousJobs = jobs;
+    const orderById = new Map(orderedIds.map((id, index) => [id, index]));
     setJobs((prev) =>
-      prev.map((j) =>
-        j.id === job.id
-          ? {
-              ...j,
-              status: newStatus,
-              lastFollowUp:
-                newStatus === "APPLIED" ? new Date() : j.lastFollowUp,
-            }
-          : j
-      )
+      prev.map((j) => {
+        if (j.id === activeId) {
+          return {
+            ...j,
+            status: targetStatus,
+            order: orderById.get(j.id) ?? j.order,
+            lastFollowUp:
+              statusChanged && targetStatus === STATUS.APPLIED
+                ? new Date()
+                : j.lastFollowUp,
+          };
+        }
+        const order = orderById.get(j.id);
+        return order === undefined ? j : { ...j, order };
+      })
     );
 
-    const result = await updateJobStatus(job.id, newStatus);
-    if (!result.ok) {
+    if (statusChanged) {
+      const statusResult = await updateJobStatus(activeId, targetStatus);
+      if (!statusResult.ok) {
+        setJobs(previousJobs);
+        toast.error(statusResult.error);
+        return;
+      }
+    }
+
+    const reorderResult = await reorderJobs(orderedIds);
+    if (!reorderResult.ok) {
       setJobs(previousJobs);
-      toast.error(result.error);
+      toast.error(reorderResult.error);
     }
   }
 
@@ -129,7 +152,9 @@ export function Board({ initialJobs }: { initialJobs: Job[] }) {
               <Column
                 key={status}
                 status={status}
-                jobs={visibleJobs.filter((j) => j.status === status)}
+                jobs={visibleJobs
+                  .filter((j) => j.status === status)
+                  .sort((a, b) => a.order - b.order)}
                 onOpenJob={setSelectedJobId}
               />
             ))}
