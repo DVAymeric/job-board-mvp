@@ -3,9 +3,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Job } from "@prisma/client";
 import { JobSheet } from "@/components/board/job-sheet";
-import { deleteJob } from "@/app/actions";
+import { archiveJob, deleteJob } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
+  archiveJob: vi.fn(),
   deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
   updateJobDetails: vi.fn(),
@@ -30,65 +31,97 @@ const baseJob: Job = {
   updatedAt: new Date("2026-01-01"),
 };
 
-describe("JobSheet delete confirmation", () => {
+describe("JobSheet — archivage", () => {
   beforeEach(() => {
+    vi.mocked(archiveJob).mockReset();
     vi.mocked(deleteJob).mockReset();
   });
 
-  it("does not show the confirmation dialog before the delete button is clicked", () => {
+  it("shows no confirmation dialog before any button is clicked", () => {
     render(
-      <JobSheet
-        job={baseJob}
-        onOpenChange={vi.fn()}
-        onUpdated={vi.fn()}
-        onDeleted={vi.fn()}
-      />
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
     );
-    expect(screen.queryByText(/irréversible/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/archives/i)).not.toBeInTheDocument();
+    expect(archiveJob).not.toHaveBeenCalled();
     expect(deleteJob).not.toHaveBeenCalled();
   });
 
-  it("requires explicit confirmation in an AlertDialog before deleting", async () => {
+  it("requires explicit confirmation before archiving, and does not hard-delete", async () => {
+    const user = userEvent.setup();
+    vi.mocked(archiveJob).mockResolvedValue({ ok: true, data: null });
+    const onDeleted = vi.fn();
+
+    render(
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Archiver" }));
+    expect(archiveJob).not.toHaveBeenCalled();
+    expect(screen.getByText(/archives/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Confirmer l'archivage" }));
+
+    expect(archiveJob).toHaveBeenCalledWith("job-1");
+    expect(deleteJob).not.toHaveBeenCalled();
+    expect(onDeleted).toHaveBeenCalledWith("job-1");
+  });
+
+  it("cancelling the archive dialog archives nothing", async () => {
+    const user = userEvent.setup();
+    render(
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Archiver" }));
+    await user.click(screen.getByRole("button", { name: "Annuler" }));
+
+    expect(archiveJob).not.toHaveBeenCalled();
+  });
+});
+
+describe("JobSheet — suppression définitive", () => {
+  beforeEach(() => {
+    vi.mocked(archiveJob).mockReset();
+    vi.mocked(deleteJob).mockReset();
+  });
+
+  it("keeps the permanent-delete confirm button disabled until the exact phrase is typed", async () => {
+    const user = userEvent.setup();
+    render(
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
+    const confirmButton = screen.getByRole("button", {
+      name: "Supprimer définitivement (irréversible)",
+    });
+    expect(confirmButton).toBeDisabled();
+
+    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "supprimer");
+    expect(confirmButton).toBeDisabled();
+
+    await user.clear(screen.getByPlaceholderText("SUPPRIMER"));
+    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "SUPPRIMER");
+    expect(confirmButton).toBeEnabled();
+  });
+
+  it("permanently deletes only once the confirmation phrase matches", async () => {
     const user = userEvent.setup();
     vi.mocked(deleteJob).mockResolvedValue({ ok: true, data: null });
     const onDeleted = vi.fn();
 
     render(
-      <JobSheet
-        job={baseJob}
-        onOpenChange={vi.fn()}
-        onUpdated={vi.fn()}
-        onDeleted={onDeleted}
-      />
+      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
     );
 
-    await user.click(screen.getByRole("button", { name: "Supprimer" }));
-    expect(deleteJob).not.toHaveBeenCalled();
-    expect(screen.getByText(/irréversible/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
+    await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
+    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "SUPPRIMER");
+    await user.click(
+      screen.getByRole("button", { name: "Supprimer définitivement (irréversible)" })
+    );
 
     expect(deleteJob).toHaveBeenCalledWith("job-1");
+    expect(archiveJob).not.toHaveBeenCalled();
     expect(onDeleted).toHaveBeenCalledWith("job-1");
-  });
-
-  it("cancelling the dialog does not delete the job", async () => {
-    const user = userEvent.setup();
-    const onDeleted = vi.fn();
-
-    render(
-      <JobSheet
-        job={baseJob}
-        onOpenChange={vi.fn()}
-        onUpdated={vi.fn()}
-        onDeleted={onDeleted}
-      />
-    );
-
-    await user.click(screen.getByRole("button", { name: "Supprimer" }));
-    await user.click(screen.getByRole("button", { name: "Annuler" }));
-
-    expect(deleteJob).not.toHaveBeenCalled();
-    expect(onDeleted).not.toHaveBeenCalled();
   });
 });

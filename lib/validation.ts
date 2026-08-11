@@ -44,6 +44,10 @@ export const markFollowUpTodaySchema = z.object({
   id: jobIdSchema,
 });
 
+export const archiveJobSchema = z.object({
+  id: jobIdSchema,
+});
+
 export const deleteJobSchema = z.object({
   id: jobIdSchema,
 });

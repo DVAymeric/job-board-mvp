@@ -25,10 +25,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
+  archiveJob,
   deleteJob,
   markFollowUpToday,
   updateJobDetails,
 } from "@/app/actions";
+
+const PERMANENT_DELETE_PHRASE = "SUPPRIMER";
 
 export function JobSheet({
   job,
@@ -44,6 +47,8 @@ export function JobSheet({
   const [titleCompany, setTitleCompany] = useState(job?.title ?? "");
   const [saving, setSaving] = useState(false);
   const [marking, setMarking] = useState(false);
+  const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] =
+    useState("");
 
   if (!job) {
     return (
@@ -79,7 +84,18 @@ export function JobSheet({
     toast.success("Relance enregistrée");
   }
 
-  async function handleDelete() {
+  async function handleArchive() {
+    if (!job) return;
+    const result = await archiveJob(job.id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onDeleted(job.id);
+    toast.success("Candidature archivée");
+  }
+
+  async function handlePermanentDelete() {
     if (!job) return;
     const result = await deleteJob(job.id);
     if (!result.ok) {
@@ -87,7 +103,7 @@ export function JobSheet({
       return;
     }
     onDeleted(job.id);
-    toast.success("Candidature supprimée");
+    toast.success("Candidature supprimée définitivement");
   }
 
   return (
@@ -143,22 +159,60 @@ export function JobSheet({
           </Button>
         </div>
 
-        <SheetFooter>
+        <SheetFooter className="gap-2">
           <AlertDialog>
             <AlertDialogTrigger render={<Button variant="destructive" />}>
-              Supprimer
+              Archiver
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Supprimer cette candidature ?</AlertDialogTitle>
+                <AlertDialogTitle>Archiver cette candidature ?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Cette action est irréversible.
+                  Elle disparaîtra du board mais restera consultable dans les
+                  archives.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={handleDelete}>
-                  Confirmer la suppression
+                <AlertDialogAction variant="destructive" onClick={handleArchive}>
+                  Confirmer l&apos;archivage
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <AlertDialog
+            onOpenChange={(open) => {
+              if (!open) setPermanentDeleteConfirmation("");
+            }}
+          >
+            <AlertDialogTrigger
+              render={<Button variant="ghost" size="sm" className="text-destructive" />}
+            >
+              Supprimer définitivement
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action efface la candidature sans passer par les
+                  archives et ne peut pas être annulée. Tape{" "}
+                  <strong>{PERMANENT_DELETE_PHRASE}</strong> pour confirmer.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                value={permanentDeleteConfirmation}
+                onChange={(e) => setPermanentDeleteConfirmation(e.target.value)}
+                placeholder={PERMANENT_DELETE_PHRASE}
+              />
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  disabled={permanentDeleteConfirmation !== PERMANENT_DELETE_PHRASE}
+                  onClick={handlePermanentDelete}
+                >
+                  Supprimer définitivement (irréversible)
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

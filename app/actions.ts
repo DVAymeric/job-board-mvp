@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
 import {
+  archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
   deleteJobSchema,
@@ -163,5 +164,25 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible de supprimer l'offre" };
+  }
+}
+
+export async function archiveJob(id: string): Promise<ActionResult<null>> {
+  const parsed = archiveJobSchema.safeParse({ id });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible d'archiver l'offre"),
+    };
+  }
+  try {
+    await prisma.job.update({
+      where: { id: parsed.data.id },
+      data: { archived: true },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible d'archiver l'offre" };
   }
 }

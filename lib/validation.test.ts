@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  archiveJobSchema,
   checkJobUrlSchema,
   createJobSchema,
   deleteJobSchema,
@@ -107,6 +108,16 @@ describe("markFollowUpTodaySchema", () => {
 
   it("rejects an empty id", () => {
     expect(markFollowUpTodaySchema.safeParse({ id: "" }).success).toBe(false);
+  });
+});
+
+describe("archiveJobSchema", () => {
+  it("accepts a non-empty id", () => {
+    expect(archiveJobSchema.safeParse({ id: "job-1" }).success).toBe(true);
+  });
+
+  it("rejects a missing id", () => {
+    expect(archiveJobSchema.safeParse({}).success).toBe(false);
   });
 });
 
