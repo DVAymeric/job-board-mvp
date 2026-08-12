@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2, CircleAlert } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { Job } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { HeroSection } from "@/components/home/hero-section";
+import { UrlCheckBar } from "@/components/home/url-check-bar";
 import {
   checkJobUrl,
   checkRepost,
@@ -176,57 +178,35 @@ function HomeContent() {
   const checking = view.kind === "checking";
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4">
-      <div className="w-full max-w-xl space-y-6">
-        <div className="space-y-1 text-center">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Suivi de candidatures
-          </p>
-          <h1 className="font-heading text-xl text-heading">
-            Colle une offre
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            On vérifie si tu l&apos;as déjà suivie, sinon on l&apos;ajoute.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            autoFocus
-            value={url}
-            disabled={checking}
-            placeholder="Colle l'URL de l'offre d'emploi ici..."
-            onChange={(e) => {
-              setUrl(e.target.value);
-              if (view.kind !== "idle" && view.kind !== "checking") {
-                setView({ kind: "idle" });
-              }
-            }}
-            onBlur={() => runCheck()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") runCheck();
-            }}
-            className="h-11 text-base"
-          />
-          <Button
-            onClick={() => runCheck()}
-            disabled={checking || !url.trim()}
-            className="h-11"
-          >
-            {checking && <Loader2 className="animate-spin" />}
-            Vérifier
-          </Button>
-        </div>
+    <div className="flex flex-1 flex-col">
+      <HeroSection>
+        <UrlCheckBar
+          url={url}
+          checking={checking}
+          error={view.kind === "error" ? view.message : null}
+          resultTag={
+            view.kind === "known"
+              ? { kind: "known", label: "Déjà dans votre board" }
+              : view.kind === "new"
+                ? { kind: "new", label: "Nouvelle offre" }
+                : null
+          }
+          onUrlChange={(value) => {
+            setUrl(value);
+            if (view.kind !== "idle" && view.kind !== "checking") {
+              setView({ kind: "idle" });
+            }
+          }}
+          onBlur={() => runCheck()}
+          onCheck={() => runCheck()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") runCheck();
+          }}
+        />
+      </HeroSection>
 
-        {view.kind === "error" && (
-          <Alert variant="destructive">
-            <CircleAlert />
-            <AlertTitle>{view.message}</AlertTitle>
-            <AlertDescription>
-              Vérifie que l&apos;URL est complète (ex : https://exemple.com/offre).
-            </AlertDescription>
-          </Alert>
-        )}
-
+      <div className="flex flex-1 flex-col items-center px-4 py-8">
+        <div className="w-full max-w-xl space-y-6">
         {view.kind === "known" && (
           <Alert>
             <AlertTitle>
@@ -342,6 +322,7 @@ function HomeContent() {
 
         <div className="text-center">
           <BookmarkletLink />
+        </div>
         </div>
       </div>
     </div>

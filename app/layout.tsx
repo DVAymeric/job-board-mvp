@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Nav } from "@/components/nav";
 import { Toaster } from "@/components/ui/sonner";
@@ -34,13 +35,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ServiceWorkerRegistration />
-        <Nav />
-        <div className="flex flex-1 flex-col">{children}</div>
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ServiceWorkerRegistration />
+          <Nav />
+          <div className="flex flex-1 flex-col">{children}</div>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
