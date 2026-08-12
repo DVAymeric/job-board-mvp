@@ -41,7 +41,7 @@ describe("BentoCard", () => {
     expectedClasses.forEach((cls) => expect(card).toHaveClass(cls));
   });
 
-  it.each(["default", "dark", "accent"] as const)(
+  it.each(["default", "dark", "accent", "muted"] as const)(
     "exposes the %s tone via data-tone",
     (tone) => {
       render(<BentoCard title="Carte" tone={tone} />);
@@ -49,4 +49,16 @@ describe("BentoCard", () => {
       expect(card).toHaveAttribute("data-tone", tone);
     }
   );
+
+  it("uses a fixed light lilac background and fixed dark text for the muted tone", () => {
+    // The muted tone (light lilac) doesn't invert in dark mode, so its text
+    // can't rely on theme-aware tokens like text-heading (which flips to a
+    // light color in .dark and becomes unreadable on this fixed light bg).
+    render(<BentoCard title="Relance" tone="muted" />);
+    const title = screen.getByText("Relance", { selector: "h3" });
+    const card = title.closest('[data-slot="bento-card"]');
+    expect(card).toHaveClass("bg-[#c8c6d7]");
+    expect(title).not.toHaveClass("text-heading");
+    expect(title.className).toMatch(/text-\[#/);
+  });
 });

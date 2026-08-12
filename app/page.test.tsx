@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter, useSearchParams } from "next/navigation";
-import Home from "@/app/page";
+import Home from "@/components/home/home-content";
 import {
   checkJobUrl,
   checkRepost,

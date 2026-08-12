@@ -8,10 +8,9 @@ export function FollowUpCard({ summary }: FollowUpCardProps) {
   return (
     <BentoCard
       span="2x1"
-      tone="default"
+      tone="muted"
       label="Relance"
       title="Repérage automatique des candidatures sans réponse"
-      className="border-transparent bg-[#c8c6d7]"
     >
       {summary.count > 0 ? (
         <span
