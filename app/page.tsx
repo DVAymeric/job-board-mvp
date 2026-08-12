@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CircleAlert } from "lucide-react";
 import type { Job } from "@prisma/client";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,14 @@ import type { DiffLine } from "@/lib/repost-diff";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+const BookmarkletLink = dynamic(
+  () =>
+    import("@/components/bookmarklet/bookmarklet-link").then(
+      (m) => m.BookmarkletLink
+    ),
+  { ssr: false }
+);
+
 type ViewState =
   | { kind: "idle" }
   | { kind: "checking" }
@@ -46,8 +56,11 @@ type RepostState =
   | { kind: "error"; message: string }
   | { kind: "result"; changed: boolean; diff: DiffLine[]; fresh: RepostFresh };
 
-export default function Home() {
-  const [url, setUrl] = useState("");
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const consumedBookmarklet = useRef(false);
+  const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
   const [view, setView] = useState<ViewState>({ kind: "idle" });
   const [title, setTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -60,8 +73,8 @@ export default function Home() {
   const [repostState, setRepostState] = useState<RepostState>({ kind: "idle" });
   const [reactivating, setReactivating] = useState(false);
 
-  async function runCheck() {
-    const trimmed = url.trim();
+  const runCheck = useCallback(async (explicitUrl?: string, fallbackTitle?: string) => {
+    const trimmed = (explicitUrl ?? url).trim();
     if (!trimmed) {
       setView({ kind: "idle" });
       return;
@@ -81,14 +94,27 @@ export default function Home() {
         fetchJobMetadata(normalizedUrl),
         fetchCompanyLogo(normalizedUrl),
       ]);
+      const metadataTitle = metadata.ok ? metadata.data.title : null;
       setView({ kind: "new", normalizedUrl });
-      setTitle(metadata.ok ? metadata.data.title ?? "" : "");
+      setTitle(metadataTitle || fallbackTitle || "");
       setCompanyName(metadata.ok ? metadata.data.companyName ?? "" : "");
       setCompanyLogoUrl(logo.ok ? logo.data.logoUrl ?? "" : "");
       setDescriptionText(metadata.ok ? metadata.data.descriptionText : null);
       setInitialStatus(STATUS.TO_APPLY);
     }
-  }
+  }, [url]);
+
+  useEffect(() => {
+    if (consumedBookmarklet.current) return;
+    const bookmarkletUrl = searchParams.get("url");
+    if (!bookmarkletUrl) return;
+    consumedBookmarklet.current = true;
+    const fallbackTitle = searchParams.get("title") ?? undefined;
+    router.replace("/");
+    queueMicrotask(() => {
+      void runCheck(bookmarkletUrl, fallbackTitle);
+    });
+  }, [searchParams, router, runCheck]);
 
   async function handleSave() {
     if (view.kind !== "new") return;
@@ -175,14 +201,14 @@ export default function Home() {
                 setView({ kind: "idle" });
               }
             }}
-            onBlur={runCheck}
+            onBlur={() => runCheck()}
             onKeyDown={(e) => {
               if (e.key === "Enter") runCheck();
             }}
             className="h-11 text-base"
           />
           <Button
-            onClick={runCheck}
+            onClick={() => runCheck()}
             disabled={checking || !url.trim()}
             className="h-11"
           >
@@ -313,7 +339,19 @@ export default function Home() {
             </Button>
           </div>
         )}
+
+        <div className="text-center">
+          <BookmarkletLink />
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

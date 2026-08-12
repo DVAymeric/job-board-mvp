@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRouter, useSearchParams } from "next/navigation";
 import Home from "@/app/page";
 import {
   checkJobUrl,
@@ -23,6 +24,20 @@ vi.mock("@/app/actions", () => ({
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+vi.mock("next/navigation", () => ({
+  useRouter: vi.fn(),
+  useSearchParams: vi.fn(),
+}));
+
+beforeEach(() => {
+  vi.mocked(useSearchParams).mockReturnValue(
+    new URLSearchParams() as ReturnType<typeof useSearchParams>
+  );
+  vi.mocked(useRouter).mockReturnValue({
+    replace: vi.fn(),
+  } as unknown as ReturnType<typeof useRouter>);
+});
 
 describe("Home — nouvelle candidature", () => {
   beforeEach(() => {
@@ -361,5 +376,97 @@ describe("Home — repost d'une offre archivée", () => {
       companyName: "Acme",
       descriptionText: "Nouvelle description.",
     });
+  });
+});
+
+describe("Home — bookmarklet", () => {
+  beforeEach(() => {
+    vi.mocked(checkJobUrl).mockReset();
+    vi.mocked(fetchJobMetadata).mockReset();
+    vi.mocked(fetchCompanyLogo).mockReset();
+    vi.mocked(fetchCompanyLogo).mockResolvedValue({
+      ok: true,
+      data: { logoUrl: null },
+    });
+  });
+
+  it("pre-fills the url and auto-checks it when the bookmarklet passes a url query param", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams({
+        url: "https://example.com/careers/dev",
+        title: "Développeur depuis LinkedIn",
+      }) as ReturnType<typeof useSearchParams>
+    );
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
+    });
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: null, companyName: null, descriptionText: null },
+    });
+
+    render(<Home />);
+
+    expect(
+      await screen.findByDisplayValue("https://example.com/careers/dev")
+    ).toBeInTheDocument();
+    expect(checkJobUrl).toHaveBeenCalledWith("https://example.com/careers/dev");
+    expect(await screen.findByPlaceholderText("Titre du poste")).toHaveValue(
+      "Développeur depuis LinkedIn"
+    );
+  });
+
+  it("prefers the fetched metadata title over the bookmarklet's fallback title", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams({
+        url: "https://example.com/careers/dev",
+        title: "Titre de secours",
+      }) as ReturnType<typeof useSearchParams>
+    );
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
+    });
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: "Titre extrait", companyName: null, descriptionText: null },
+    });
+
+    render(<Home />);
+
+    expect(await screen.findByPlaceholderText("Titre du poste")).toHaveValue(
+      "Titre extrait"
+    );
+  });
+
+  it("clears the query string once the bookmarklet url has been consumed", async () => {
+    const replace = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      replace,
+    } as unknown as ReturnType<typeof useRouter>);
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams({
+        url: "https://example.com/careers/dev",
+      }) as ReturnType<typeof useSearchParams>
+    );
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
+    });
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: null, companyName: null, descriptionText: null },
+    });
+
+    render(<Home />);
+
+    await screen.findByPlaceholderText("Titre du poste");
+    expect(replace).toHaveBeenCalledWith("/");
+  });
+
+  it("does not auto-check anything when there is no bookmarklet url", () => {
+    render(<Home />);
+    expect(checkJobUrl).not.toHaveBeenCalled();
   });
 });
