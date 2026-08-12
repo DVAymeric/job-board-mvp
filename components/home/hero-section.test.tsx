@@ -32,7 +32,30 @@ describe("HeroSection", () => {
       </HeroSection>
     );
     const hiddenLayers = container.querySelectorAll('[aria-hidden="true"]');
-    expect(hiddenLayers.length).toBeGreaterThan(0);
+    expect(hiddenLayers.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders a blurred photo background layer using the hero asset", () => {
+    const { container } = render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    const bgLayer = container.querySelector('[data-testid="hero-bg-image"]');
+    expect(bgLayer).toBeInTheDocument();
+    expect(bgLayer).toHaveAttribute("aria-hidden", "true");
+    expect(bgLayer?.getAttribute("style")).toContain("/hero-bg.jpg");
+  });
+
+  it("renders a scrim layer over the background photo for text legibility", () => {
+    const { container } = render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    const scrim = container.querySelector('[data-testid="hero-scrim"]');
+    expect(scrim).toBeInTheDocument();
+    expect(scrim).toHaveAttribute("aria-hidden", "true");
   });
 
   it("uses the project's page-title scale for the heading (font-heading text-xl)", () => {
@@ -52,7 +75,20 @@ describe("HeroSection", () => {
       </HeroSection>
     );
     const heading = screen.getByRole("heading", { level: 1 });
-    const header = heading.closest("header");
-    expect(header).toHaveClass("min-h-dvh");
+    const section = heading.closest("section");
+    expect(section).toHaveClass("min-h-dvh");
+  });
+
+  it("aligns its content to the left instead of centering it", () => {
+    render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    const heading = screen.getByRole("heading", { level: 1 });
+    const contentContainer = heading.parentElement;
+    expect(contentContainer).not.toHaveClass("text-center");
+    expect(contentContainer).not.toHaveClass("items-center");
+    expect(contentContainer).toHaveClass("text-left");
   });
 });

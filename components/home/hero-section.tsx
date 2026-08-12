@@ -4,27 +4,25 @@ interface HeroSectionProps {
   children: ReactNode;
 }
 
-/**
- * The mockup's hero background is a photograph; we don't have a licensed
- * asset to ship, so the backdrop is fully generated (gradients + SVG grain)
- * instead of a next/image photo. See JOB-38/JOB-51.
- */
 export function HeroSection({ children }: HeroSectionProps) {
   return (
-    <header className="relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#1c1728] px-4 py-16 sm:py-24">
+    <section className="relative isolate flex min-h-dvh flex-col justify-center overflow-hidden bg-[#0a0712] px-4 py-16 sm:py-24">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(120,63,142,0.55),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(191,172,200,0.35),transparent_50%),linear-gradient(180deg,#1c1728_0%,#2e2440_45%,#4a4063_100%)]"
+        data-testid="hero-bg-image"
+        className="pointer-events-none absolute inset-0 scale-105 bg-cover bg-center blur-[6px] brightness-[0.55] saturate-[0.9]"
+        style={{ backgroundImage: "url(/hero-bg.jpg)" }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-overlay"
+        data-testid="hero-scrim"
+        className="pointer-events-none absolute inset-0"
         style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          background:
+            "linear-gradient(100deg, rgba(10,7,18,0.92) 0%, rgba(10,7,18,0.72) 42%, rgba(20,14,34,0.35) 100%)",
         }}
       />
-      <div className="relative z-10 mx-auto flex max-w-xl flex-col items-center gap-6 text-center">
+      <div className="relative z-10 flex w-full max-w-[640px] flex-col items-start gap-6 text-left">
         <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 font-mono text-xs uppercase tracking-widest text-[#bfacc8]">
           <span className="size-1.5 rounded-full bg-[#7bab8a]" />
           Local · zéro config · zéro cloud
@@ -38,6 +36,6 @@ export function HeroSection({ children }: HeroSectionProps) {
         </p>
         {children}
       </div>
-    </header>
+    </section>
   );
 }
