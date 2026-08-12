@@ -5,7 +5,10 @@ export default function Home() {
   return (
     <>
       <HomeContent />
-      <section className="mx-auto w-full max-w-6xl px-4 py-12">
+      <section
+        id="comment-ca-marche"
+        className="mx-auto w-full max-w-6xl px-4 py-12"
+      >
         <div className="mb-6 space-y-1">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Fonctionnalités
