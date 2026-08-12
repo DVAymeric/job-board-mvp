@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Column } from "@/components/board/column";
 import { JobDialog } from "@/components/board/job-dialog";
+import { InterviewReminderWatcher } from "@/components/board/interview-reminder-watcher";
 import { needsFollowUp } from "@/components/board/job-card";
 import { STATUS, STATUS_ORDER } from "@/lib/constants";
 import { computeReorderedColumn } from "@/lib/board-reorder";
@@ -139,6 +140,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
 
   return (
     <div className="flex flex-1 flex-col gap-4">
+      <InterviewReminderWatcher jobs={jobs} />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="font-heading text-xl text-heading">Board</h1>
         <div className="flex flex-1 items-center justify-end gap-2">

@@ -28,6 +28,7 @@ import {
   updateContactSchema,
   updateJobDetailsSchema,
   updateJobDocumentsSchema,
+  updateJobInterviewDateSchema,
   updateJobNotesSchema,
   updateJobSalarySchema,
   updateJobStatusSchema,
@@ -324,6 +325,33 @@ export async function updateJobDocuments(
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible d'enregistrer les documents" };
+  }
+}
+
+export async function updateJobInterviewDate(
+  id: string,
+  interviewDate: string | null
+): Promise<ActionResult<null>> {
+  const parsed = updateJobInterviewDateSchema.safeParse({ id, interviewDate });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer la date d'entretien"),
+    };
+  }
+  try {
+    await prisma.job.update({
+      where: { id: parsed.data.id },
+      data: {
+        interviewDate: parsed.data.interviewDate
+          ? new Date(parsed.data.interviewDate)
+          : null,
+      },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible d'enregistrer la date d'entretien" };
   }
 }
 
@@ -627,6 +655,7 @@ export async function importBackupJson(
             salaryType: job.salaryType,
             resumeUrl: job.resumeUrl,
             coverLetterUrl: job.coverLetterUrl,
+            interviewDate: job.interviewDate ? new Date(job.interviewDate) : null,
             createdAt: new Date(job.createdAt),
             updatedAt: new Date(job.updatedAt),
             contacts: {

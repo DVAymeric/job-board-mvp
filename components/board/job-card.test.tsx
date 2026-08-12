@@ -20,6 +20,7 @@ const baseJob: JobWithRelations = {
   salaryType: null,
   resumeUrl: null,
   coverLetterUrl: null,
+  interviewDate: null,
   tags: [],
   contacts: [],
   statusHistory: [],

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { JobWithRelations } from "@/lib/types";
 import { JobDialog } from "@/components/board/job-dialog";
@@ -9,6 +9,7 @@ import {
   removeTagFromJob,
   updateJobDetails,
   updateJobDocuments,
+  updateJobInterviewDate,
   updateJobNotes,
   updateJobSalary,
 } from "@/app/actions";
@@ -23,6 +24,7 @@ vi.mock("@/app/actions", () => ({
   updateContact: vi.fn(),
   updateJobDetails: vi.fn(),
   updateJobDocuments: vi.fn(),
+  updateJobInterviewDate: vi.fn(),
   updateJobNotes: vi.fn(),
   updateJobSalary: vi.fn(),
 }));
@@ -48,6 +50,7 @@ const baseJob: JobWithRelations = {
   salaryType: null,
   resumeUrl: null,
   coverLetterUrl: null,
+  interviewDate: null,
   tags: [],
   contacts: [],
   statusHistory: [],
@@ -301,6 +304,75 @@ describe("JobDialog — documents (CV / lettre)", () => {
     expect(onUpdated).toHaveBeenCalledWith(
       expect.objectContaining({ resumeUrl: "https://drive.example.com/cv.pdf" })
     );
+  });
+});
+
+describe("JobDialog — entretien planifié", () => {
+  beforeEach(() => {
+    vi.mocked(updateJobInterviewDate).mockReset();
+    global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
+    global.URL.revokeObjectURL = vi.fn();
+  });
+
+  it("loads the job's existing interview date", () => {
+    render(
+      <JobDialog
+        job={{ ...baseJob, interviewDate: new Date("2026-03-15T14:30:00") }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText("Date d'entretien")).toHaveValue("2026-03-15T14:30");
+  });
+
+  it("saves the interview date via a dedicated button", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateJobInterviewDate).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    const dateInput = screen.getByLabelText("Date d'entretien");
+    fireEvent.change(dateInput, { target: { value: "2026-03-15T14:30" } });
+    await user.click(screen.getByRole("button", { name: "Enregistrer la date d'entretien" }));
+
+    expect(updateJobInterviewDate).toHaveBeenCalledWith("job-1", expect.any(String));
+    expect(onUpdated).toHaveBeenCalled();
+  });
+
+  it("only offers an .ics export once an interview date is set", () => {
+    const { rerender } = render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+    expect(screen.queryByRole("button", { name: "Exporter .ics" })).not.toBeInTheDocument();
+
+    rerender(
+      <JobDialog
+        job={{ ...baseJob, interviewDate: new Date("2026-03-15T14:30:00") }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByRole("button", { name: "Exporter .ics" })).toBeInTheDocument();
+  });
+
+  it("triggers a client-side .ics download", async () => {
+    const user = userEvent.setup();
+    render(
+      <JobDialog
+        job={{ ...baseJob, interviewDate: new Date("2026-03-15T14:30:00") }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Exporter .ics" }));
+    expect(global.URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
   });
 });
 

@@ -22,6 +22,7 @@ model Job {
   salaryType     String? // ANNUAL | DAILY_RATE
   resumeUrl      String?
   coverLetterUrl String?
+  interviewDate  DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

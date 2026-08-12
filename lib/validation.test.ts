@@ -14,6 +14,7 @@ import {
   updateContactSchema,
   updateJobDetailsSchema,
   updateJobDocumentsSchema,
+  updateJobInterviewDateSchema,
   updateJobNotesSchema,
   updateJobSalarySchema,
   updateJobStatusSchema,
@@ -383,6 +384,32 @@ describe("updateJobDocumentsSchema", () => {
       id: "job-1",
       resumeUrl: "not a url",
       coverLetterUrl: "",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateJobInterviewDateSchema", () => {
+  it("accepts a valid ISO date string", () => {
+    const result = updateJobInterviewDateSchema.safeParse({
+      id: "job-1",
+      interviewDate: "2026-03-15T14:30:00.000Z",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null (clears the field)", () => {
+    const result = updateJobInterviewDateSchema.safeParse({
+      id: "job-1",
+      interviewDate: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an unparsable date string", () => {
+    const result = updateJobInterviewDateSchema.safeParse({
+      id: "job-1",
+      interviewDate: "not a date",
     });
     expect(result.success).toBe(false);
   });

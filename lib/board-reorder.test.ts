@@ -18,6 +18,7 @@ function job(id: string, status: string, order: number): Job {
     salaryType: null,
     resumeUrl: null,
     coverLetterUrl: null,
+    interviewDate: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
   };

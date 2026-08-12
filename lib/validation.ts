@@ -137,3 +137,11 @@ export const updateJobDocumentsSchema = z.object({
   resumeUrl: optionalDocumentUrlSchema,
   coverLetterUrl: optionalDocumentUrlSchema,
 });
+
+export const updateJobInterviewDateSchema = z.object({
+  id: jobIdSchema,
+  interviewDate: z
+    .string()
+    .refine((value) => !Number.isNaN(new Date(value).getTime()), "Date invalide")
+    .nullable(),
+});

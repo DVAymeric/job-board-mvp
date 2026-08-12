@@ -41,6 +41,7 @@ import {
   SALARY_TYPE_ORDER,
   type SalaryType,
 } from "@/lib/constants";
+import { buildInterviewIcs } from "@/lib/ics";
 import { toast } from "sonner";
 import { XIcon } from "lucide-react";
 import {
@@ -50,9 +51,16 @@ import {
   removeTagFromJob,
   updateJobDetails,
   updateJobDocuments,
+  updateJobInterviewDate,
   updateJobNotes,
   updateJobSalary,
 } from "@/app/actions";
+
+function toDatetimeLocalValue(date: Date | null): string {
+  if (!date) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export function JobDialog({
   job,
@@ -83,6 +91,10 @@ export function JobDialog({
   const [resumeUrl, setResumeUrl] = useState(job?.resumeUrl ?? "");
   const [coverLetterUrl, setCoverLetterUrl] = useState(job?.coverLetterUrl ?? "");
   const [savingDocuments, setSavingDocuments] = useState(false);
+  const [interviewDateInput, setInterviewDateInput] = useState(
+    toDatetimeLocalValue(job?.interviewDate ?? null)
+  );
+  const [savingInterviewDate, setSavingInterviewDate] = useState(false);
 
   if (!job) {
     return (
@@ -151,6 +163,40 @@ export function JobDialog({
       coverLetterUrl: coverLetterUrl.trim() || null,
     });
     toast.success("Documents enregistrés");
+  }
+
+  async function handleSaveInterviewDate() {
+    if (!job) return;
+    const isoValue = interviewDateInput ? new Date(interviewDateInput).toISOString() : null;
+    setSavingInterviewDate(true);
+    const result = await updateJobInterviewDate(job.id, isoValue);
+    setSavingInterviewDate(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onUpdated({ ...job, interviewDate: isoValue ? new Date(isoValue) : null });
+    toast.success("Date d'entretien enregistrée");
+  }
+
+  function handleExportIcs() {
+    if (!job || !job.interviewDate) return;
+    const ics = buildInterviewIcs({
+      id: job.id,
+      title: job.title,
+      companyName: job.companyName,
+      url: job.url,
+      interviewDate: job.interviewDate,
+    });
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `entretien-${job.id}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 
   async function handleMarkFollowUp() {
@@ -409,6 +455,37 @@ export function JobDialog({
             >
               Enregistrer les documents
             </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-interview-date" className="text-sm font-medium">
+              Date d&apos;entretien
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                id="job-interview-date"
+                type="datetime-local"
+                value={interviewDateInput}
+                onChange={(e) => setInterviewDateInput(e.target.value)}
+                disabled={savingInterviewDate}
+                className="w-auto"
+              />
+              <Button
+                size="sm"
+                onClick={handleSaveInterviewDate}
+                disabled={
+                  savingInterviewDate ||
+                  interviewDateInput === toDatetimeLocalValue(job.interviewDate)
+                }
+              >
+                Enregistrer la date d&apos;entretien
+              </Button>
+              {job.interviewDate && (
+                <Button variant="outline" size="sm" onClick={handleExportIcs}>
+                  Exporter .ics
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1 text-sm">

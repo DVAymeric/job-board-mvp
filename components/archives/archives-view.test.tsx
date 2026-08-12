@@ -32,6 +32,7 @@ function job(overrides: Partial<JobWithRelations>): JobWithRelations {
     salaryType: null,
     resumeUrl: null,
     coverLetterUrl: null,
+    interviewDate: null,
     tags: [],
     contacts: [],
     statusHistory: [],
