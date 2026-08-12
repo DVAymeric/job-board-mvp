@@ -1,12 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { computeStatusFunnel } from "@/lib/analytics";
+import { buildHeatmapDays } from "@/lib/heatmap";
 import { FunnelChart } from "@/components/analytics/funnel-chart";
+import { ApplicationHeatmap } from "@/components/analytics/application-heatmap";
 
 export default async function AnalyticsPage() {
   const jobs = await prisma.job.findMany({
-    select: { statusHistory: { select: { status: true } } },
+    select: { createdAt: true, statusHistory: { select: { status: true } } },
   });
   const funnel = computeStatusFunnel(jobs);
+  const heatmapDays = buildHeatmapDays(jobs);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4">
@@ -18,6 +21,7 @@ export default async function AnalyticsPage() {
         </p>
       </div>
       <FunnelChart stages={funnel} />
+      <ApplicationHeatmap days={heatmapDays} />
     </div>
   );
 }
