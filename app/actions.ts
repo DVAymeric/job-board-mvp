@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
 import { buildJobsCsv } from "@/lib/csv-export";
+import { backupFileSchema, buildBackupFile } from "@/lib/backup";
 import {
   buildBrandfetchLogoUrl,
   buildClearbitLogoUrl,
@@ -501,5 +502,102 @@ export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
     return { ok: true, data: { csv: buildJobsCsv(jobs) } };
   } catch {
     return { ok: false, error: "Impossible de générer l'export CSV" };
+  }
+}
+
+export async function exportBackupJson(): Promise<ActionResult<{ json: string }>> {
+  try {
+    const [jobs, tags] = await Promise.all([
+      prisma.job.findMany({
+        include: {
+          tags: { include: { tag: true } },
+          contacts: true,
+          statusHistory: true,
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.tag.findMany({ orderBy: { name: "asc" } }),
+    ]);
+    const backup = buildBackupFile(jobs, tags);
+    return { ok: true, data: { json: JSON.stringify(backup, null, 2) } };
+  } catch {
+    return { ok: false, error: "Impossible de générer la sauvegarde" };
+  }
+}
+
+export async function importBackupJson(
+  rawJson: string
+): Promise<ActionResult<{ importedJobs: number }>> {
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(rawJson);
+  } catch {
+    return { ok: false, error: "Fichier JSON illisible" };
+  }
+
+  const parsed = backupFileSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Structure du fichier de sauvegarde invalide",
+    };
+  }
+  const backup = parsed.data;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.job.deleteMany({});
+      await tx.tag.deleteMany({});
+
+      if (backup.tags.length > 0) {
+        await tx.tag.createMany({ data: backup.tags });
+      }
+
+      for (const job of backup.jobs) {
+        await tx.job.create({
+          data: {
+            id: job.id,
+            url: job.url,
+            title: job.title,
+            companyName: job.companyName,
+            companyLogoUrl: job.companyLogoUrl,
+            notes: job.notes,
+            status: job.status,
+            archived: job.archived,
+            order: job.order,
+            lastFollowUp: job.lastFollowUp ? new Date(job.lastFollowUp) : null,
+            createdAt: new Date(job.createdAt),
+            updatedAt: new Date(job.updatedAt),
+            contacts: {
+              create: job.contacts.map((contact) => ({
+                id: contact.id,
+                name: contact.name,
+                role: contact.role,
+                linkedinUrl: contact.linkedinUrl,
+                createdAt: new Date(contact.createdAt),
+                updatedAt: new Date(contact.updatedAt),
+              })),
+            },
+            statusHistory: {
+              create: job.statusHistory.map((entry) => ({
+                id: entry.id,
+                status: entry.status,
+                changedAt: new Date(entry.changedAt),
+              })),
+            },
+            tags: {
+              create: job.tagIds.map((tagId) => ({ tagId })),
+            },
+          },
+        });
+      }
+    });
+
+    revalidatePath("/board");
+    revalidatePath("/archives");
+    revalidatePath("/analytics");
+    return { ok: true, data: { importedJobs: backup.jobs.length } };
+  } catch {
+    return { ok: false, error: "Impossible de restaurer la sauvegarde" };
   }
 }

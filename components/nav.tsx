@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BackupControls } from "@/components/backup/backup-controls";
 import { exportJobsCsv } from "@/app/actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export function Nav() {
         {exporting && <Loader2 className="animate-spin" />}
         Exporter CSV
       </Button>
+      <BackupControls />
     </header>
   );
 }

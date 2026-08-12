@@ -6,10 +6,13 @@ import { exportJobsCsv } from "@/app/actions";
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/board",
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 vi.mock("@/app/actions", () => ({
   exportJobsCsv: vi.fn(),
+  exportBackupJson: vi.fn(),
+  importBackupJson: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
