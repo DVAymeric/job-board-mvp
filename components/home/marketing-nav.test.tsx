@@ -31,10 +31,11 @@ describe("MarketingNav", () => {
     expect(cta.className).toContain("bg-primary");
   });
 
-  it("hides the nav links on narrow viewports, keeping logo and CTA", () => {
+  it("hides the nav links below the md breakpoint (~768px, closest to the 780px target), keeping logo and CTA", () => {
     render(<MarketingNav />);
     const linksNav = screen.getByRole("link", { name: "Board" }).closest("nav");
     expect(linksNav?.className).toContain("hidden");
+    expect(linksNav?.className).toContain("md:flex");
   });
 
   it("uses an opaque light background regardless of theme", () => {

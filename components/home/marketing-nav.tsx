@@ -18,7 +18,7 @@ export function MarketingNav() {
         />
         JobTracker
       </span>
-      <nav className="hidden flex-1 items-center gap-4 sm:flex">
+      <nav className="hidden flex-1 items-center gap-4 md:flex">
         {LINKS.map((link) => (
           <Link
             key={link.href}
@@ -31,7 +31,7 @@ export function MarketingNav() {
       </nav>
       <Link
         href="/board"
-        className={cn(buttonVariants({ variant: "default" }), "ml-auto sm:ml-0")}
+        className={cn(buttonVariants({ variant: "default" }), "ml-auto md:ml-0")}
       >
         Ouvrir l&apos;app
       </Link>
