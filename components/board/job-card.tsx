@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CompanyAvatar } from "@/components/board/company-avatar";
 import {
   FOLLOW_UP_BADGE_CLASSNAME,
-  FOLLOW_UP_DAYS,
-  STATUS,
+  needsFollowUp,
   STATUS_CONFIG,
   JobStatus,
 } from "@/lib/constants";
@@ -24,14 +23,6 @@ function getDisplayTitle(job: Job): string {
   } catch {
     return job.url;
   }
-}
-
-function needsFollowUp(job: Job): boolean {
-  if (job.status !== STATUS.APPLIED) return false;
-  const reference = job.lastFollowUp ?? job.createdAt;
-  const days =
-    (Date.now() - new Date(reference).getTime()) / (1000 * 60 * 60 * 24);
-  return days >= FOLLOW_UP_DAYS;
 }
 
 export function JobCard({
@@ -104,5 +95,3 @@ export function JobCard({
     </Card>
   );
 }
-
-export { needsFollowUp };

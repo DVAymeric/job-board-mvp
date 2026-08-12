@@ -26,4 +26,33 @@ describe("ApplicationHeatmap", () => {
     // one empty swatch + 5 intensity levels
     expect(legendCells).toHaveLength(6);
   });
+
+  it("shows the month labels row by default", () => {
+    const days = buildHeatmapDays([], new Date(2026, 7, 12));
+    render(<ApplicationHeatmap days={days} />);
+    expect(screen.getByTestId("heatmap-month-labels")).toBeInTheDocument();
+  });
+
+  describe("compact mode", () => {
+    it("renders only the last 12 weeks of cells", () => {
+      // Aug 15 2026 is a Saturday, so the window ends on a complete week
+      // and the expected count isn't skewed by a partial trailing week.
+      const days = buildHeatmapDays([], new Date(2026, 7, 15));
+      const { container } = render(<ApplicationHeatmap days={days} compact />);
+      const cells = container.querySelectorAll("[data-heatmap-cell]");
+      expect(cells).toHaveLength(12 * 7);
+    });
+
+    it("hides the legend", () => {
+      const days = buildHeatmapDays([], new Date(2026, 7, 12));
+      const { container } = render(<ApplicationHeatmap days={days} compact />);
+      expect(container.querySelectorAll("[data-legend-cell]")).toHaveLength(0);
+    });
+
+    it("hides the month labels row", () => {
+      const days = buildHeatmapDays([], new Date(2026, 7, 12));
+      render(<ApplicationHeatmap days={days} compact />);
+      expect(screen.queryByTestId("heatmap-month-labels")).not.toBeInTheDocument();
+    });
+  });
 });

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { extractCompanyDomain } from "@/lib/company-logo";
 import { cn } from "@/lib/utils";
 
-type AvatarJob = {
+export type AvatarJob = {
   companyLogoUrl: string | null;
   companyName: string | null;
   title: string | null;

@@ -1,3 +1,5 @@
+import type { Job } from "@prisma/client";
+
 export const FOLLOW_UP_DAYS = 7;
 
 export const STATUS = {
@@ -60,6 +62,16 @@ export const FOLLOW_UP_BADGE_CLASSNAME =
 
 export function isJobStatus(value: string): value is JobStatus {
   return value in STATUS_CONFIG;
+}
+
+export function needsFollowUp(
+  job: Pick<Job, "status" | "lastFollowUp" | "createdAt">
+): boolean {
+  if (job.status !== STATUS.APPLIED) return false;
+  const reference = job.lastFollowUp ?? job.createdAt;
+  const days =
+    (Date.now() - new Date(reference).getTime()) / (1000 * 60 * 60 * 24);
+  return days >= FOLLOW_UP_DAYS;
 }
 
 export const CONTACT_ROLE = {

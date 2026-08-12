@@ -9,6 +9,8 @@
   --color-foreground: var(--foreground);
   --color-heading: var(--heading);
   --color-accent-border: var(--accent-border);
+  --color-palette-eclipse: var(--palette-eclipse);
+  --color-palette-minuit: var(--palette-minuit);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-fraunces);
@@ -57,6 +59,9 @@
   --palette-orchidee: #783f8e;
   --palette-nuit: #4f1271;
   --palette-encre: #4a4063;
+  /* Tons les plus sombres du hero (fond flouté + overlay), pas utilisés ailleurs */
+  --palette-minuit: #2e2440;
+  --palette-eclipse: #1c1728;
 
   --background: #f8f6fb;
   --foreground: #453b5c;
@@ -107,6 +112,8 @@
   --palette-orchidee: #783f8e;
   --palette-nuit: #4f1271;
   --palette-encre: #4a4063;
+  --palette-minuit: #2e2440;
+  --palette-eclipse: #1c1728;
 
   --background: #1d1727;
   --foreground: #e4dcec;
