@@ -14,6 +14,8 @@ function job(id: string, status: string, order: number): Job {
     archived: false,
     order,
     lastFollowUp: null,
+    salaryAmount: null,
+    salaryType: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
   };

@@ -88,3 +88,28 @@ export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
 export function isContactRole(value: string): value is ContactRole {
   return value in CONTACT_ROLE_LABELS;
 }
+
+export const SALARY_TYPE = {
+  ANNUAL: "ANNUAL",
+  DAILY_RATE: "DAILY_RATE",
+} as const;
+
+export type SalaryType = (typeof SALARY_TYPE)[keyof typeof SALARY_TYPE];
+
+export const SALARY_TYPE_ORDER: SalaryType[] = [
+  SALARY_TYPE.ANNUAL,
+  SALARY_TYPE.DAILY_RATE,
+];
+
+export const SALARY_TYPE_LABELS: Record<SalaryType, string> = {
+  ANNUAL: "Salaire annuel (€)",
+  DAILY_RATE: "TJM (€/jour)",
+};
+
+export function isSalaryType(value: string): value is SalaryType {
+  return value in SALARY_TYPE_LABELS;
+}
+
+// Average French working days per year, used to bring TJM (daily rate) and
+// annual salary onto a comparable scale in the comparator view.
+export const WORKING_DAYS_PER_YEAR = 218;

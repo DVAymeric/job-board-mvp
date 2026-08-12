@@ -15,6 +15,7 @@ const LINKS = [
   { href: "/board", label: "Board" },
   { href: "/archives", label: "Archives" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/comparateur", label: "Comparateur" },
 ] as const;
 
 export function Nav() {

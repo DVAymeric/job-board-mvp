@@ -16,6 +16,8 @@ function job(overrides: Partial<JobWithRelations>): JobWithRelations {
     lastFollowUp: null,
     createdAt: new Date("2026-01-01T10:00:00Z"),
     updatedAt: new Date("2026-01-02T10:00:00Z"),
+    salaryAmount: null,
+    salaryType: null,
     tags: [],
     contacts: [],
     statusHistory: [],

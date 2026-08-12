@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeUrl } from "@/lib/url";
-import { CONTACT_ROLE, STATUS } from "@/lib/constants";
+import { CONTACT_ROLE, SALARY_TYPE, STATUS } from "@/lib/constants";
 
 const urlSchema = z
   .string()
@@ -117,4 +117,10 @@ export const updateContactSchema = z.object({
 
 export const deleteContactSchema = z.object({
   contactId: jobIdSchema,
+});
+
+export const updateJobSalarySchema = z.object({
+  id: jobIdSchema,
+  salaryAmount: z.number().int().positive().nullable(),
+  salaryType: z.enum([SALARY_TYPE.ANNUAL, SALARY_TYPE.DAILY_RATE]).nullable(),
 });

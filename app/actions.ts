@@ -28,6 +28,7 @@ import {
   updateContactSchema,
   updateJobDetailsSchema,
   updateJobNotesSchema,
+  updateJobSalarySchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
 
@@ -267,6 +268,34 @@ export async function updateJobNotes(
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible d'enregistrer les notes" };
+  }
+}
+
+export async function updateJobSalary(
+  id: string,
+  salaryAmount: number | null,
+  salaryType: string | null
+): Promise<ActionResult<null>> {
+  const parsed = updateJobSalarySchema.safeParse({ id, salaryAmount, salaryType });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer le salaire"),
+    };
+  }
+  try {
+    await prisma.job.update({
+      where: { id: parsed.data.id },
+      data: {
+        salaryAmount: parsed.data.salaryAmount,
+        salaryType: parsed.data.salaryType,
+      },
+    });
+    revalidatePath("/board");
+    revalidatePath("/comparateur");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible d'enregistrer le salaire" };
   }
 }
 
@@ -566,6 +595,8 @@ export async function importBackupJson(
             archived: job.archived,
             order: job.order,
             lastFollowUp: job.lastFollowUp ? new Date(job.lastFollowUp) : null,
+            salaryAmount: job.salaryAmount,
+            salaryType: job.salaryType,
             createdAt: new Date(job.createdAt),
             updatedAt: new Date(job.updatedAt),
             contacts: {

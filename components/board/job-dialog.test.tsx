@@ -9,6 +9,7 @@ import {
   removeTagFromJob,
   updateJobDetails,
   updateJobNotes,
+  updateJobSalary,
 } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
@@ -21,6 +22,7 @@ vi.mock("@/app/actions", () => ({
   updateContact: vi.fn(),
   updateJobDetails: vi.fn(),
   updateJobNotes: vi.fn(),
+  updateJobSalary: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -40,6 +42,8 @@ const baseJob: JobWithRelations = {
   lastFollowUp: null,
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
+  salaryAmount: null,
+  salaryType: null,
   tags: [],
   contacts: [],
   statusHistory: [],
@@ -207,6 +211,42 @@ describe("JobDialog — notes", () => {
     expect(updateJobNotes).toHaveBeenCalledWith("job-1", "Relancer après l'entretien");
     expect(onUpdated).toHaveBeenCalledWith(
       expect.objectContaining({ notes: "Relancer après l'entretien" })
+    );
+  });
+});
+
+describe("JobDialog — rémunération", () => {
+  beforeEach(() => {
+    vi.mocked(updateJobSalary).mockReset();
+  });
+
+  it("loads the job's existing salary amount", () => {
+    render(
+      <JobDialog
+        job={{ ...baseJob, salaryAmount: 45000, salaryType: "ANNUAL" }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText("Rémunération")).toHaveValue(45000);
+  });
+
+  it("saves the salary amount and type via a dedicated button", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateJobSalary).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    await user.type(screen.getByLabelText("Rémunération"), "500");
+    await user.click(screen.getByRole("button", { name: "Enregistrer le salaire" }));
+
+    expect(updateJobSalary).toHaveBeenCalledWith("job-1", 500, "ANNUAL");
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ salaryAmount: 500, salaryType: "ANNUAL" })
     );
   });
 });

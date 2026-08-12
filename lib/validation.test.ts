@@ -14,6 +14,7 @@ import {
   updateContactSchema,
   updateJobDetailsSchema,
   updateJobNotesSchema,
+  updateJobSalarySchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
 
@@ -314,5 +315,45 @@ describe("deleteContactSchema", () => {
 
   it("rejects a missing contactId", () => {
     expect(deleteContactSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe("updateJobSalarySchema", () => {
+  it("accepts a valid annual salary", () => {
+    const result = updateJobSalarySchema.safeParse({
+      id: "job-1",
+      salaryAmount: 45000,
+      salaryType: "ANNUAL",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null amount and type (clears the field)", () => {
+    const result = updateJobSalarySchema.safeParse({
+      id: "job-1",
+      salaryAmount: null,
+      salaryType: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a negative or zero amount", () => {
+    expect(
+      updateJobSalarySchema.safeParse({ id: "job-1", salaryAmount: 0, salaryType: "ANNUAL" })
+        .success
+    ).toBe(false);
+    expect(
+      updateJobSalarySchema.safeParse({ id: "job-1", salaryAmount: -500, salaryType: "ANNUAL" })
+        .success
+    ).toBe(false);
+  });
+
+  it("rejects an invalid salary type", () => {
+    const result = updateJobSalarySchema.safeParse({
+      id: "job-1",
+      salaryAmount: 500,
+      salaryType: "MONTHLY",
+    });
+    expect(result.success).toBe(false);
   });
 });

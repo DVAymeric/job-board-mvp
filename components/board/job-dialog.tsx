@@ -25,9 +25,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CompanyAvatar } from "@/components/board/company-avatar";
 import { ContactsSection } from "@/components/board/contacts-section";
 import { StatusTimeline } from "@/components/board/status-timeline";
+import {
+  SALARY_TYPE,
+  SALARY_TYPE_LABELS,
+  SALARY_TYPE_ORDER,
+  type SalaryType,
+} from "@/lib/constants";
 import { toast } from "sonner";
 import { XIcon } from "lucide-react";
 import {
@@ -37,6 +50,7 @@ import {
   removeTagFromJob,
   updateJobDetails,
   updateJobNotes,
+  updateJobSalary,
 } from "@/app/actions";
 
 export function JobDialog({
@@ -58,6 +72,13 @@ export function JobDialog({
   const [addingTag, setAddingTag] = useState(false);
   const [notes, setNotes] = useState(job?.notes ?? "");
   const [savingNotes, setSavingNotes] = useState(false);
+  const [salaryAmount, setSalaryAmount] = useState(
+    job?.salaryAmount != null ? String(job.salaryAmount) : ""
+  );
+  const [salaryType, setSalaryType] = useState<SalaryType>(
+    (job?.salaryType as SalaryType) ?? SALARY_TYPE.ANNUAL
+  );
+  const [savingSalary, setSavingSalary] = useState(false);
 
   if (!job) {
     return (
@@ -95,6 +116,20 @@ export function JobDialog({
     }
     onUpdated({ ...job, notes: notes.trim() || null });
     toast.success("Notes enregistrées");
+  }
+
+  async function handleSaveSalary() {
+    if (!job) return;
+    const amount = salaryAmount.trim() ? Number(salaryAmount) : null;
+    setSavingSalary(true);
+    const result = await updateJobSalary(job.id, amount, amount === null ? null : salaryType);
+    setSavingSalary(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onUpdated({ ...job, salaryAmount: amount, salaryType: amount === null ? null : salaryType });
+    toast.success("Rémunération enregistrée");
   }
 
   async function handleMarkFollowUp() {
@@ -272,6 +307,52 @@ export function JobDialog({
               disabled={savingNotes || notes === (job.notes ?? "")}
             >
               Enregistrer les notes
+            </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-salary" className="text-sm font-medium">
+              Rémunération
+            </label>
+            <div className="flex gap-2">
+              <Input
+                id="job-salary"
+                type="number"
+                min={1}
+                inputMode="numeric"
+                value={salaryAmount}
+                onChange={(e) => setSalaryAmount(e.target.value)}
+                placeholder="Montant (optionnel)"
+                disabled={savingSalary}
+              />
+              <Select
+                value={salaryType}
+                onValueChange={(value) => setSalaryType(value as SalaryType)}
+              >
+                <SelectTrigger disabled={savingSalary}>
+                  <SelectValue>
+                    {(value: SalaryType) => SALARY_TYPE_LABELS[value] ?? value}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SALARY_TYPE_ORDER.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {SALARY_TYPE_LABELS[type]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleSaveSalary}
+              disabled={
+                savingSalary ||
+                (salaryAmount === (job.salaryAmount != null ? String(job.salaryAmount) : "") &&
+                  salaryType === (job.salaryType ?? SALARY_TYPE.ANNUAL))
+              }
+            >
+              Enregistrer le salaire
             </Button>
           </div>
 
