@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Column } from "@/components/board/column";
-import { JobSheet } from "@/components/board/job-sheet";
+import { JobDialog } from "@/components/board/job-dialog";
 import { needsFollowUp } from "@/components/board/job-card";
 import { STATUS, STATUS_ORDER } from "@/lib/constants";
 import { computeReorderedColumn } from "@/lib/board-reorder";
@@ -211,7 +211,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
         </DndContext>
       )}
 
-      <JobSheet
+      <JobDialog
         key={selectedJob?.id ?? "none"}
         job={selectedJob}
         onOpenChange={(open) => {

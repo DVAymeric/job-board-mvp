@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { JobWithRelations } from "@/lib/types";
-import { JobSheet } from "@/components/board/job-sheet";
+import { JobDialog } from "@/components/board/job-dialog";
 import {
   addTagToJob,
   archiveJob,
@@ -45,7 +45,26 @@ const baseJob: JobWithRelations = {
   statusHistory: [],
 };
 
-describe("JobSheet — édition titre / entreprise", () => {
+describe("JobDialog — modale centrée (pas une sidebar)", () => {
+  it("renders as a centered dialog with a backdrop, not a side sheet", () => {
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+
+    // base-ui portals the popup/backdrop onto document.body, outside the
+    // render container.
+    const popup = document.body.querySelector('[data-slot="dialog-content"]');
+    const overlay = document.body.querySelector('[data-slot="dialog-overlay"]');
+    expect(popup).toBeInTheDocument();
+    expect(overlay).toBeInTheDocument();
+    // A side sheet carries a data-side attribute (left/right/...); a centered
+    // dialog must not.
+    expect(popup).not.toHaveAttribute("data-side");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+});
+
+describe("JobDialog — édition titre / entreprise", () => {
   beforeEach(() => {
     vi.mocked(updateJobDetails).mockReset();
   });
@@ -56,7 +75,7 @@ describe("JobSheet — édition titre / entreprise", () => {
     const onUpdated = vi.fn();
 
     render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
     );
 
     const titleInput = screen.getByLabelText("Titre du poste");
@@ -77,7 +96,7 @@ describe("JobSheet — édition titre / entreprise", () => {
   });
 });
 
-describe("JobSheet — tags", () => {
+describe("JobDialog — tags", () => {
   beforeEach(() => {
     vi.mocked(addTagToJob).mockReset();
     vi.mocked(removeTagFromJob).mockReset();
@@ -85,7 +104,7 @@ describe("JobSheet — tags", () => {
 
   it("shows the job's existing tags", () => {
     render(
-      <JobSheet
+      <JobDialog
         job={{
           ...baseJob,
           tags: [
@@ -109,7 +128,7 @@ describe("JobSheet — tags", () => {
     const onUpdated = vi.fn();
 
     render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
     );
 
     await user.type(screen.getByPlaceholderText("Ajouter un tag..."), "Remote");
@@ -129,7 +148,7 @@ describe("JobSheet — tags", () => {
     const onUpdated = vi.fn();
 
     render(
-      <JobSheet
+      <JobDialog
         job={{
           ...baseJob,
           tags: [
@@ -149,14 +168,14 @@ describe("JobSheet — tags", () => {
   });
 });
 
-describe("JobSheet — notes", () => {
+describe("JobDialog — notes", () => {
   beforeEach(() => {
     vi.mocked(updateJobNotes).mockReset();
   });
 
   it("loads the job's existing notes into the textarea", () => {
     render(
-      <JobSheet
+      <JobDialog
         job={{ ...baseJob, notes: "Contact via une connexion LinkedIn" }}
         onOpenChange={vi.fn()}
         onUpdated={vi.fn()}
@@ -174,7 +193,7 @@ describe("JobSheet — notes", () => {
     const onUpdated = vi.fn();
 
     render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
     );
 
     const notesField = screen.getByLabelText("Notes");
@@ -192,10 +211,10 @@ describe("JobSheet — notes", () => {
   });
 });
 
-describe("JobSheet — timeline de statut", () => {
+describe("JobDialog — timeline de statut", () => {
   it("renders the job's status history entries", () => {
     render(
-      <JobSheet
+      <JobDialog
         job={{
           ...baseJob,
           statusHistory: [
@@ -223,10 +242,10 @@ describe("JobSheet — timeline de statut", () => {
   });
 });
 
-describe("JobSheet — contacts", () => {
+describe("JobDialog — contacts", () => {
   it("renders the job's existing contacts", () => {
     render(
-      <JobSheet
+      <JobDialog
         job={{
           ...baseJob,
           contacts: [
@@ -250,14 +269,14 @@ describe("JobSheet — contacts", () => {
   });
 });
 
-describe("JobSheet — archivage", () => {
+describe("JobDialog — archivage", () => {
   beforeEach(() => {
     vi.mocked(archiveJob).mockReset();
   });
 
   it("shows no confirmation dialog before any button is clicked", () => {
     render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
     );
     expect(screen.queryByText(/archives/i)).not.toBeInTheDocument();
     expect(archiveJob).not.toHaveBeenCalled();
@@ -269,7 +288,7 @@ describe("JobSheet — archivage", () => {
     const onDeleted = vi.fn();
 
     render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
     );
 
     await user.click(screen.getByRole("button", { name: "Archiver" }));
@@ -285,7 +304,7 @@ describe("JobSheet — archivage", () => {
   it("cancelling the archive dialog archives nothing", async () => {
     const user = userEvent.setup();
     render(
-      <JobSheet job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
     );
 
     await user.click(screen.getByRole("button", { name: "Archiver" }));

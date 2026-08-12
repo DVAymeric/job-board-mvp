@@ -3,13 +3,13 @@
 import { useState } from "react";
 import type { JobWithRelations } from "@/lib/types";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +39,7 @@ import {
   updateJobNotes,
 } from "@/app/actions";
 
-export function JobSheet({
+export function JobDialog({
   job,
   onOpenChange,
   onUpdated,
@@ -61,9 +61,9 @@ export function JobSheet({
 
   if (!job) {
     return (
-      <Sheet open={false} onOpenChange={onOpenChange}>
-        <SheetContent />
-      </Sheet>
+      <Dialog open={false} onOpenChange={onOpenChange}>
+        <DialogContent />
+      </Dialog>
     );
   }
 
@@ -151,14 +151,14 @@ export function JobSheet({
   }
 
   return (
-    <Sheet open={!!job} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
+    <Dialog open={!!job} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[85vh] w-full max-w-lg flex-col sm:max-w-lg">
+        <DialogHeader>
           <div className="flex items-center gap-2">
             <CompanyAvatar job={job} />
-            <SheetTitle>Détails de la candidature</SheetTitle>
+            <DialogTitle>Détails de la candidature</DialogTitle>
           </div>
-          <SheetDescription>
+          <DialogDescription>
             <a
               href={job.url}
               target="_blank"
@@ -167,10 +167,10 @@ export function JobSheet({
             >
               {job.url}
             </a>
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="flex flex-col gap-4 px-4">
+        <div className="flex flex-col gap-4 overflow-y-auto px-1">
           <div className="space-y-1.5">
             <label htmlFor="job-title" className="text-sm font-medium">
               Titre du poste
@@ -295,7 +295,7 @@ export function JobSheet({
           </Button>
         </div>
 
-        <SheetFooter className="gap-2">
+        <DialogFooter className="gap-2">
           <AlertDialog>
             <AlertDialogTrigger render={<Button variant="destructive" />}>
               Archiver
@@ -316,8 +316,8 @@ export function JobSheet({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
