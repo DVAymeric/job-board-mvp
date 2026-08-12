@@ -19,6 +19,8 @@ function job(overrides: Partial<JobWithRelations>): JobWithRelations {
     updatedAt: new Date("2026-01-01"),
     salaryAmount: null,
     salaryType: null,
+    resumeUrl: null,
+    coverLetterUrl: null,
     tags: [],
     contacts: [],
     statusHistory: [],

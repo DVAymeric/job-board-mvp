@@ -8,6 +8,7 @@ import {
   archiveJob,
   removeTagFromJob,
   updateJobDetails,
+  updateJobDocuments,
   updateJobNotes,
   updateJobSalary,
 } from "@/app/actions";
@@ -21,6 +22,7 @@ vi.mock("@/app/actions", () => ({
   removeTagFromJob: vi.fn(),
   updateContact: vi.fn(),
   updateJobDetails: vi.fn(),
+  updateJobDocuments: vi.fn(),
   updateJobNotes: vi.fn(),
   updateJobSalary: vi.fn(),
 }));
@@ -44,6 +46,8 @@ const baseJob: JobWithRelations = {
   updatedAt: new Date("2026-01-01"),
   salaryAmount: null,
   salaryType: null,
+  resumeUrl: null,
+  coverLetterUrl: null,
   tags: [],
   contacts: [],
   statusHistory: [],
@@ -247,6 +251,55 @@ describe("JobDialog — rémunération", () => {
     expect(updateJobSalary).toHaveBeenCalledWith("job-1", 500, "ANNUAL");
     expect(onUpdated).toHaveBeenCalledWith(
       expect.objectContaining({ salaryAmount: 500, salaryType: "ANNUAL" })
+    );
+  });
+});
+
+describe("JobDialog — documents (CV / lettre)", () => {
+  beforeEach(() => {
+    vi.mocked(updateJobDocuments).mockReset();
+  });
+
+  it("loads the job's existing document links", () => {
+    render(
+      <JobDialog
+        job={{
+          ...baseJob,
+          resumeUrl: "https://drive.example.com/cv.pdf",
+          coverLetterUrl: "https://drive.example.com/lettre.pdf",
+        }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText("CV utilisé")).toHaveValue(
+      "https://drive.example.com/cv.pdf"
+    );
+    expect(screen.getByLabelText("Lettre de motivation")).toHaveValue(
+      "https://drive.example.com/lettre.pdf"
+    );
+  });
+
+  it("saves both document links via a dedicated button", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateJobDocuments).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    await user.type(screen.getByLabelText("CV utilisé"), "https://drive.example.com/cv.pdf");
+    await user.click(screen.getByRole("button", { name: "Enregistrer les documents" }));
+
+    expect(updateJobDocuments).toHaveBeenCalledWith(
+      "job-1",
+      "https://drive.example.com/cv.pdf",
+      ""
+    );
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({ resumeUrl: "https://drive.example.com/cv.pdf" })
     );
   });
 });

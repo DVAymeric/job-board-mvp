@@ -124,3 +124,16 @@ export const updateJobSalarySchema = z.object({
   salaryAmount: z.number().int().positive().nullable(),
   salaryType: z.enum([SALARY_TYPE.ANNUAL, SALARY_TYPE.DAILY_RATE]).nullable(),
 });
+
+const optionalDocumentUrlSchema = z
+  .string()
+  .trim()
+  .url("URL invalide")
+  .optional()
+  .or(z.literal(""));
+
+export const updateJobDocumentsSchema = z.object({
+  id: jobIdSchema,
+  resumeUrl: optionalDocumentUrlSchema,
+  coverLetterUrl: optionalDocumentUrlSchema,
+});

@@ -13,6 +13,7 @@ import {
   unarchiveJobSchema,
   updateContactSchema,
   updateJobDetailsSchema,
+  updateJobDocumentsSchema,
   updateJobNotesSchema,
   updateJobSalarySchema,
   updateJobStatusSchema,
@@ -353,6 +354,35 @@ describe("updateJobSalarySchema", () => {
       id: "job-1",
       salaryAmount: 500,
       salaryType: "MONTHLY",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateJobDocumentsSchema", () => {
+  it("accepts valid resume and cover letter URLs", () => {
+    const result = updateJobDocumentsSchema.safeParse({
+      id: "job-1",
+      resumeUrl: "https://drive.example.com/cv.pdf",
+      coverLetterUrl: "https://drive.example.com/lettre.pdf",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts empty strings (clears the fields)", () => {
+    const result = updateJobDocumentsSchema.safeParse({
+      id: "job-1",
+      resumeUrl: "",
+      coverLetterUrl: "",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a malformed URL", () => {
+    const result = updateJobDocumentsSchema.safeParse({
+      id: "job-1",
+      resumeUrl: "not a url",
+      coverLetterUrl: "",
     });
     expect(result.success).toBe(false);
   });

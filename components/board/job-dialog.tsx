@@ -49,6 +49,7 @@ import {
   markFollowUpToday,
   removeTagFromJob,
   updateJobDetails,
+  updateJobDocuments,
   updateJobNotes,
   updateJobSalary,
 } from "@/app/actions";
@@ -79,6 +80,9 @@ export function JobDialog({
     (job?.salaryType as SalaryType) ?? SALARY_TYPE.ANNUAL
   );
   const [savingSalary, setSavingSalary] = useState(false);
+  const [resumeUrl, setResumeUrl] = useState(job?.resumeUrl ?? "");
+  const [coverLetterUrl, setCoverLetterUrl] = useState(job?.coverLetterUrl ?? "");
+  const [savingDocuments, setSavingDocuments] = useState(false);
 
   if (!job) {
     return (
@@ -130,6 +134,23 @@ export function JobDialog({
     }
     onUpdated({ ...job, salaryAmount: amount, salaryType: amount === null ? null : salaryType });
     toast.success("Rémunération enregistrée");
+  }
+
+  async function handleSaveDocuments() {
+    if (!job) return;
+    setSavingDocuments(true);
+    const result = await updateJobDocuments(job.id, resumeUrl, coverLetterUrl);
+    setSavingDocuments(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onUpdated({
+      ...job,
+      resumeUrl: resumeUrl.trim() || null,
+      coverLetterUrl: coverLetterUrl.trim() || null,
+    });
+    toast.success("Documents enregistrés");
   }
 
   async function handleMarkFollowUp() {
@@ -353,6 +374,40 @@ export function JobDialog({
               }
             >
               Enregistrer le salaire
+            </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-resume-url" className="text-sm font-medium">
+              CV utilisé
+            </label>
+            <Input
+              id="job-resume-url"
+              value={resumeUrl}
+              onChange={(e) => setResumeUrl(e.target.value)}
+              placeholder="Lien vers le CV utilisé (optionnel)"
+              disabled={savingDocuments}
+            />
+            <label htmlFor="job-cover-letter-url" className="text-sm font-medium">
+              Lettre de motivation
+            </label>
+            <Input
+              id="job-cover-letter-url"
+              value={coverLetterUrl}
+              onChange={(e) => setCoverLetterUrl(e.target.value)}
+              placeholder="Lien vers la lettre utilisée (optionnel)"
+              disabled={savingDocuments}
+            />
+            <Button
+              size="sm"
+              onClick={handleSaveDocuments}
+              disabled={
+                savingDocuments ||
+                (resumeUrl === (job.resumeUrl ?? "") &&
+                  coverLetterUrl === (job.coverLetterUrl ?? ""))
+              }
+            >
+              Enregistrer les documents
             </Button>
           </div>
 

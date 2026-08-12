@@ -17,6 +17,8 @@ function job(overrides: Partial<Job>): Job {
     lastFollowUp: null,
     salaryAmount: null,
     salaryType: null,
+    resumeUrl: null,
+    coverLetterUrl: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     ...overrides,
