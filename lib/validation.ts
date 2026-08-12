@@ -24,6 +24,7 @@ export const createJobSchema = z.object({
   title: z.string().trim().optional(),
   companyName: z.string().trim().optional(),
   companyLogoUrl: z.url().optional().or(z.literal("")),
+  descriptionText: z.string().trim().optional(),
   status: z.enum([STATUS.TO_APPLY, STATUS.APPLIED], {
     error: "Statut initial invalide",
   }),
@@ -144,4 +145,15 @@ export const updateJobInterviewDateSchema = z.object({
     .string()
     .refine((value) => !Number.isNaN(new Date(value).getTime()), "Date invalide")
     .nullable(),
+});
+
+export const checkRepostSchema = z.object({
+  id: jobIdSchema,
+});
+
+export const reactivateJobSchema = z.object({
+  id: jobIdSchema,
+  title: z.string().nullable(),
+  companyName: z.string().nullable(),
+  descriptionText: z.string().nullable(),
 });

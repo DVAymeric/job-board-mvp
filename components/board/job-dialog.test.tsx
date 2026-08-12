@@ -51,6 +51,7 @@ const baseJob: JobWithRelations = {
   resumeUrl: null,
   coverLetterUrl: null,
   interviewDate: null,
+  descriptionText: null,
   tags: [],
   contacts: [],
   statusHistory: [],

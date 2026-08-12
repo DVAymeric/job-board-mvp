@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
+import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
 import { buildJobsCsv } from "@/lib/csv-export";
 import { backupFileSchema, buildBackupFile } from "@/lib/backup";
 import {
@@ -18,10 +19,12 @@ import {
   addTagToJobSchema,
   archiveJobSchema,
   checkJobUrlSchema,
+  checkRepostSchema,
   createJobSchema,
   deleteContactSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  reactivateJobSchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
   unarchiveJobSchema,
@@ -66,11 +69,15 @@ export async function checkJobUrl(
 
 const METADATA_FETCH_TIMEOUT_MS = 5000;
 
-export async function fetchJobMetadata(
-  rawUrl: string
-): Promise<ActionResult<{ title: string | null; companyName: string | null }>> {
+export async function fetchJobMetadata(rawUrl: string): Promise<
+  ActionResult<{
+    title: string | null;
+    companyName: string | null;
+    descriptionText: string | null;
+  }>
+> {
   const parsed = checkJobUrlSchema.safeParse(rawUrl);
-  const empty = { title: null, companyName: null };
+  const empty = { title: null, companyName: null, descriptionText: null };
   if (!parsed.success) {
     return { ok: true, data: empty };
   }
@@ -140,6 +147,7 @@ export async function createJob(input: {
   title?: string;
   companyName?: string;
   companyLogoUrl?: string;
+  descriptionText?: string;
   status: JobStatus;
 }): Promise<ActionResult<{ id: string }>> {
   const parsed = createJobSchema.safeParse(input);
@@ -149,7 +157,8 @@ export async function createJob(input: {
       error: firstIssueMessage(parsed.error, "Offre invalide"),
     };
   }
-  const { url, title, companyName, companyLogoUrl, status } = parsed.data;
+  const { url, title, companyName, companyLogoUrl, descriptionText, status } =
+    parsed.data;
   try {
     const job = await prisma.job.create({
       data: {
@@ -157,6 +166,7 @@ export async function createJob(input: {
         title: title || null,
         companyName: companyName || null,
         companyLogoUrl: companyLogoUrl || null,
+        descriptionText: descriptionText || null,
         status,
         lastFollowUp: status === STATUS.APPLIED ? new Date() : null,
         statusHistory: { create: { status } },
@@ -172,6 +182,87 @@ export async function createJob(input: {
       return { ok: false, error: "Cette offre a déjà été enregistrée" };
     }
     return { ok: false, error: "Impossible d'enregistrer cette offre" };
+  }
+}
+
+export async function checkRepost(id: string): Promise<
+  ActionResult<{
+    changed: boolean;
+    diff: DiffLine[];
+    fresh: {
+      title: string | null;
+      companyName: string | null;
+      descriptionText: string | null;
+    };
+  }>
+> {
+  const parsed = checkRepostSchema.safeParse({ id });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Identifiant invalide"),
+    };
+  }
+  let job;
+  try {
+    job = await prisma.job.findUnique({ where: { id: parsed.data.id } });
+  } catch {
+    return { ok: false, error: "Impossible de vérifier cette offre" };
+  }
+  if (!job) {
+    return { ok: false, error: "Offre introuvable" };
+  }
+  if (!job.archived) {
+    return { ok: false, error: "Cette offre est déjà active" };
+  }
+
+  const metadata = await fetchJobMetadata(job.url);
+  const fresh = metadata.ok
+    ? metadata.data
+    : { title: null, companyName: null, descriptionText: null };
+
+  return {
+    ok: true,
+    data: {
+      changed: hasContentChanged(job.descriptionText, fresh.descriptionText),
+      diff: diffLines(job.descriptionText, fresh.descriptionText),
+      fresh,
+    },
+  };
+}
+
+export async function reactivateJobWithContent(input: {
+  id: string;
+  title: string | null;
+  companyName: string | null;
+  descriptionText: string | null;
+}): Promise<ActionResult<null>> {
+  const parsed = reactivateJobSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: firstIssueMessage(parsed.error, "Impossible de réactiver l'offre"),
+    };
+  }
+  const { id, title, companyName, descriptionText } = parsed.data;
+  try {
+    await prisma.job.update({
+      where: { id },
+      data: {
+        title,
+        companyName,
+        descriptionText,
+        archived: false,
+        status: STATUS.TO_APPLY,
+        lastFollowUp: null,
+        statusHistory: { create: { status: STATUS.TO_APPLY } },
+      },
+    });
+    revalidatePath("/board");
+    revalidatePath("/archives");
+    return { ok: true, data: null };
+  } catch {
+    return { ok: false, error: "Impossible de réactiver l'offre" };
   }
 }
 
@@ -656,6 +747,7 @@ export async function importBackupJson(
             resumeUrl: job.resumeUrl,
             coverLetterUrl: job.coverLetterUrl,
             interviewDate: job.interviewDate ? new Date(job.interviewDate) : null,
+            descriptionText: job.descriptionText,
             createdAt: new Date(job.createdAt),
             updatedAt: new Date(job.updatedAt),
             contacts: {

@@ -4,10 +4,12 @@ import {
   addTagToJobSchema,
   archiveJobSchema,
   checkJobUrlSchema,
+  checkRepostSchema,
   createJobSchema,
   deleteContactSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  reactivateJobSchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
   unarchiveJobSchema,
@@ -410,6 +412,49 @@ describe("updateJobInterviewDateSchema", () => {
     const result = updateJobInterviewDateSchema.safeParse({
       id: "job-1",
       interviewDate: "not a date",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("checkRepostSchema", () => {
+  it("accepts a valid job id", () => {
+    const result = checkRepostSchema.safeParse({ id: "job-1" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty id", () => {
+    const result = checkRepostSchema.safeParse({ id: "" });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("reactivateJobSchema", () => {
+  it("accepts null title, companyName and descriptionText", () => {
+    const result = reactivateJobSchema.safeParse({
+      id: "job-1",
+      title: null,
+      companyName: null,
+      descriptionText: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts populated fields", () => {
+    const result = reactivateJobSchema.safeParse({
+      id: "job-1",
+      title: "Développeur Backend",
+      companyName: "Acme",
+      descriptionText: "Rejoignez notre équipe.",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing id", () => {
+    const result = reactivateJobSchema.safeParse({
+      title: null,
+      companyName: null,
+      descriptionText: null,
     });
     expect(result.success).toBe(false);
   });

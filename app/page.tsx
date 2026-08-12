@@ -16,11 +16,15 @@ import {
 } from "@/components/ui/select";
 import {
   checkJobUrl,
+  checkRepost,
   createJob,
   fetchCompanyLogo,
   fetchJobMetadata,
+  reactivateJobWithContent,
 } from "@/app/actions";
 import { STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
+import type { DiffLine } from "@/lib/repost-diff";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type ViewState =
@@ -30,16 +34,31 @@ type ViewState =
   | { kind: "known"; job: Job }
   | { kind: "new"; normalizedUrl: string };
 
+type RepostFresh = {
+  title: string | null;
+  companyName: string | null;
+  descriptionText: string | null;
+};
+
+type RepostState =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "error"; message: string }
+  | { kind: "result"; changed: boolean; diff: DiffLine[]; fresh: RepostFresh };
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [view, setView] = useState<ViewState>({ kind: "idle" });
   const [title, setTitle] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [companyLogoUrl, setCompanyLogoUrl] = useState("");
+  const [descriptionText, setDescriptionText] = useState<string | null>(null);
   const [initialStatus, setInitialStatus] = useState<JobStatus>(
     STATUS.TO_APPLY
   );
   const [saving, setSaving] = useState(false);
+  const [repostState, setRepostState] = useState<RepostState>({ kind: "idle" });
+  const [reactivating, setReactivating] = useState(false);
 
   async function runCheck() {
     const trimmed = url.trim();
@@ -48,6 +67,7 @@ export default function Home() {
       return;
     }
     setView({ kind: "checking" });
+    setRepostState({ kind: "idle" });
     const result = await checkJobUrl(trimmed);
     if (!result.ok) {
       setView({ kind: "error", message: result.error });
@@ -65,6 +85,7 @@ export default function Home() {
       setTitle(metadata.ok ? metadata.data.title ?? "" : "");
       setCompanyName(metadata.ok ? metadata.data.companyName ?? "" : "");
       setCompanyLogoUrl(logo.ok ? logo.data.logoUrl ?? "" : "");
+      setDescriptionText(metadata.ok ? metadata.data.descriptionText : null);
       setInitialStatus(STATUS.TO_APPLY);
     }
   }
@@ -77,6 +98,7 @@ export default function Home() {
       title,
       companyName,
       companyLogoUrl,
+      descriptionText: descriptionText ?? undefined,
       status: initialStatus,
     });
     setSaving(false);
@@ -89,7 +111,39 @@ export default function Home() {
     setTitle("");
     setCompanyName("");
     setCompanyLogoUrl("");
+    setDescriptionText(null);
     setInitialStatus(STATUS.TO_APPLY);
+    setView({ kind: "idle" });
+  }
+
+  async function handleCheckRepost() {
+    if (view.kind !== "known") return;
+    setRepostState({ kind: "checking" });
+    const result = await checkRepost(view.job.id);
+    if (!result.ok) {
+      setRepostState({ kind: "error", message: result.error });
+      return;
+    }
+    setRepostState({ kind: "result", ...result.data });
+  }
+
+  async function handleReactivate() {
+    if (view.kind !== "known" || repostState.kind !== "result") return;
+    setReactivating(true);
+    const result = await reactivateJobWithContent({
+      id: view.job.id,
+      title: repostState.fresh.title,
+      companyName: repostState.fresh.companyName,
+      descriptionText: repostState.fresh.descriptionText,
+    });
+    setReactivating(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Candidature réactivée");
+    setUrl("");
+    setRepostState({ kind: "idle" });
     setView({ kind: "idle" });
   }
 
@@ -160,6 +214,62 @@ export default function Home() {
               </Link>
             </AlertDescription>
           </Alert>
+        )}
+
+        {view.kind === "known" && view.job.archived && (
+          <div className="space-y-3 rounded-lg border-2 border-accent-border bg-card p-4">
+            <p className="text-sm text-muted-foreground">
+              Cette offre est archivée. Vérifie si elle a été republiée avec un
+              contenu différent.
+            </p>
+            <Button
+              variant="outline"
+              onClick={handleCheckRepost}
+              disabled={repostState.kind === "checking"}
+            >
+              {repostState.kind === "checking" && (
+                <Loader2 className="animate-spin" />
+              )}
+              Vérifier si l&apos;offre a changé
+            </Button>
+
+            {repostState.kind === "error" && (
+              <p className="text-sm text-destructive">{repostState.message}</p>
+            )}
+
+            {repostState.kind === "result" && !repostState.changed && (
+              <p className="text-sm text-muted-foreground">
+                Aucun changement de contenu détecté depuis l&apos;archivage.
+              </p>
+            )}
+
+            {repostState.kind === "result" && repostState.changed && (
+              <ul className="space-y-0.5 rounded-md border border-border bg-muted/30 p-2 font-mono text-xs">
+                {repostState.diff.map((line, index) => (
+                  <li
+                    key={index}
+                    className={cn(
+                      "whitespace-pre-wrap",
+                      line.type === "removed" &&
+                        "text-destructive line-through",
+                      line.type === "added" && "font-medium text-heading",
+                      line.type === "unchanged" && "text-muted-foreground"
+                    )}
+                  >
+                    {line.type === "removed" ? "− " : line.type === "added" ? "+ " : "  "}
+                    {line.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {repostState.kind === "result" && (
+              <Button onClick={handleReactivate} disabled={reactivating}>
+                {reactivating && <Loader2 className="animate-spin" />}
+                Réactiver avec le nouveau contenu
+              </Button>
+            )}
+          </div>
         )}
 
         {view.kind === "new" && (

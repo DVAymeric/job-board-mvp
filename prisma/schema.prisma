@@ -8,23 +8,24 @@ datasource db {
 }
 
 model Job {
-  id             String    @id @default(uuid())
-  url            String    @unique
-  title          String?
-  companyName    String?
-  companyLogoUrl String?
-  notes          String?
-  status         String    @default("TO_APPLY") // TO_APPLY | APPLIED | INTERVIEW | REJECTED
-  archived       Boolean   @default(false)
-  order          Int       @default(0)
-  lastFollowUp   DateTime?
-  salaryAmount   Int?
-  salaryType     String? // ANNUAL | DAILY_RATE
-  resumeUrl      String?
-  coverLetterUrl String?
-  interviewDate  DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  url             String    @unique
+  title           String?
+  companyName     String?
+  companyLogoUrl  String?
+  notes           String?
+  status          String    @default("TO_APPLY") // TO_APPLY | APPLIED | INTERVIEW | REJECTED
+  archived        Boolean   @default(false)
+  order           Int       @default(0)
+  lastFollowUp    DateTime?
+  salaryAmount    Int?
+  salaryType      String? // ANNUAL | DAILY_RATE
+  resumeUrl       String?
+  coverLetterUrl  String?
+  interviewDate   DateTime?
+  descriptionText String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   contacts      Contact[]
   tags          JobTag[]

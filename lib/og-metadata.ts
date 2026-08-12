@@ -38,11 +38,16 @@ function extractTitleTag(html: string): string | undefined {
 export function extractJobMetadataFromHtml(html: string): {
   title: string | null;
   companyName: string | null;
+  descriptionText: string | null;
 } {
   const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
   const companyName = extractMetaContent(html, "og:site_name");
+  const descriptionText =
+    extractMetaContent(html, "og:description") ??
+    extractMetaContent(html, "description");
   return {
     title: title || null,
     companyName: companyName || null,
+    descriptionText: descriptionText || null,
   };
 }

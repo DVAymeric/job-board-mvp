@@ -27,12 +27,27 @@ describe("extractJobMetadataFromHtml", () => {
     expect(extractJobMetadataFromHtml(html).companyName).toBe("Beta SAS");
   });
 
-  it("returns null title and companyName when nothing is found", () => {
+  it("returns null title, companyName and descriptionText when nothing is found", () => {
     const html = `<html><body>No metadata here</body></html>`;
     expect(extractJobMetadataFromHtml(html)).toEqual({
       title: null,
       companyName: null,
+      descriptionText: null,
     });
+  });
+
+  it("extracts og:description as the descriptionText", () => {
+    const html = `<meta property="og:description" content="Rejoignez notre équipe backend." />`;
+    expect(extractJobMetadataFromHtml(html).descriptionText).toBe(
+      "Rejoignez notre équipe backend."
+    );
+  });
+
+  it("falls back to meta name=description when og:description is missing", () => {
+    const html = `<meta name="description" content="Poste basé à Lyon." />`;
+    expect(extractJobMetadataFromHtml(html).descriptionText).toBe(
+      "Poste basé à Lyon."
+    );
   });
 
   it("decodes common HTML entities", () => {
