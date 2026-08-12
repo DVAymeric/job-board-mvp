@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { JobWithRelations } from "@/lib/types";
 import { Board } from "@/components/board/board";
+import { reorderJobs, updateJobStatus } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
   addTagToJob: vi.fn(),
@@ -122,5 +123,71 @@ describe("Board tag filter", () => {
 
     expect(screen.getByText("Développeur Backend")).toBeInTheDocument();
     expect(screen.queryByText("Chef de projet")).not.toBeInTheDocument();
+  });
+});
+
+describe("Board keyboard shortcuts", () => {
+  it("focuses the first card when pressing ArrowDown with nothing focused", async () => {
+    const user = userEvent.setup();
+    render(<Board initialJobs={jobs} />);
+
+    await user.keyboard("{ArrowDown}");
+
+    expect(screen.getByText("Développeur Backend").closest('[role="button"]')).toHaveAttribute(
+      "aria-current",
+      "true"
+    );
+  });
+
+  it("moves focus across columns with ArrowRight", async () => {
+    const user = userEvent.setup();
+    render(<Board initialJobs={jobs} />);
+
+    await user.keyboard("{ArrowDown}");
+    await user.keyboard("{ArrowRight}");
+
+    expect(screen.getByText("Chef de projet").closest('[role="button"]')).toHaveAttribute(
+      "aria-current",
+      "true"
+    );
+  });
+
+  it("opens the job dialog when pressing Enter on the focused card", async () => {
+    const user = userEvent.setup();
+    render(<Board initialJobs={jobs} />);
+
+    await user.keyboard("{ArrowDown}");
+    await user.keyboard("{Enter}");
+
+    expect(
+      await screen.findByRole("dialog")
+    ).toBeInTheDocument();
+  });
+
+  it("moves the focused card to the next status with Shift+ArrowRight", async () => {
+    vi.mocked(updateJobStatus).mockResolvedValue({ ok: true, data: null });
+    vi.mocked(reorderJobs).mockResolvedValue({ ok: true, data: null });
+    const user = userEvent.setup();
+    render(<Board initialJobs={jobs} />);
+
+    await user.keyboard("{ArrowDown}");
+    await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
+
+    await waitFor(() =>
+      expect(updateJobStatus).toHaveBeenCalledWith("job-1", "APPLIED")
+    );
+  });
+
+  it("ignores arrow keys while the search input is focused", async () => {
+    const user = userEvent.setup();
+    render(<Board initialJobs={jobs} />);
+
+    await user.click(screen.getByPlaceholderText(/Rechercher/));
+    await user.keyboard("{ArrowDown}");
+
+    expect(screen.getByText("Développeur Backend").closest('[role="button"]')).not.toHaveAttribute(
+      "aria-current",
+      "true"
+    );
   });
 });

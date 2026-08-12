@@ -11,10 +11,12 @@ export function Column({
   status,
   jobs,
   onOpenJob,
+  focusedJobId,
 }: {
   status: JobStatus;
   jobs: JobWithRelations[];
   onOpenJob: (id: string) => void;
+  focusedJobId?: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
@@ -52,7 +54,12 @@ export function Column({
           strategy={verticalListSortingStrategy}
         >
           {jobs.map((job) => (
-            <JobCard key={job.id} job={job} onOpen={onOpenJob} />
+            <JobCard
+              key={job.id}
+              job={job}
+              onOpen={onOpenJob}
+              focused={job.id === focusedJobId}
+            />
           ))}
         </SortableContext>
       </div>

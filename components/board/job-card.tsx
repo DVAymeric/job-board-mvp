@@ -37,9 +37,11 @@ function needsFollowUp(job: Job): boolean {
 export function JobCard({
   job,
   onOpen,
+  focused = false,
 }: {
   job: JobWithRelations;
   onOpen: (id: string) => void;
+  focused?: boolean;
 }) {
   const {
     attributes,
@@ -61,11 +63,13 @@ export function JobCard({
       style={style}
       {...listeners}
       {...attributes}
+      aria-current={focused || undefined}
       onClick={() => onOpen(job.id)}
       className={cn(
         "cursor-grab touch-none select-none border-l-4 active:cursor-grabbing",
         STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName,
-        isDragging && "z-10 opacity-60"
+        isDragging && "z-10 opacity-60",
+        focused && "ring-2 ring-ring ring-offset-2 ring-offset-background"
       )}
     >
       <CardContent className="space-y-2">

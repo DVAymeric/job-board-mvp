@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -17,6 +17,7 @@ import { InterviewReminderWatcher } from "@/components/board/interview-reminder-
 import { needsFollowUp } from "@/components/board/job-card";
 import { STATUS, STATUS_ORDER } from "@/lib/constants";
 import { computeReorderedColumn } from "@/lib/board-reorder";
+import { adjacentStatus, computeNextFocusedJob } from "@/lib/board-keyboard";
 import { matchesJobQuery, matchesSelectedTags } from "@/lib/job-filters";
 import type { JobWithRelations } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [focusedJobId, setFocusedJobId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -66,12 +68,19 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
 
   const selectedJob = jobs.find((j) => j.id === selectedJobId) ?? null;
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over) return;
+  const focusColumns = useMemo(
+    () =>
+      STATUS_ORDER.map((status) => ({
+        status,
+        jobIds: visibleJobs
+          .filter((j) => j.status === status)
+          .sort((a, b) => a.order - b.order)
+          .map((j) => j.id),
+      })),
+    [visibleJobs]
+  );
 
-    const activeId = active.id.toString();
-    const overId = over.id.toString();
+  const moveJob = useCallback(async (activeId: string, overId: string) => {
     if (activeId === overId) return;
 
     const activeJob = jobs.find((j) => j.id === activeId);
@@ -127,6 +136,12 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
       setJobs(previousJobs);
       toast.error(reorderResult.error);
     }
+  }, [jobs]);
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    await moveJob(active.id.toString(), over.id.toString());
   }
 
   function handleUpdated(updated: JobWithRelations) {
@@ -137,6 +152,59 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
     setJobs((prev) => prev.filter((j) => j.id !== id));
     setSelectedJobId(null);
   }
+
+  useEffect(() => {
+    const directionByKey: Record<string, "up" | "down" | "left" | "right"> = {
+      ArrowUp: "up",
+      ArrowDown: "down",
+      ArrowLeft: "left",
+      ArrowRight: "right",
+    };
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (selectedJobId) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+
+      const direction = directionByKey[event.key];
+      if (direction && !event.shiftKey) {
+        event.preventDefault();
+        setFocusedJobId((current) =>
+          computeNextFocusedJob(focusColumns, current, direction)
+        );
+        return;
+      }
+
+      if (event.shiftKey && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
+        if (!focusedJobId) return;
+        const job = jobs.find((j) => j.id === focusedJobId);
+        if (!job) return;
+        const targetStatus = adjacentStatus(
+          STATUS_ORDER,
+          job.status,
+          event.key === "ArrowRight" ? "next" : "prev"
+        );
+        if (!targetStatus) return;
+        event.preventDefault();
+        moveJob(focusedJobId, targetStatus);
+        return;
+      }
+
+      if (event.key === "Enter" && focusedJobId) {
+        event.preventDefault();
+        setSelectedJobId(focusedJobId);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [focusColumns, focusedJobId, jobs, selectedJobId, moveJob]);
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -207,6 +275,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
                   .filter((j) => j.status === status)
                   .sort((a, b) => a.order - b.order)}
                 onOpenJob={setSelectedJobId}
+                focusedJobId={focusedJobId}
               />
             ))}
           </div>
