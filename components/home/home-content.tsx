@@ -8,7 +8,6 @@ import { Loader2 } from "lucide-react";
 import type { Job } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -203,84 +202,90 @@ function HomeContentInner() {
             if (e.key === "Enter") runCheck();
           }}
         />
-      </HeroSection>
 
-      <div className="flex flex-1 flex-col items-center px-4 py-8">
-        <div className="w-full max-w-xl space-y-6">
         {view.kind === "known" && (
-          <Alert>
-            <AlertTitle>
+          <div
+            data-testid="known-job-card"
+            className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
+          >
+            <p className="text-sm font-medium">
               Déjà postulé le{" "}
               {new Date(view.job.createdAt).toLocaleDateString("fr-FR")} —
-              statut : {STATUS_CONFIG[view.job.status as JobStatus]?.label ?? view.job.status}
-            </AlertTitle>
-            <AlertDescription>
-              <Link href="/board" className="underline underline-offset-2">
-                Voir et modifier dans le board
-              </Link>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {view.kind === "known" && view.job.archived && (
-          <div className="space-y-3 rounded-lg border-2 border-accent-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">
-              Cette offre est archivée. Vérifie si elle a été republiée avec un
-              contenu différent.
+              statut :{" "}
+              {STATUS_CONFIG[view.job.status as JobStatus]?.label ?? view.job.status}
             </p>
-            <Button
-              variant="outline"
-              onClick={handleCheckRepost}
-              disabled={repostState.kind === "checking"}
+            <Link
+              href="/board"
+              className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
             >
-              {repostState.kind === "checking" && (
-                <Loader2 className="animate-spin" />
-              )}
-              Vérifier si l&apos;offre a changé
-            </Button>
+              Voir et modifier dans le board
+            </Link>
 
-            {repostState.kind === "error" && (
-              <p className="text-sm text-destructive">{repostState.message}</p>
-            )}
+            {view.job.archived && (
+              <div className="space-y-3 border-t border-white/15 pt-3">
+                <p className="text-sm text-white/70">
+                  Cette offre est archivée. Vérifie si elle a été republiée
+                  avec un contenu différent.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={handleCheckRepost}
+                  disabled={repostState.kind === "checking"}
+                  className="border-white/20 bg-white/10 text-white hover:bg-white/20"
+                >
+                  {repostState.kind === "checking" && (
+                    <Loader2 className="animate-spin" />
+                  )}
+                  Vérifier si l&apos;offre a changé
+                </Button>
 
-            {repostState.kind === "result" && !repostState.changed && (
-              <p className="text-sm text-muted-foreground">
-                Aucun changement de contenu détecté depuis l&apos;archivage.
-              </p>
-            )}
+                {repostState.kind === "error" && (
+                  <p className="text-sm text-[#f0a0a0]">{repostState.message}</p>
+                )}
 
-            {repostState.kind === "result" && repostState.changed && (
-              <ul className="space-y-0.5 rounded-md border border-border bg-muted/30 p-2 font-mono text-xs">
-                {repostState.diff.map((line, index) => (
-                  <li
-                    key={index}
-                    className={cn(
-                      "whitespace-pre-wrap",
-                      line.type === "removed" &&
-                        "text-destructive line-through",
-                      line.type === "added" && "font-medium text-heading",
-                      line.type === "unchanged" && "text-muted-foreground"
-                    )}
-                  >
-                    {line.type === "removed" ? "− " : line.type === "added" ? "+ " : "  "}
-                    {line.text}
-                  </li>
-                ))}
-              </ul>
-            )}
+                {repostState.kind === "result" && !repostState.changed && (
+                  <p className="text-sm text-white/70">
+                    Aucun changement de contenu détecté depuis l&apos;archivage.
+                  </p>
+                )}
 
-            {repostState.kind === "result" && (
-              <Button onClick={handleReactivate} disabled={reactivating}>
-                {reactivating && <Loader2 className="animate-spin" />}
-                Réactiver avec le nouveau contenu
-              </Button>
+                {repostState.kind === "result" && repostState.changed && (
+                  <ul className="space-y-0.5 rounded-md border border-white/15 bg-white/5 p-2 font-mono text-xs">
+                    {repostState.diff.map((line, index) => (
+                      <li
+                        key={index}
+                        className={cn(
+                          "whitespace-pre-wrap",
+                          line.type === "removed" &&
+                            "text-[#f0a0a0] line-through",
+                          line.type === "added" && "font-medium text-white",
+                          line.type === "unchanged" && "text-white/50"
+                        )}
+                      >
+                        {line.type === "removed" ? "− " : line.type === "added" ? "+ " : "  "}
+                        {line.text}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {repostState.kind === "result" && (
+                  <Button onClick={handleReactivate} disabled={reactivating}>
+                    {reactivating && <Loader2 className="animate-spin" />}
+                    Réactiver avec le nouveau contenu
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         )}
 
         {view.kind === "new" && (
-          <div className="space-y-3 rounded-lg border-2 border-accent-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">
+          <div
+            data-testid="new-job-card"
+            className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
+          >
+            <p className="text-sm text-white/70">
               Nouvelle offre — ajoute-la à ton suivi.
             </p>
             <Input
@@ -288,18 +293,23 @@ function HomeContentInner() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={saving}
+              className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
             />
             <Input
               placeholder="Entreprise"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               disabled={saving}
+              className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
             />
             <Select
               value={initialStatus}
               onValueChange={(value) => setInitialStatus(value as JobStatus)}
             >
-              <SelectTrigger className="w-full" disabled={saving}>
+              <SelectTrigger
+                className="w-full border-white/20 bg-white/5 text-white data-placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
+                disabled={saving}
+              >
                 <SelectValue>
                   {(value: JobStatus) => STATUS_CONFIG[value]?.label ?? value}
                 </SelectValue>
@@ -319,10 +329,13 @@ function HomeContentInner() {
             </Button>
           </div>
         )}
+      </HeroSection>
 
-        <div className="text-center">
-          <BookmarkletLink />
-        </div>
+      <div className="flex flex-1 flex-col items-center px-4 py-8">
+        <div className="w-full max-w-xl space-y-6">
+          <div className="text-center">
+            <BookmarkletLink />
+          </div>
         </div>
       </div>
     </div>

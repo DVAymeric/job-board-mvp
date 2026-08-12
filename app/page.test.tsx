@@ -470,3 +470,75 @@ describe("Home — bookmarklet", () => {
     expect(checkJobUrl).not.toHaveBeenCalled();
   });
 });
+
+describe("Home — intégration visuelle des états dans la carte hero", () => {
+  beforeEach(() => {
+    vi.mocked(checkJobUrl).mockReset();
+    vi.mocked(fetchJobMetadata).mockReset();
+    vi.mocked(fetchCompanyLogo).mockReset();
+    vi.mocked(fetchJobMetadata).mockResolvedValue({
+      ok: true,
+      data: { title: null, companyName: null, descriptionText: null },
+    });
+    vi.mocked(fetchCompanyLogo).mockResolvedValue({
+      ok: true,
+      data: { logoUrl: null },
+    });
+  });
+
+  it("renders the known-url panel with the hero's dark translucent card style", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: true, job: activeJob },
+    });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+
+    const panel = await screen.findByTestId("known-job-card");
+    expect(panel.className).toContain("bg-white/10");
+    expect(panel.className).toContain("border-white/15");
+  });
+
+  it("renders the new-url form panel with the hero's dark translucent card style", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/job" },
+    });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+
+    const panel = await screen.findByTestId("new-job-card");
+    expect(panel.className).toContain("bg-white/10");
+    expect(panel.className).toContain("border-white/15");
+  });
+
+  it("keeps the known/new panels inside the hero section, not below it", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/job" },
+    });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+
+    const panel = await screen.findByTestId("new-job-card");
+    expect(panel.closest("section")).not.toBeNull();
+  });
+});
