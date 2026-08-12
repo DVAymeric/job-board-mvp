@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hors ligne — Suivi de candidatures</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        background: #f8f6fb;
+        color: #1d1727;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        text-align: center;
+        padding: 1.5rem;
+      }
+      .card {
+        max-width: 24rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+      }
+      p {
+        color: #4a4063;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      button {
+        margin-top: 1.5rem;
+        border: none;
+        border-radius: 0.5rem;
+        background: #4f1271;
+        color: #f8f6fb;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #1d1727;
+          color: #f8f6fb;
+        }
+        p {
+          color: #c8c6d7;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Pas de connexion</h1>
+      <p>
+        Impossible de charger le board pour le moment. Reconnecte-toi puis
+        réessaie — tes candidatures sont en sécurité sur le serveur local.
+      </p>
+      <button onclick="location.reload()">Réessayer</button>
+    </div>
+  </body>
+</html>
