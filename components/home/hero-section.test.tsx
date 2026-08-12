@@ -44,4 +44,15 @@ describe("HeroSection", () => {
     const heading = screen.getByRole("heading", { level: 1 });
     expect(heading).toHaveClass("font-heading", "text-xl");
   });
+
+  it("fills at least the full viewport height", () => {
+    render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    const heading = screen.getByRole("heading", { level: 1 });
+    const header = heading.closest("header");
+    expect(header).toHaveClass("min-h-dvh");
+  });
 });

@@ -11,7 +11,7 @@ interface HeroSectionProps {
  */
 export function HeroSection({ children }: HeroSectionProps) {
   return (
-    <header className="relative isolate overflow-hidden bg-[#1c1728] px-4 py-16 sm:py-24">
+    <header className="relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#1c1728] px-4 py-16 sm:py-24">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(120,63,142,0.55),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(191,172,200,0.35),transparent_50%),linear-gradient(180deg,#1c1728_0%,#2e2440_45%,#4a4063_100%)]"
