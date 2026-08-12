@@ -28,13 +28,18 @@ export function HeroSection({ children }: HeroSectionProps) {
           Local · zéro config · zéro cloud
         </span>
         <h1 className="font-heading text-xl text-white">
-          Avant de repostuler, demandez d&apos;abord.
+          Ne repostulez plus{" "}
+          <em className="text-[#c094d3] italic">deux fois</em> à la même
+          offre.
         </h1>
         <p className="max-w-md text-sm text-white/70">
-          Collez l&apos;URL d&apos;une offre. On vérifie en local si vous
-          l&apos;avez déjà vue — sinon, on l&apos;ajoute à votre board.
+          Collez une URL, on vous dit instantanément si vous l&apos;avez déjà
+          vue.
         </p>
         {children}
+        <p className="font-mono text-xs text-white/50">
+          0 dépendance cloud · SQLite local · Sans compte
+        </p>
       </div>
     </section>
   );

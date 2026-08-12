@@ -12,8 +12,8 @@ describe("HeroSection", () => {
     expect(screen.getByText(/zéro config/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 1 })
-    ).toHaveTextContent(/repostuler/i);
-    expect(screen.getByText(/Collez l'URL/i)).toBeInTheDocument();
+    ).toHaveTextContent(/repostulez/i);
+    expect(screen.getByText(/Collez une URL/i)).toBeInTheDocument();
   });
 
   it("renders its children inside the hero", () => {
@@ -90,5 +90,27 @@ describe("HeroSection", () => {
     expect(contentContainer).not.toHaveClass("text-center");
     expect(contentContainer).not.toHaveClass("items-center");
     expect(contentContainer).toHaveClass("text-left");
+  });
+
+  it("emphasizes 'deux fois' in the heading in italic accent style", () => {
+    render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    const emphasis = screen.getByText("deux fois");
+    expect(emphasis.tagName).toBe("EM");
+    expect(emphasis).toHaveClass("italic");
+  });
+
+  it("renders the trust line at the bottom of the hero content", () => {
+    render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    expect(screen.getByText(/SQLite local/i)).toBeInTheDocument();
+    expect(screen.getByText(/0 dépendance cloud/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sans compte/i)).toBeInTheDocument();
   });
 });
