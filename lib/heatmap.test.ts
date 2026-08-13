@@ -58,4 +58,38 @@ describe("buildHeatmapDays", () => {
     const days = buildHeatmapDays(jobs, today);
     expect(days.find((d) => d.date === "2026-08-12")?.level).toBe(5);
   });
+
+  describe("with levels: 3", () => {
+    it("re-bins the ratio into 3 levels instead of 6", () => {
+      const today = new Date(2026, 7, 12);
+      const jobs = [
+        // busiest day: 4 jobs on the 12th (ratio 1 -> top level)
+        { createdAt: new Date(2026, 7, 12) },
+        { createdAt: new Date(2026, 7, 12) },
+        { createdAt: new Date(2026, 7, 12) },
+        { createdAt: new Date(2026, 7, 12) },
+        // ratio 0.25 -> level 1
+        { createdAt: new Date(2026, 7, 9) },
+        // ratio 0.5 -> level 2
+        { createdAt: new Date(2026, 7, 10) },
+        { createdAt: new Date(2026, 7, 10) },
+        // ratio 0.75 -> level 3 (top)
+        { createdAt: new Date(2026, 7, 11) },
+        { createdAt: new Date(2026, 7, 11) },
+        { createdAt: new Date(2026, 7, 11) },
+      ];
+      const days = buildHeatmapDays(jobs, today, 3);
+      expect(days.find((d) => d.date === "2026-08-09")?.level).toBe(1);
+      expect(days.find((d) => d.date === "2026-08-10")?.level).toBe(2);
+      expect(days.find((d) => d.date === "2026-08-11")?.level).toBe(3);
+      expect(days.find((d) => d.date === "2026-08-12")?.level).toBe(3);
+    });
+
+    it("still assigns level 0 to empty days", () => {
+      const today = new Date(2026, 7, 12);
+      const jobs = [{ createdAt: new Date(2026, 7, 12) }];
+      const days = buildHeatmapDays(jobs, today, 3);
+      expect(days.find((d) => d.date === "2026-08-11")?.level).toBe(0);
+    });
+  });
 });

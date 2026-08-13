@@ -14,6 +14,29 @@ describe("BentoCard", () => {
     expect(screen.queryByText("Board")).not.toBeInTheDocument();
   });
 
+  it("allows the grid item to shrink below its content's intrinsic width", () => {
+    // Without min-w-0, a wide-content child (e.g. the 53-week heatmap) forces
+    // this grid item — and the whole grid/page — wider than the viewport
+    // instead of scrolling within its own overflow-x-auto container.
+    render(<BentoCard title="Fréquence de candidature" />);
+    const card = screen
+      .getByText("Fréquence de candidature")
+      .closest('[data-slot="bento-card"]');
+    expect(card).toHaveClass("min-w-0");
+  });
+
+  it("also lets the body wrapper (a flex item of the card itself) shrink", () => {
+    // BentoCard is itself flex-col, so its children wrapper is a flex item
+    // subject to the same min-width:auto trap one level down.
+    render(
+      <BentoCard title="Fréquence de candidature">
+        <p>contenu</p>
+      </BentoCard>
+    );
+    const bodyWrapper = screen.getByText("contenu").parentElement;
+    expect(bodyWrapper).toHaveClass("min-w-0");
+  });
+
   it("renders children as body content", () => {
     render(
       <BentoCard title="Confidentialité">
@@ -35,13 +58,14 @@ describe("BentoCard", () => {
     ["2x1", ["col-span-2", "row-span-1"]],
     ["1x2", ["col-span-1", "row-span-2"]],
     ["2x2", ["col-span-2", "row-span-2"]],
+    ["4x1", ["col-span-2", "row-span-1", "md:col-span-4"]],
   ] as const)("applies the %s span classes", (span, expectedClasses) => {
     render(<BentoCard title="Carte" span={span} />);
     const card = screen.getByText("Carte").closest('[data-slot="bento-card"]');
     expectedClasses.forEach((cls) => expect(card).toHaveClass(cls));
   });
 
-  it.each(["default", "dark", "accent", "muted"] as const)(
+  it.each(["default", "dark", "accent", "muted", "surface"] as const)(
     "exposes the %s tone via data-tone",
     (tone) => {
       render(<BentoCard title="Carte" tone={tone} />);
@@ -60,5 +84,37 @@ describe("BentoCard", () => {
     expect(card).toHaveClass("bg-[#c8c6d7]");
     expect(title).not.toHaveClass("text-heading");
     expect(title.className).toMatch(/text-\[#/);
+  });
+
+  it("uses a fixed dark nocturne background and white text for the surface tone", () => {
+    // Same fixed-color rationale as `muted`, but for the dark Analytics page:
+    // this tone must stay dark regardless of light/dark mode, so it can't
+    // rely on theme-aware tokens like bg-card.
+    render(<BentoCard title="Funnel" tone="surface" />);
+    const title = screen.getByText("Funnel", { selector: "h3" });
+    const card = title.closest('[data-slot="bento-card"]');
+    expect(card).toHaveClass("bg-palette-nocturne");
+    expect(title).toHaveClass("text-white");
+  });
+
+  it("omits the h3 entirely when no title is given", () => {
+    const { container } = render(
+      <BentoCard label="Vue d'ensemble">
+        <p>5 candidatures suivies au total</p>
+      </BentoCard>
+    );
+    expect(container.querySelector("h3")).not.toBeInTheDocument();
+    expect(screen.getByText("5 candidatures suivies au total")).toBeInTheDocument();
+  });
+
+  it("merges bodyClassName onto the children wrapper for custom body layouts", () => {
+    render(
+      <BentoCard title="Détail par statut" bodyClassName="flex divide-x">
+        <span>À postuler</span>
+        <span>Postulé</span>
+      </BentoCard>
+    );
+    const bodyWrapper = screen.getByText("À postuler").parentElement;
+    expect(bodyWrapper).toHaveClass("flex", "divide-x");
   });
 });

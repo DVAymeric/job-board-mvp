@@ -3,13 +3,20 @@ import { cn } from "@/lib/utils";
 
 const COMPACT_WEEKS = 12;
 
-const LEVEL_VARS = [
+const LEVEL_VARS_5 = [
   "",
   "--chart-4",
   "--chart-3",
   "--chart-2",
   "--chart-1",
   "--chart-5",
+];
+
+const LEVEL_COLORS_3 = [
+  "",
+  "color-mix(in srgb, var(--palette-poudre) 40%, transparent)",
+  "color-mix(in srgb, var(--palette-orchidee) 65%, transparent)",
+  "var(--palette-orchidee)",
 ];
 
 const MONTH_LABELS = [
@@ -27,8 +34,11 @@ const MONTH_LABELS = [
   "Déc",
 ];
 
-function levelStyle(level: number): React.CSSProperties | undefined {
-  return level > 0 ? { backgroundColor: `var(${LEVEL_VARS[level]})` } : undefined;
+function levelStyle(level: number, levels: 3 | 5): React.CSSProperties | undefined {
+  if (level <= 0) return undefined;
+  const color =
+    levels === 3 ? LEVEL_COLORS_3[level] : `var(${LEVEL_VARS_5[level]})`;
+  return { backgroundColor: color };
 }
 
 function chunkWeeks(days: HeatmapDay[]): HeatmapDay[][] {
@@ -64,9 +74,11 @@ function formatCellTitle(day: HeatmapDay): string {
 export function ApplicationHeatmap({
   days,
   compact = false,
+  levels = 5,
 }: {
   days: HeatmapDay[];
   compact?: boolean;
+  levels?: 3 | 5;
 }) {
   const weeks = chunkWeeks(days);
   const visibleWeeks = compact ? weeks.slice(-COMPACT_WEEKS) : weeks;
@@ -76,11 +88,6 @@ export function ApplicationHeatmap({
 
   return (
     <div className="space-y-2">
-      {!compact && (
-        <p className="text-sm font-medium">
-          Fréquence de candidature (12 derniers mois)
-        </p>
-      )}
       <div className="overflow-x-auto">
         <div className="inline-flex flex-col gap-1">
           {!compact && (
@@ -106,7 +113,7 @@ export function ApplicationHeatmap({
                 data-heatmap-cell
                 title={formatCellTitle(day)}
                 className={cn("rounded-[2px] border border-border bg-white", cellSizeClassName)}
-                style={levelStyle(day.level)}
+                style={levelStyle(day.level, levels)}
               />
             ))}
           </div>
@@ -115,12 +122,12 @@ export function ApplicationHeatmap({
       {!compact && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span>Moins</span>
-          {[0, 1, 2, 3, 4, 5].map((level) => (
+          {Array.from({ length: levels + 1 }, (_, level) => level).map((level) => (
             <div
               key={level}
               data-legend-cell
               className="size-[11px] rounded-[2px] border border-border bg-white"
-              style={levelStyle(level)}
+              style={levelStyle(level, levels)}
             />
           ))}
           <span>Plus</span>

@@ -55,4 +55,21 @@ describe("ApplicationHeatmap", () => {
       expect(screen.queryByTestId("heatmap-month-labels")).not.toBeInTheDocument();
     });
   });
+
+  describe("levels: 3", () => {
+    it("renders a 3-step intensity legend instead of 6", () => {
+      const days = buildHeatmapDays([], new Date(2026, 7, 12), 3);
+      const { container } = render(<ApplicationHeatmap days={days} levels={3} />);
+      const legendCells = container.querySelectorAll("[data-legend-cell]");
+      // one empty swatch + 3 intensity levels
+      expect(legendCells).toHaveLength(4);
+    });
+
+    it("still renders one cell per day in the window", () => {
+      const days = buildHeatmapDays([], new Date(2026, 7, 12), 3);
+      const { container } = render(<ApplicationHeatmap days={days} levels={3} />);
+      const cells = container.querySelectorAll("[data-heatmap-cell]");
+      expect(cells).toHaveLength(days.length);
+    });
+  });
 });

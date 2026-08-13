@@ -14,10 +14,19 @@ function toDateKey(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function computeLevel(count: number, max: number): number {
+// `levels` is the number of non-empty intensity steps (day 0 always means
+// "no activity" on top of that): 5 for the full 6-swatch scale used
+// everywhere by default, 3 for the coarser scale used by the Analytics bento
+// heatmap card.
+function computeLevel(count: number, max: number, levels: 3 | 5): number {
   if (count === 0) return 0;
   if (max <= 0) return 0;
   const ratio = count / max;
+  if (levels === 3) {
+    if (ratio <= 1 / 3) return 1;
+    if (ratio <= 2 / 3) return 2;
+    return 3;
+  }
   if (ratio <= 0.2) return 1;
   if (ratio <= 0.4) return 2;
   if (ratio <= 0.6) return 3;
@@ -27,7 +36,8 @@ function computeLevel(count: number, max: number): number {
 
 export function buildHeatmapDays(
   jobs: { createdAt: Date }[],
-  today: Date = new Date()
+  today: Date = new Date(),
+  levels: 3 | 5 = 5
 ): HeatmapDay[] {
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const start = new Date(end);
@@ -47,7 +57,7 @@ export function buildHeatmapDays(
   while (cursor <= end) {
     const key = toDateKey(cursor);
     const count = counts.get(key) ?? 0;
-    days.push({ date: key, count, level: computeLevel(count, max) });
+    days.push({ date: key, count, level: computeLevel(count, max, levels) });
     cursor.setDate(cursor.getDate() + 1);
   }
 
