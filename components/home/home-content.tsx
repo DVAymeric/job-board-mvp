@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { Job } from "@prisma/client";
@@ -29,14 +28,6 @@ import { STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
 import type { DiffLine } from "@/lib/repost-diff";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const BookmarkletLink = dynamic(
-  () =>
-    import("@/components/bookmarklet/bookmarklet-link").then(
-      (m) => m.BookmarkletLink
-    ),
-  { ssr: false }
-);
 
 type ViewState =
   | { kind: "idle" }
@@ -177,168 +168,158 @@ function HomeContentInner() {
   const checking = view.kind === "checking";
 
   return (
-    <div className="flex flex-1 flex-col">
-      <HeroSection>
-        <UrlCheckBar
-          url={url}
-          checking={checking}
-          error={view.kind === "error" ? view.message : null}
-          resultTag={
-            view.kind === "known"
-              ? { kind: "known", label: "Déjà dans votre board" }
-              : view.kind === "new"
-                ? { kind: "new", label: "Nouvelle offre" }
-                : null
+    <HeroSection>
+      <UrlCheckBar
+        url={url}
+        checking={checking}
+        error={view.kind === "error" ? view.message : null}
+        resultTag={
+          view.kind === "known"
+            ? { kind: "known", label: "Déjà dans votre board" }
+            : view.kind === "new"
+              ? { kind: "new", label: "Nouvelle offre" }
+              : null
+        }
+        onUrlChange={(value) => {
+          setUrl(value);
+          if (view.kind !== "idle" && view.kind !== "checking") {
+            setView({ kind: "idle" });
           }
-          onUrlChange={(value) => {
-            setUrl(value);
-            if (view.kind !== "idle" && view.kind !== "checking") {
-              setView({ kind: "idle" });
-            }
-          }}
-          onBlur={() => runCheck()}
-          onCheck={() => runCheck()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") runCheck();
-          }}
-        />
+        }}
+        onBlur={() => runCheck()}
+        onCheck={() => runCheck()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") runCheck();
+        }}
+      />
 
-        {view.kind === "known" && (
-          <div
-            data-testid="known-job-card"
-            className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
+      {view.kind === "known" && (
+        <div
+          data-testid="known-job-card"
+          className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
+        >
+          <p className="text-sm font-medium">
+            Déjà postulé le{" "}
+            {new Date(view.job.createdAt).toLocaleDateString("fr-FR")} —
+            statut :{" "}
+            {STATUS_CONFIG[view.job.status as JobStatus]?.label ?? view.job.status}
+          </p>
+          <Link
+            href="/board"
+            className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
           >
-            <p className="text-sm font-medium">
-              Déjà postulé le{" "}
-              {new Date(view.job.createdAt).toLocaleDateString("fr-FR")} —
-              statut :{" "}
-              {STATUS_CONFIG[view.job.status as JobStatus]?.label ?? view.job.status}
-            </p>
-            <Link
-              href="/board"
-              className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
-            >
-              Voir et modifier dans le board
-            </Link>
+            Voir et modifier dans le board
+          </Link>
 
-            {view.job.archived && (
-              <div className="space-y-3 border-t border-white/15 pt-3">
-                <p className="text-sm text-white/70">
-                  Cette offre est archivée. Vérifie si elle a été republiée
-                  avec un contenu différent.
-                </p>
-                <Button
-                  variant="outline"
-                  onClick={handleCheckRepost}
-                  disabled={repostState.kind === "checking"}
-                  className="border-white/20 bg-white/10 text-white hover:bg-white/20"
-                >
-                  {repostState.kind === "checking" && (
-                    <Loader2 className="animate-spin" />
-                  )}
-                  Vérifier si l&apos;offre a changé
-                </Button>
-
-                {repostState.kind === "error" && (
-                  <p className="text-sm text-[#f0a0a0]">{repostState.message}</p>
-                )}
-
-                {repostState.kind === "result" && !repostState.changed && (
-                  <p className="text-sm text-white/70">
-                    Aucun changement de contenu détecté depuis l&apos;archivage.
-                  </p>
-                )}
-
-                {repostState.kind === "result" && repostState.changed && (
-                  <ul className="space-y-0.5 rounded-md border border-white/15 bg-white/5 p-2 font-mono text-xs">
-                    {repostState.diff.map((line, index) => (
-                      <li
-                        key={index}
-                        className={cn(
-                          "whitespace-pre-wrap",
-                          line.type === "removed" &&
-                            "text-[#f0a0a0] line-through",
-                          line.type === "added" && "font-medium text-white",
-                          line.type === "unchanged" && "text-white/50"
-                        )}
-                      >
-                        {line.type === "removed" ? "− " : line.type === "added" ? "+ " : "  "}
-                        {line.text}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {repostState.kind === "result" && (
-                  <Button onClick={handleReactivate} disabled={reactivating}>
-                    {reactivating && <Loader2 className="animate-spin" />}
-                    Réactiver avec le nouveau contenu
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {view.kind === "new" && (
-          <div
-            data-testid="new-job-card"
-            className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
-          >
-            <p className="text-sm text-white/70">
-              Nouvelle offre — ajoute-la à ton suivi.
-            </p>
-            <Input
-              placeholder="Titre du poste"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={saving}
-              className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
-            />
-            <Input
-              placeholder="Entreprise"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              disabled={saving}
-              className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
-            />
-            <Select
-              value={initialStatus}
-              onValueChange={(value) => setInitialStatus(value as JobStatus)}
-            >
-              <SelectTrigger
-                className="w-full border-white/20 bg-white/5 text-white data-placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
-                disabled={saving}
+          {view.job.archived && (
+            <div className="space-y-3 border-t border-white/15 pt-3">
+              <p className="text-sm text-white/70">
+                Cette offre est archivée. Vérifie si elle a été republiée
+                avec un contenu différent.
+              </p>
+              <Button
+                variant="outline"
+                onClick={handleCheckRepost}
+                disabled={repostState.kind === "checking"}
+                className="border-white/20 bg-white/10 text-white hover:bg-white/20"
               >
-                <SelectValue>
-                  {(value: JobStatus) => STATUS_CONFIG[value]?.label ?? value}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={STATUS.TO_APPLY}>
-                  {STATUS_CONFIG.TO_APPLY.label}
-                </SelectItem>
-                <SelectItem value={STATUS.APPLIED}>
-                  {STATUS_CONFIG.APPLIED.label}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="animate-spin" />}
-              Enregistrer
-            </Button>
-          </div>
-        )}
-      </HeroSection>
+                {repostState.kind === "checking" && (
+                  <Loader2 className="animate-spin" />
+                )}
+                Vérifier si l&apos;offre a changé
+              </Button>
 
-      <div className="flex flex-1 flex-col items-center px-4 py-8">
-        <div className="w-full max-w-xl space-y-6">
-          <div className="text-center">
-            <BookmarkletLink />
-          </div>
+              {repostState.kind === "error" && (
+                <p className="text-sm text-[#f0a0a0]">{repostState.message}</p>
+              )}
+
+              {repostState.kind === "result" && !repostState.changed && (
+                <p className="text-sm text-white/70">
+                  Aucun changement de contenu détecté depuis l&apos;archivage.
+                </p>
+              )}
+
+              {repostState.kind === "result" && repostState.changed && (
+                <ul className="space-y-0.5 rounded-md border border-white/15 bg-white/5 p-2 font-mono text-xs">
+                  {repostState.diff.map((line, index) => (
+                    <li
+                      key={index}
+                      className={cn(
+                        "whitespace-pre-wrap",
+                        line.type === "removed" &&
+                          "text-[#f0a0a0] line-through",
+                        line.type === "added" && "font-medium text-white",
+                        line.type === "unchanged" && "text-white/50"
+                      )}
+                    >
+                      {line.type === "removed" ? "− " : line.type === "added" ? "+ " : "  "}
+                      {line.text}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {repostState.kind === "result" && (
+                <Button onClick={handleReactivate} disabled={reactivating}>
+                  {reactivating && <Loader2 className="animate-spin" />}
+                  Réactiver avec le nouveau contenu
+                </Button>
+              )}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+
+      {view.kind === "new" && (
+        <div
+          data-testid="new-job-card"
+          className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
+        >
+          <p className="text-sm text-white/70">
+            Nouvelle offre — ajoute-la à ton suivi.
+          </p>
+          <Input
+            placeholder="Titre du poste"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={saving}
+            className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
+          />
+          <Input
+            placeholder="Entreprise"
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            disabled={saving}
+            className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
+          />
+          <Select
+            value={initialStatus}
+            onValueChange={(value) => setInitialStatus(value as JobStatus)}
+          >
+            <SelectTrigger
+              className="w-full border-white/20 bg-white/5 text-white data-placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
+              disabled={saving}
+            >
+              <SelectValue>
+                {(value: JobStatus) => STATUS_CONFIG[value]?.label ?? value}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={STATUS.TO_APPLY}>
+                {STATUS_CONFIG.TO_APPLY.label}
+              </SelectItem>
+              <SelectItem value={STATUS.APPLIED}>
+                {STATUS_CONFIG.APPLIED.label}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleSave} disabled={saving} className="w-full">
+            {saving && <Loader2 className="animate-spin" />}
+            Enregistrer
+          </Button>
+        </div>
+      )}
+    </HeroSection>
   );
 }
 
