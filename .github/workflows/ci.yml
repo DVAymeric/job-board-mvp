@@ -14,7 +14,10 @@ jobs:
     name: Lint, typecheck & tests
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: "file:./ci.db"
+      # No test in this job touches a live database (`prisma generate` only
+      # reads schema.prisma); this dummy value just matches the postgresql
+      # provider so nothing looks inconsistent in CI logs.
+      DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
     steps:
       - uses: actions/checkout@v4
 
