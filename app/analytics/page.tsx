@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { computeStatusFunnel, computeMostActiveMonth } from "@/lib/analytics";
 import { computeStatusCounts } from "@/lib/home-stats";
@@ -12,7 +13,11 @@ import { HeatmapBentoCard } from "@/components/analytics/heatmap-bento-card";
 import { StatusDetailCard } from "@/components/analytics/status-detail-card";
 
 export default async function AnalyticsPage() {
+  const session = await auth();
+  const userId = session?.user?.id ?? "";
+
   const jobs = await prisma.job.findMany({
+    where: { userId },
     select: {
       status: true,
       createdAt: true,

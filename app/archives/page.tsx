@@ -1,9 +1,13 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ArchivesView } from "@/components/archives/archives-view";
 
 export default async function ArchivesPage() {
+  const session = await auth();
+  const userId = session?.user?.id ?? "";
+
   const jobs = await prisma.job.findMany({
-    where: { archived: true },
+    where: { userId, archived: true },
     include: {
       tags: { include: { tag: true } },
       contacts: true,

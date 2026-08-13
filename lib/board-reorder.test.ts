@@ -5,6 +5,7 @@ import { computeReorderedColumn } from "@/lib/board-reorder";
 function job(id: string, status: Job["status"], order: number): Job {
   return {
     id,
+    userId: "user-1",
     url: `https://example.com/${id}`,
     title: id,
     companyName: null,

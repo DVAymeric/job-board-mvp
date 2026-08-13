@@ -215,6 +215,7 @@ describe("Home — nouvelle candidature (auto-création par scraping)", () => {
 
 const archivedJob: Job = {
   id: "job-1",
+  userId: "user-1",
   url: "https://example.com/job",
   title: "Développeur Backend",
   companyName: "Acme",

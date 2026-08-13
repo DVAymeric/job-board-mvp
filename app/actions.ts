@@ -45,6 +45,19 @@ function firstIssueMessage(error: z.ZodError, fallback: string): string {
   return error.issues[0]?.message || fallback;
 }
 
+/**
+ * Scopes a Job lookup/mutation to its owner: `update`/`delete` throw
+ * RecordNotFound (caught by the surrounding try/catch) if `id` exists but
+ * belongs to a different user, instead of leaking or mutating cross-tenant.
+ */
+function jobOwnerWhere(id: string, userId: string) {
+  return { id_userId: { id, userId } };
+}
+
+function contactOwnerWhere(id: string, userId: string) {
+  return { id_userId: { id, userId } };
+}
+
 export async function checkJobUrl(
   rawUrl: string
 ): Promise<
@@ -62,7 +75,9 @@ export async function checkJobUrl(
   }
   const url = parsed.data;
   try {
-    const job = await prisma.job.findUnique({ where: { url } });
+    const job = await prisma.job.findUnique({
+      where: { userId_url: { userId: auth.user.id, url } },
+    });
     if (job) {
       return { ok: true, data: { found: true, job } };
     }
@@ -171,6 +186,7 @@ export async function createJob(input: {
   try {
     const job = await prisma.job.create({
       data: {
+        userId: auth.user.id,
         url,
         title: title || null,
         companyName: companyName || null,
@@ -217,7 +233,9 @@ export async function checkRepost(id: string): Promise<
   }
   let job;
   try {
-    job = await prisma.job.findUnique({ where: { id: parsed.data.id } });
+    job = await prisma.job.findUnique({
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
+    });
   } catch {
     return { ok: false, error: "Impossible de vérifier cette offre" };
   }
@@ -262,7 +280,7 @@ export async function reactivateJobWithContent(input: {
   const { id, title, companyName, descriptionText } = parsed.data;
   try {
     await prisma.job.update({
-      where: { id },
+      where: jobOwnerWhere(id, auth.user.id),
       data: {
         title,
         companyName,
@@ -294,7 +312,7 @@ export async function updateJobStatus(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: {
         status: parsed.data.status,
         ...(parsed.data.status === STATUS.APPLIED
@@ -325,7 +343,7 @@ export async function markFollowUpToday(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: { lastFollowUp: new Date() },
     });
     revalidatePath("/board");
@@ -352,7 +370,7 @@ export async function updateJobDetails(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: {
         title: parsed.data.title.trim() || null,
         companyName: parsed.data.companyName.trim() || null,
@@ -381,7 +399,7 @@ export async function updateJobNotes(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: { notes: parsed.data.notes.trim() || null },
     });
     revalidatePath("/board");
@@ -408,7 +426,7 @@ export async function updateJobSalary(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: {
         salaryAmount: parsed.data.salaryAmount,
         salaryType: parsed.data.salaryType,
@@ -438,7 +456,7 @@ export async function updateJobDocuments(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: {
         resumeUrl: parsed.data.resumeUrl || null,
         coverLetterUrl: parsed.data.coverLetterUrl || null,
@@ -467,7 +485,7 @@ export async function updateJobInterviewDate(
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: {
         interviewDate: parsed.data.interviewDate
           ? new Date(parsed.data.interviewDate)
@@ -493,7 +511,7 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
     };
   }
   try {
-    await prisma.job.delete({ where: { id: parsed.data.id } });
+    await prisma.job.delete({ where: jobOwnerWhere(parsed.data.id, auth.user.id) });
     revalidatePath("/board");
     revalidatePath("/archives");
     return { ok: true, data: null };
@@ -515,7 +533,7 @@ export async function archiveJob(id: string): Promise<ActionResult<null>> {
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: { archived: true },
     });
     revalidatePath("/board");
@@ -539,7 +557,7 @@ export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
   }
   try {
     await prisma.job.update({
-      where: { id: parsed.data.id },
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: { archived: false },
     });
     revalidatePath("/board");
@@ -569,7 +587,10 @@ export async function reorderJobs(
   try {
     await prisma.$transaction(
       parsed.data.orderedIds.map((id, index) =>
-        prisma.job.update({ where: { id }, data: { order: index } })
+        prisma.job.update({
+          where: jobOwnerWhere(id, auth.user.id),
+          data: { order: index },
+        })
       )
     );
     revalidatePath("/board");
@@ -582,7 +603,9 @@ export async function reorderJobs(
 export async function addTagToJob(
   jobId: string,
   tagName: string
-): Promise<ActionResult<{ tag: { id: string; name: string } }>> {
+): Promise<
+  ActionResult<{ tag: { id: string; userId: string; name: string } }>
+> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
 
@@ -594,9 +617,16 @@ export async function addTagToJob(
     };
   }
   try {
+    const job = await prisma.job.findUnique({
+      where: jobOwnerWhere(parsed.data.jobId, auth.user.id),
+    });
+    if (!job) {
+      return { ok: false, error: "Offre introuvable" };
+    }
+
     const tag = await prisma.tag.upsert({
-      where: { name: parsed.data.tagName },
-      create: { name: parsed.data.tagName },
+      where: { userId_name: { userId: auth.user.id, name: parsed.data.tagName } },
+      create: { userId: auth.user.id, name: parsed.data.tagName },
       update: {},
     });
     await prisma.jobTag.upsert({
@@ -607,7 +637,10 @@ export async function addTagToJob(
       update: {},
     });
     revalidatePath("/board");
-    return { ok: true, data: { tag: { id: tag.id, name: tag.name } } };
+    return {
+      ok: true,
+      data: { tag: { id: tag.id, userId: tag.userId, name: tag.name } },
+    };
   } catch {
     return { ok: false, error: "Impossible d'ajouter ce tag" };
   }
@@ -628,6 +661,13 @@ export async function removeTagFromJob(
     };
   }
   try {
+    const job = await prisma.job.findUnique({
+      where: jobOwnerWhere(parsed.data.jobId, auth.user.id),
+    });
+    if (!job) {
+      return { ok: false, error: "Offre introuvable" };
+    }
+
     await prisma.jobTag.delete({
       where: {
         jobId_tagId: { jobId: parsed.data.jobId, tagId: parsed.data.tagId },
@@ -647,6 +687,7 @@ export async function addContact(
   ActionResult<{
     contact: {
       id: string;
+      userId: string;
       name: string;
       role: string | null;
       linkedinUrl: string | null;
@@ -664,9 +705,17 @@ export async function addContact(
     };
   }
   try {
+    const job = await prisma.job.findUnique({
+      where: jobOwnerWhere(parsed.data.jobId, auth.user.id),
+    });
+    if (!job) {
+      return { ok: false, error: "Offre introuvable" };
+    }
+
     const contact = await prisma.contact.create({
       data: {
         jobId: parsed.data.jobId,
+        userId: auth.user.id,
         name: parsed.data.name,
         role: parsed.data.role,
         linkedinUrl: parsed.data.linkedinUrl || null,
@@ -695,7 +744,7 @@ export async function updateContact(
   }
   try {
     await prisma.contact.update({
-      where: { id: parsed.data.contactId },
+      where: contactOwnerWhere(parsed.data.contactId, auth.user.id),
       data: {
         name: parsed.data.name,
         role: parsed.data.role,
@@ -723,7 +772,9 @@ export async function deleteContact(
     };
   }
   try {
-    await prisma.contact.delete({ where: { id: parsed.data.contactId } });
+    await prisma.contact.delete({
+      where: contactOwnerWhere(parsed.data.contactId, auth.user.id),
+    });
     revalidatePath("/board");
     return { ok: true, data: null };
   } catch {
@@ -797,13 +848,16 @@ export async function importBackupJson(
       await tx.tag.deleteMany({});
 
       if (backup.tags.length > 0) {
-        await tx.tag.createMany({ data: backup.tags });
+        await tx.tag.createMany({
+          data: backup.tags.map((tag) => ({ ...tag, userId: auth.user.id })),
+        });
       }
 
       for (const job of backup.jobs) {
         await tx.job.create({
           data: {
             id: job.id,
+            userId: auth.user.id,
             url: job.url,
             title: job.title,
             companyName: job.companyName,
@@ -824,6 +878,7 @@ export async function importBackupJson(
             contacts: {
               create: job.contacts.map((contact) => ({
                 id: contact.id,
+                userId: auth.user.id,
                 name: contact.name,
                 role: contact.role,
                 linkedinUrl: contact.linkedinUrl,

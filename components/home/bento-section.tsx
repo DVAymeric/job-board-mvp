@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { computeStatusCounts, computeFollowUpSummary } from "@/lib/home-stats";
 import { buildHeatmapDays } from "@/lib/heatmap";
@@ -12,8 +13,11 @@ import { PrivacyCard } from "@/components/home/privacy-card";
 const RECENT_JOBS_LIMIT = 3;
 
 export async function BentoSection() {
+  const session = await auth();
+  const userId = session?.user?.id ?? "";
+
   const jobs = await prisma.job.findMany({
-    where: { archived: false },
+    where: { userId, archived: false },
     select: {
       status: true,
       lastFollowUp: true,

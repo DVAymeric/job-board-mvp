@@ -6,6 +6,7 @@ import type { JobWithRelations } from "@/lib/types";
 function job(overrides: Partial<Job>): Job {
   return {
     id: "job-1",
+    userId: "user-1",
     url: "https://example.com/careers/dev",
     title: null,
     companyName: null,
@@ -35,7 +36,7 @@ function jobWithTags(tagIds: string[]): JobWithRelations {
     tags: tagIds.map((tagId) => ({
       jobId: "job-1",
       tagId,
-      tag: { id: tagId, name: tagId },
+      tag: { id: tagId, userId: "user-1", name: tagId },
     })),
   };
 }
