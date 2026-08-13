@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth/session";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
 import { safeFetch } from "@/lib/safe-fetch";
@@ -52,6 +53,9 @@ export async function checkJobUrl(
     | { found: false; normalizedUrl: string }
   >
 > {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = checkJobUrlSchema.safeParse(rawUrl);
   if (!parsed.success) {
     return { ok: false, error: firstIssueMessage(parsed.error, "URL invalide") };
@@ -152,6 +156,9 @@ export async function createJob(input: {
   descriptionText?: string;
   status: JobStatus;
 }): Promise<ActionResult<{ id: string }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = createJobSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -198,6 +205,9 @@ export async function checkRepost(id: string): Promise<
     };
   }>
 > {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = checkRepostSchema.safeParse({ id });
   if (!parsed.success) {
     return {
@@ -239,6 +249,9 @@ export async function reactivateJobWithContent(input: {
   companyName: string | null;
   descriptionText: string | null;
 }): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = reactivateJobSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -272,6 +285,9 @@ export async function updateJobStatus(
   id: string,
   status: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateJobStatusSchema.safeParse({ id, status });
   if (!parsed.success) {
     return { ok: false, error: firstIssueMessage(parsed.error, "Statut invalide") };
@@ -297,6 +313,9 @@ export async function updateJobStatus(
 export async function markFollowUpToday(
   id: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = markFollowUpTodaySchema.safeParse({ id });
   if (!parsed.success) {
     return {
@@ -321,6 +340,9 @@ export async function updateJobDetails(
   title: string,
   companyName: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateJobDetailsSchema.safeParse({ id, title, companyName });
   if (!parsed.success) {
     return {
@@ -347,6 +369,9 @@ export async function updateJobNotes(
   id: string,
   notes: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateJobNotesSchema.safeParse({ id, notes });
   if (!parsed.success) {
     return {
@@ -371,6 +396,9 @@ export async function updateJobSalary(
   salaryAmount: number | null,
   salaryType: string | null
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateJobSalarySchema.safeParse({ id, salaryAmount, salaryType });
   if (!parsed.success) {
     return {
@@ -398,6 +426,9 @@ export async function updateJobDocuments(
   resumeUrl: string,
   coverLetterUrl: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateJobDocumentsSchema.safeParse({ id, resumeUrl, coverLetterUrl });
   if (!parsed.success) {
     return {
@@ -424,6 +455,9 @@ export async function updateJobInterviewDate(
   id: string,
   interviewDate: string | null
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateJobInterviewDateSchema.safeParse({ id, interviewDate });
   if (!parsed.success) {
     return {
@@ -448,6 +482,9 @@ export async function updateJobInterviewDate(
 }
 
 export async function deleteJob(id: string): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = deleteJobSchema.safeParse({ id });
   if (!parsed.success) {
     return {
@@ -466,6 +503,9 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
 }
 
 export async function archiveJob(id: string): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = archiveJobSchema.safeParse({ id });
   if (!parsed.success) {
     return {
@@ -487,6 +527,9 @@ export async function archiveJob(id: string): Promise<ActionResult<null>> {
 }
 
 export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = unarchiveJobSchema.safeParse({ id });
   if (!parsed.success) {
     return {
@@ -510,6 +553,9 @@ export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
 export async function reorderJobs(
   orderedIds: string[]
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = reorderJobsSchema.safeParse({ orderedIds });
   if (!parsed.success) {
     return {
@@ -537,6 +583,9 @@ export async function addTagToJob(
   jobId: string,
   tagName: string
 ): Promise<ActionResult<{ tag: { id: string; name: string } }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = addTagToJobSchema.safeParse({ jobId, tagName });
   if (!parsed.success) {
     return {
@@ -568,6 +617,9 @@ export async function removeTagFromJob(
   jobId: string,
   tagId: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = removeTagFromJobSchema.safeParse({ jobId, tagId });
   if (!parsed.success) {
     return {
@@ -601,6 +653,9 @@ export async function addContact(
     };
   }>
 > {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = addContactSchema.safeParse({ jobId, ...input });
   if (!parsed.success) {
     return {
@@ -628,6 +683,9 @@ export async function updateContact(
   contactId: string,
   input: { name: string; role: string; linkedinUrl?: string }
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = updateContactSchema.safeParse({ contactId, ...input });
   if (!parsed.success) {
     return {
@@ -654,6 +712,9 @@ export async function updateContact(
 export async function deleteContact(
   contactId: string
 ): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   const parsed = deleteContactSchema.safeParse({ contactId });
   if (!parsed.success) {
     return {
@@ -671,6 +732,9 @@ export async function deleteContact(
 }
 
 export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   try {
     const jobs = await prisma.job.findMany({
       include: { tags: { include: { tag: true } } },
@@ -683,6 +747,9 @@ export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
 }
 
 export async function exportBackupJson(): Promise<ActionResult<{ json: string }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   try {
     const [jobs, tags] = await Promise.all([
       prisma.job.findMany({
@@ -705,6 +772,9 @@ export async function exportBackupJson(): Promise<ActionResult<{ json: string }>
 export async function importBackupJson(
   rawJson: string
 ): Promise<ActionResult<{ importedJobs: number }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(rawJson);
