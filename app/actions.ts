@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
+import { safeFetch } from "@/lib/safe-fetch";
 import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
 import { buildJobsCsv } from "@/lib/csv-export";
 import { backupFileSchema, buildBackupFile } from "@/lib/backup";
@@ -82,11 +83,11 @@ export async function fetchJobMetadata(rawUrl: string): Promise<
     return { ok: true, data: empty };
   }
   try {
-    const response = await fetch(parsed.data, {
+    const response = await safeFetch(parsed.data, {
       signal: AbortSignal.timeout(METADATA_FETCH_TIMEOUT_MS),
       headers: { Accept: "text/html" },
     });
-    if (!response.ok) {
+    if (!response || !response.ok) {
       return { ok: true, data: empty };
     }
     const html = await response.text();
@@ -100,11 +101,12 @@ const LOGO_FETCH_TIMEOUT_MS = 3000;
 
 async function logoUrlResolves(url: string): Promise<boolean> {
   try {
-    const response = await fetch(url, {
+    const response = await safeFetch(url, {
       method: "GET",
       signal: AbortSignal.timeout(LOGO_FETCH_TIMEOUT_MS),
     });
     return (
+      !!response &&
       response.ok &&
       (response.headers.get("content-type") ?? "").startsWith("image/")
     );
