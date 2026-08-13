@@ -87,7 +87,7 @@ describe("ArchivesView", () => {
     expect(screen.queryByText("Développeur Backend")).not.toBeInTheDocument();
   });
 
-  it("requires the confirmation phrase before permanently deleting", async () => {
+  it("permanently deletes a job via the shared confirmation modal", async () => {
     const user = userEvent.setup();
     vi.mocked(deleteJob).mockResolvedValue({ ok: true, data: null });
 
@@ -96,16 +96,42 @@ describe("ArchivesView", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
-    const confirmButton = screen.getByRole("button", {
-      name: "Supprimer définitivement (irréversible)",
-    });
-    expect(confirmButton).toBeDisabled();
+    expect(deleteJob).not.toHaveBeenCalled();
+    expect(screen.getByText("Supprimer cette candidature ?")).toBeInTheDocument();
 
-    await user.type(screen.getByPlaceholderText("SUPPRIMER"), "SUPPRIMER");
-    expect(confirmButton).toBeEnabled();
-    await user.click(confirmButton);
+    await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
 
     expect(deleteJob).toHaveBeenCalledWith("job-1");
     expect(screen.queryByText("Développeur Backend")).not.toBeInTheDocument();
+  });
+
+  it("cancelling the delete modal deletes nothing", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ArchivesView initialJobs={[job({ id: "job-1", title: "Développeur Backend" })]} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
+    await user.click(screen.getByRole("button", { name: "Annuler" }));
+
+    expect(deleteJob).not.toHaveBeenCalled();
+    expect(screen.getByText("Développeur Backend")).toBeInTheDocument();
+  });
+
+  it("shows the job's title and company in the confirmation before deleting", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ArchivesView
+        initialJobs={[
+          job({ id: "job-1", title: "Développeur Backend", companyName: "Acme" }),
+        ]}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer définitivement" }));
+
+    expect(screen.getByText(/Développeur Backend chez Acme/)).toBeInTheDocument();
   });
 });

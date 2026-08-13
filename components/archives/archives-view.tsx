@@ -4,17 +4,7 @@ import { useMemo, useState } from "react";
 import type { JobWithRelations } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import {
   Select,
   SelectContent,
@@ -28,8 +18,6 @@ import { matchesJobQuery } from "@/lib/job-filters";
 import { deleteJob, unarchiveJob } from "@/app/actions";
 import { toast } from "sonner";
 
-const PERMANENT_DELETE_PHRASE = "SUPPRIMER";
-
 type SortOption = "recent" | "title";
 
 function ArchivedJobRow({
@@ -41,9 +29,6 @@ function ArchivedJobRow({
   onUnarchived: (id: string) => void;
   onDeleted: (id: string) => void;
 }) {
-  const [permanentDeleteConfirmation, setPermanentDeleteConfirmation] =
-    useState("");
-
   async function handleUnarchive() {
     const result = await unarchiveJob(job.id);
     if (!result.ok) {
@@ -54,14 +39,15 @@ function ArchivedJobRow({
     toast.success("Candidature désarchivée");
   }
 
-  async function handlePermanentDelete() {
+  async function handlePermanentDelete(): Promise<boolean> {
     const result = await deleteJob(job.id);
     if (!result.ok) {
       toast.error(result.error);
-      return;
+      return false;
     }
     onDeleted(job.id);
     toast.success("Candidature supprimée définitivement");
+    return true;
   }
 
   const displayName =
@@ -80,41 +66,24 @@ function ArchivedJobRow({
       <Button variant="outline" size="sm" onClick={handleUnarchive}>
         Désarchiver
       </Button>
-      <AlertDialog
-        onOpenChange={(open) => {
-          if (!open) setPermanentDeleteConfirmation("");
-        }}
-      >
-        <AlertDialogTrigger
-          render={<Button variant="ghost" size="sm" className="text-destructive" />}
-        >
-          Supprimer définitivement
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer définitivement ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action efface la candidature et ne peut pas être annulée.
-              Tape <strong>{PERMANENT_DELETE_PHRASE}</strong> pour confirmer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input
-            value={permanentDeleteConfirmation}
-            onChange={(e) => setPermanentDeleteConfirmation(e.target.value)}
-            placeholder={PERMANENT_DELETE_PHRASE}
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              variant="destructive"
-              disabled={permanentDeleteConfirmation !== PERMANENT_DELETE_PHRASE}
-              onClick={handlePermanentDelete}
-            >
-              Supprimer définitivement (irréversible)
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDeleteModal
+        trigger={
+          <Button variant="ghost" size="sm" className="text-destructive">
+            Supprimer définitivement
+          </Button>
+        }
+        title="Supprimer cette candidature ?"
+        description={
+          <>
+            Cette action efface définitivement{" "}
+            {job.title && job.companyName
+              ? `${job.title} chez ${job.companyName}`
+              : displayName}{" "}
+            et ne peut pas être annulée.
+          </>
+        }
+        onConfirm={handlePermanentDelete}
+      />
     </div>
   );
 }
