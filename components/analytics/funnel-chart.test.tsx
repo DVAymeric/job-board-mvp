@@ -11,26 +11,44 @@ const stages: FunnelStage[] = [
 ];
 
 describe("FunnelChart", () => {
-  it("shows every stage's label and count", () => {
+  it("shows every stage's label", () => {
     render(<FunnelChart stages={stages} />);
     for (const stage of stages) {
-      expect(screen.getAllByText(stage.label).length).toBeGreaterThan(0);
+      expect(screen.getByText(stage.label)).toBeInTheDocument();
     }
   });
 
-  it("shows the conversion rate for stages after the first", () => {
+  it("shows the count and conversion rate together for stages after the first", () => {
     render(<FunnelChart stages={stages} />);
-    expect(screen.getAllByText(/60%/).length).toBeGreaterThan(0);
+    expect(screen.getByText("6 · 60%")).toBeInTheDocument();
   });
 
-  it("shows a dash instead of a rate for the first stage", () => {
+  it("shows just the raw count, with no rate, for the first stage", () => {
     render(<FunnelChart stages={stages} />);
-    const rows = screen.getAllByRole("row");
-    expect(rows[1]).toHaveTextContent("—");
+    expect(screen.getByText("10")).toBeInTheDocument();
+    expect(screen.queryByText(/10 ·/)).not.toBeInTheDocument();
   });
 
-  it("exposes a full accessible table with one row per stage", () => {
+  it("exposes an accessible image role describing the whole funnel", () => {
     render(<FunnelChart stages={stages} />);
-    expect(screen.getAllByRole("row")).toHaveLength(stages.length + 1);
+    expect(
+      screen.getByRole("img", { name: /funnel de conversion/i })
+    ).toBeInTheDocument();
+  });
+
+  it("sizes each bar proportionally to the largest stage's count", () => {
+    const { container } = render(<FunnelChart stages={stages} />);
+    const bars = container.querySelectorAll("[data-funnel-bar]");
+    expect(bars[0]).toHaveStyle({ width: "100%" });
+    expect(bars[1]).toHaveStyle({ width: "60%" }); // 6/10
+  });
+
+  it("gives a job-less stage a hairline instead of a zero-width bar", () => {
+    const emptyStages: FunnelStage[] = [
+      { status: "TO_APPLY", label: "À postuler", count: 0, conversionFromPrevious: null },
+    ];
+    const { container } = render(<FunnelChart stages={emptyStages} />);
+    const bar = container.querySelector("[data-funnel-bar]");
+    expect(bar).toHaveStyle({ width: "0%" });
   });
 });
