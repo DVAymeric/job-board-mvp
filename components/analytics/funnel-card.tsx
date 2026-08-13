@@ -10,7 +10,7 @@ export function FunnelCard({ stages }: FunnelCardProps) {
   return (
     <BentoCard
       span="2x2"
-      tone="surface"
+      tone="default"
       label="Funnel de conversion"
       title="De l'idée à l'entretien"
     >

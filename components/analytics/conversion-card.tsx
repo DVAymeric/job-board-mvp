@@ -12,9 +12,9 @@ export function ConversionCard({
   interviewCount,
 }: ConversionCardProps) {
   return (
-    <BentoCard tone="surface" label="Conversion clé" title="Postulé → Entretien">
+    <BentoCard tone="default" label="Conversion clé" title="Postulé → Entretien">
       <div className="flex flex-1 flex-col justify-between gap-2">
-        <p className="font-heading text-4xl font-medium text-[#bfacc8] italic">
+        <p className="font-heading text-4xl font-medium text-[#783f8e] italic">
           {rate === null ? "—" : `${rate}%`}
         </p>
         <p>

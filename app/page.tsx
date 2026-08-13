@@ -3,7 +3,7 @@ import { BentoSection } from "@/components/home/bento-section";
 
 export default function Home() {
   return (
-    <>
+    <div className="bg-white">
       <HomeContent />
       <section className="mx-auto w-full max-w-6xl px-4 py-12">
         <div className="mb-6 space-y-1">
@@ -16,6 +16,6 @@ export default function Home() {
         </div>
         <BentoSection />
       </section>
-    </>
+    </div>
   );
 }

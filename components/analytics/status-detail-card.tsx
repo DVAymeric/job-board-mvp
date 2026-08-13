@@ -9,19 +9,19 @@ export function StatusDetailCard({ stages }: StatusDetailCardProps) {
   return (
     <BentoCard
       span="4x1"
-      tone="surface"
+      tone="default"
       className="p-0"
-      bodyClassName="flex w-full flex-col divide-y divide-white/6 sm:flex-row sm:divide-x sm:divide-y-0"
+      bodyClassName="flex w-full flex-col divide-y divide-border sm:flex-row sm:divide-x sm:divide-y-0"
     >
       {stages.map((stage) => (
         <div key={stage.status} className="flex-1 space-y-1.5 p-5">
-          <p className="font-mono text-xs tracking-wide text-[#bfacc8] uppercase">
+          <p className="font-mono text-xs tracking-wide text-[#783f8e] uppercase">
             {stage.label}
           </p>
-          <p className="font-heading text-2xl font-medium text-white">
+          <p className="font-heading text-2xl font-medium text-heading">
             {stage.count}
           </p>
-          <p className="font-mono text-xs text-white/45">
+          <p className="font-mono text-xs text-muted-foreground">
             {stage.conversionFromPrevious === null
               ? "—"
               : `${stage.conversionFromPrevious}%`}

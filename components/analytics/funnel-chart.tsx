@@ -16,14 +16,14 @@ export function FunnelChart({ stages }: { stages: FunnelStage[] }) {
         return (
           <div key={stage.status} className="space-y-1.5">
             <div className="flex items-baseline justify-between text-sm">
-              <span className="text-white">{stage.label}</span>
-              <span className="font-mono text-xs text-white/50">
+              <span className="text-foreground">{stage.label}</span>
+              <span className="font-mono text-xs text-muted-foreground">
                 {stage.count}
                 {stage.conversionFromPrevious !== null &&
                   ` · ${stage.conversionFromPrevious}%`}
               </span>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/6">
+            <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
               <div
                 data-funnel-bar
                 className="h-full rounded-full"

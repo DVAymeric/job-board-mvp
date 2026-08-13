@@ -11,9 +11,6 @@
   --color-accent-border: var(--accent-border);
   --color-palette-eclipse: var(--palette-eclipse);
   --color-palette-minuit: var(--palette-minuit);
-  --color-palette-abysse: var(--palette-abysse);
-  --color-palette-nocturne: var(--palette-nocturne);
-  --color-palette-ombre: var(--palette-ombre);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-fraunces);
@@ -65,12 +62,8 @@
   /* Tons les plus sombres du hero (fond flouté + overlay), pas utilisés ailleurs */
   --palette-minuit: #2e2440;
   --palette-eclipse: #1c1728;
-  /* Tons les plus sombres de la page Analytics (fond de page + surface de carte) */
-  --palette-abysse: #16121f;
-  --palette-nocturne: #201a30;
-  --palette-ombre: #29223d;
 
-  --background: #ffffff;
+  --background: #f6f4f9;
   --foreground: #453b5c;
   --heading: #4f1271;
   --accent-border: #c8c6d7;
@@ -121,9 +114,6 @@
   --palette-encre: #4a4063;
   --palette-minuit: #2e2440;
   --palette-eclipse: #1c1728;
-  --palette-abysse: #16121f;
-  --palette-nocturne: #201a30;
-  --palette-ombre: #29223d;
 
   --background: #1d1727;
   --foreground: #e4dcec;

@@ -65,7 +65,7 @@ describe("BentoCard", () => {
     expectedClasses.forEach((cls) => expect(card).toHaveClass(cls));
   });
 
-  it.each(["default", "dark", "accent", "muted", "surface"] as const)(
+  it.each(["default", "dark", "accent", "muted"] as const)(
     "exposes the %s tone via data-tone",
     (tone) => {
       render(<BentoCard title="Carte" tone={tone} />);
@@ -84,17 +84,6 @@ describe("BentoCard", () => {
     expect(card).toHaveClass("bg-[#c8c6d7]");
     expect(title).not.toHaveClass("text-heading");
     expect(title.className).toMatch(/text-\[#/);
-  });
-
-  it("uses a fixed dark nocturne background and white text for the surface tone", () => {
-    // Same fixed-color rationale as `muted`, but for the dark Analytics page:
-    // this tone must stay dark regardless of light/dark mode, so it can't
-    // rely on theme-aware tokens like bg-card.
-    render(<BentoCard title="Funnel" tone="surface" />);
-    const title = screen.getByText("Funnel", { selector: "h3" });
-    const card = title.closest('[data-slot="bento-card"]');
-    expect(card).toHaveClass("bg-palette-nocturne");
-    expect(title).toHaveClass("text-white");
   });
 
   it("omits the h3 entirely when no title is given", () => {
