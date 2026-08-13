@@ -105,7 +105,7 @@ export function ApplicationHeatmap({
                 key={day.date}
                 data-heatmap-cell
                 title={formatCellTitle(day)}
-                className={cn("rounded-[2px] bg-muted", cellSizeClassName)}
+                className={cn("rounded-[2px] border border-border bg-white", cellSizeClassName)}
                 style={levelStyle(day.level)}
               />
             ))}
@@ -119,7 +119,7 @@ export function ApplicationHeatmap({
             <div
               key={level}
               data-legend-cell
-              className="size-[11px] rounded-[2px] bg-muted"
+              className="size-[11px] rounded-[2px] border border-border bg-white"
               style={levelStyle(level)}
             />
           ))}

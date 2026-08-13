@@ -385,7 +385,6 @@ export async function updateJobSalary(
       },
     });
     revalidatePath("/board");
-    revalidatePath("/comparateur");
     return { ok: true, data: null };
   } catch {
     return { ok: false, error: "Impossible d'enregistrer le salaire" };
