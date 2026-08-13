@@ -17,6 +17,7 @@ vi.mock("sonner", () => ({
 function job(overrides: Partial<JobWithRelations>): JobWithRelations {
   return {
     id: overrides.id ?? "job-1",
+    userId: "user-1",
     url: "https://example.com/careers/dev",
     title: null,
     companyName: null,

@@ -23,6 +23,7 @@ vi.mock("sonner", () => ({
 function job(overrides: Partial<JobWithRelations>): JobWithRelations {
   return {
     id: overrides.id ?? "job-1",
+    userId: "user-1",
     url: "https://example.com/careers/dev",
     title: null,
     companyName: null,
@@ -109,7 +110,11 @@ describe("Board tag filter", () => {
         id: "job-1",
         title: "Développeur Backend",
         tags: [
-          { jobId: "job-1", tagId: "tag-remote", tag: { id: "tag-remote", name: "Remote" } },
+          {
+            jobId: "job-1",
+            tagId: "tag-remote",
+            tag: { id: "tag-remote", userId: "user-1", name: "Remote" },
+          },
         ],
       }),
       job({ id: "job-2", title: "Chef de projet", tags: [] }),

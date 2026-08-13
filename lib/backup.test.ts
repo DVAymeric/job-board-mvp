@@ -5,6 +5,7 @@ import type { JobWithRelations } from "@/lib/types";
 function job(overrides: Partial<JobWithRelations>): JobWithRelations {
   return {
     id: "job-1",
+    userId: "user-1",
     url: "https://example.com/job",
     title: "Développeur",
     companyName: "Acme",
@@ -40,10 +41,17 @@ describe("buildBackupFile", () => {
     const backup = buildBackupFile(
       [
         job({
-          tags: [{ jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } }],
+          tags: [
+            {
+              jobId: "job-1",
+              tagId: "tag-1",
+              tag: { id: "tag-1", userId: "user-1", name: "Remote" },
+            },
+          ],
           contacts: [
             {
               id: "contact-1",
+              userId: "user-1",
               jobId: "job-1",
               name: "Jane Doe",
               role: "RECRUITER",

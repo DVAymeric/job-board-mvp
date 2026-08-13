@@ -5,6 +5,7 @@ import { JobCard } from "@/components/board/job-card";
 
 const baseJob: JobWithRelations = {
   id: "job-1",
+  userId: "user-1",
   url: "https://example.com/careers/dev",
   title: null,
   companyName: null,
@@ -57,7 +58,11 @@ describe("JobCard title/company display", () => {
         job={{
           ...baseJob,
           tags: [
-            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } },
+            {
+              jobId: "job-1",
+              tagId: "tag-1",
+              tag: { id: "tag-1", userId: "user-1", name: "Remote" },
+            },
           ],
         }}
         onOpen={() => {}}

@@ -18,6 +18,7 @@ vi.mock("sonner", () => ({
 function contact(overrides: Partial<Contact>): Contact {
   return {
     id: "contact-1",
+    userId: "user-1",
     jobId: "job-1",
     name: "Jane Doe",
     role: "RECRUITER",
@@ -46,6 +47,7 @@ describe("ContactsSection", () => {
     const user = userEvent.setup();
     const newContact = {
       id: "contact-2",
+      userId: "user-1",
       name: "John Smith",
       role: "MANAGER",
       linkedinUrl: null,

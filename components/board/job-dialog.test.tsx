@@ -37,6 +37,7 @@ vi.mock("sonner", () => ({
 
 const baseJob: JobWithRelations = {
   id: "job-1",
+  userId: "user-1",
   url: "https://example.com/job",
   title: "Développeur",
   companyName: "Acme",
@@ -122,7 +123,7 @@ describe("JobDialog — tags", () => {
         job={{
           ...baseJob,
           tags: [
-            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } },
+            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", userId: "user-1", name: "Remote" } },
           ],
         }}
         onOpenChange={vi.fn()}
@@ -137,7 +138,7 @@ describe("JobDialog — tags", () => {
     const user = userEvent.setup();
     vi.mocked(addTagToJob).mockResolvedValue({
       ok: true,
-      data: { tag: { id: "tag-1", name: "Remote" } },
+      data: { tag: { id: "tag-1", userId: "user-1", name: "Remote" } },
     });
     const onUpdated = vi.fn();
 
@@ -151,7 +152,7 @@ describe("JobDialog — tags", () => {
     expect(addTagToJob).toHaveBeenCalledWith("job-1", "Remote");
     expect(onUpdated).toHaveBeenCalledWith(
       expect.objectContaining({
-        tags: [{ jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } }],
+        tags: [{ jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", userId: "user-1", name: "Remote" } }],
       })
     );
   });
@@ -166,7 +167,7 @@ describe("JobDialog — tags", () => {
         job={{
           ...baseJob,
           tags: [
-            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", name: "Remote" } },
+            { jobId: "job-1", tagId: "tag-1", tag: { id: "tag-1", userId: "user-1", name: "Remote" } },
           ],
         }}
         onOpenChange={vi.fn()}
@@ -419,6 +420,7 @@ describe("JobDialog — contacts", () => {
           contacts: [
             {
               id: "contact-1",
+              userId: "user-1",
               jobId: "job-1",
               name: "Jane Doe",
               role: "RECRUITER",

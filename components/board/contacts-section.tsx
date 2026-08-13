@@ -165,6 +165,7 @@ export function ContactsSection({
       ...contacts,
       {
         id: result.data.contact.id,
+        userId: result.data.contact.userId,
         jobId,
         name: result.data.contact.name,
         role: result.data.contact.role,
