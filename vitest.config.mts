@@ -9,6 +9,7 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     // Integration tests need a live Postgres (docker-compose, JOB-82) and run
     // separately via `npm run test:integration` — see vitest.integration.config.mts.
-    exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
+    // e2e/ uses @playwright/test's own runner (`npm run test:e2e`), not Vitest.
+    exclude: ["**/node_modules/**", "**/*.integration.test.ts", "e2e/**"],
   },
 });
