@@ -42,9 +42,10 @@ export function Nav() {
   }
 
   return (
-    <header className="flex items-center gap-1 border-b border-border bg-card px-4 py-3">
-      <span className="mr-4 font-heading text-base italic text-heading">
-        Suivi de candidatures
+    <header className="flex items-center gap-4 border-b border-border bg-white px-4 py-3">
+      <span className="mr-2 flex items-center gap-2 font-heading text-base font-bold text-heading">
+        <span className="size-2 rounded-full bg-primary" />
+        JobTracker
       </span>
       <nav className="flex flex-1 items-center gap-4">
         {LINKS.map((link) => (
