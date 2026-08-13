@@ -6,6 +6,7 @@ import { JobDialog } from "@/components/board/job-dialog";
 import {
   addTagToJob,
   archiveJob,
+  deleteJob,
   removeTagFromJob,
   updateJobDetails,
   updateJobDocuments,
@@ -19,6 +20,7 @@ vi.mock("@/app/actions", () => ({
   addTagToJob: vi.fn(),
   archiveJob: vi.fn(),
   deleteContact: vi.fn(),
+  deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
   removeTagFromJob: vi.fn(),
   updateContact: vi.fn(),
@@ -477,5 +479,83 @@ describe("JobDialog — archivage", () => {
     await user.click(screen.getByRole("button", { name: "Annuler" }));
 
     expect(archiveJob).not.toHaveBeenCalled();
+  });
+});
+
+describe("JobDialog — suppression", () => {
+  beforeEach(() => {
+    vi.mocked(deleteJob).mockReset();
+  });
+
+  it("shows no confirmation dialog before any button is clicked", () => {
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+    expect(
+      screen.queryByText("Supprimer cette candidature ?")
+    ).not.toBeInTheDocument();
+    expect(deleteJob).not.toHaveBeenCalled();
+  });
+
+  it("shows the job's title and company before confirming deletion", async () => {
+    const user = userEvent.setup();
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer" }));
+
+    expect(screen.getByText("Supprimer cette candidature ?")).toBeInTheDocument();
+    expect(screen.getByText(/Développeur/)).toBeInTheDocument();
+    expect(screen.getByText(/Acme/)).toBeInTheDocument();
+  });
+
+  it("requires explicit confirmation before deleting", async () => {
+    const user = userEvent.setup();
+    vi.mocked(deleteJob).mockResolvedValue({ ok: true, data: null });
+    const onDeleted = vi.fn();
+
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer" }));
+    expect(deleteJob).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
+
+    expect(deleteJob).toHaveBeenCalledWith("job-1");
+    expect(onDeleted).toHaveBeenCalledWith("job-1");
+  });
+
+  it("cancelling the delete dialog deletes nothing", async () => {
+    const user = userEvent.setup();
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer" }));
+    await user.click(screen.getByRole("button", { name: "Annuler" }));
+
+    expect(deleteJob).not.toHaveBeenCalled();
+  });
+
+  it("shows an error and keeps the job when deletion fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(deleteJob).mockResolvedValue({
+      ok: false,
+      error: "Impossible de supprimer l'offre",
+    });
+    const onDeleted = vi.fn();
+
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Supprimer" }));
+    await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
+
+    expect(onDeleted).not.toHaveBeenCalled();
+    expect(screen.getByText("Supprimer cette candidature ?")).toBeInTheDocument();
   });
 });

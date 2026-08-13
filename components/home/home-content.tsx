@@ -32,9 +32,11 @@ import { toast } from "sonner";
 type ViewState =
   | { kind: "idle" }
   | { kind: "checking" }
+  | { kind: "fetching" }
   | { kind: "error"; message: string }
   | { kind: "known"; job: Job }
-  | { kind: "new"; normalizedUrl: string };
+  | { kind: "created"; title: string; companyName: string | null }
+  | { kind: "fallback"; normalizedUrl: string };
 
 type RepostFresh = {
   title: string | null;
@@ -80,20 +82,54 @@ function HomeContentInner() {
     }
     if (result.data.found) {
       setView({ kind: "known", job: result.data.job as Job });
-    } else {
-      const normalizedUrl = result.data.normalizedUrl;
-      const [metadata, logo] = await Promise.all([
-        fetchJobMetadata(normalizedUrl),
-        fetchCompanyLogo(normalizedUrl),
-      ]);
-      const metadataTitle = metadata.ok ? metadata.data.title : null;
-      setView({ kind: "new", normalizedUrl });
-      setTitle(metadataTitle || fallbackTitle || "");
-      setCompanyName(metadata.ok ? metadata.data.companyName ?? "" : "");
-      setCompanyLogoUrl(logo.ok ? logo.data.logoUrl ?? "" : "");
-      setDescriptionText(metadata.ok ? metadata.data.descriptionText : null);
-      setInitialStatus(STATUS.TO_APPLY);
+      return;
     }
+
+    const normalizedUrl = result.data.normalizedUrl;
+    setView({ kind: "fetching" });
+    const [metadata, logo] = await Promise.all([
+      fetchJobMetadata(normalizedUrl),
+      fetchCompanyLogo(normalizedUrl),
+    ]);
+    const scrapedTitle =
+      (metadata.ok ? metadata.data.title : null) || fallbackTitle || null;
+    const scrapedCompanyName = metadata.ok ? metadata.data.companyName ?? "" : "";
+    const scrapedLogoUrl = logo.ok ? logo.data.logoUrl ?? "" : "";
+    const scrapedDescription = metadata.ok
+      ? metadata.data.descriptionText ?? undefined
+      : undefined;
+
+    if (!scrapedTitle) {
+      setTitle("");
+      setCompanyName(scrapedCompanyName);
+      setCompanyLogoUrl(scrapedLogoUrl);
+      setDescriptionText(scrapedDescription ?? null);
+      setInitialStatus(STATUS.TO_APPLY);
+      setView({ kind: "fallback", normalizedUrl });
+      return;
+    }
+
+    const createResult = await createJob({
+      url: normalizedUrl,
+      title: scrapedTitle,
+      companyName: scrapedCompanyName,
+      companyLogoUrl: scrapedLogoUrl,
+      descriptionText: scrapedDescription,
+      status: STATUS.TO_APPLY,
+    });
+
+    if (!createResult.ok) {
+      setView({ kind: "error", message: createResult.error });
+      return;
+    }
+
+    toast.success("Candidature enregistrée");
+    setUrl("");
+    setView({
+      kind: "created",
+      title: scrapedTitle,
+      companyName: scrapedCompanyName || null,
+    });
   }, [url]);
 
   useEffect(() => {
@@ -109,7 +145,7 @@ function HomeContentInner() {
   }, [searchParams, router, runCheck]);
 
   async function handleSave() {
-    if (view.kind !== "new") return;
+    if (view.kind !== "fallback") return;
     setSaving(true);
     const result = await createJob({
       url: view.normalizedUrl,
@@ -165,7 +201,7 @@ function HomeContentInner() {
     setView({ kind: "idle" });
   }
 
-  const checking = view.kind === "checking";
+  const checking = view.kind === "checking" || view.kind === "fetching";
 
   return (
     <HeroSection>
@@ -176,13 +212,15 @@ function HomeContentInner() {
         resultTag={
           view.kind === "known"
             ? { kind: "known", label: "Déjà dans votre board" }
-            : view.kind === "new"
-              ? { kind: "new", label: "Nouvelle offre" }
-              : null
+            : null
         }
         onUrlChange={(value) => {
           setUrl(value);
-          if (view.kind !== "idle" && view.kind !== "checking") {
+          if (
+            view.kind !== "idle" &&
+            view.kind !== "checking" &&
+            view.kind !== "fetching"
+          ) {
             setView({ kind: "idle" });
           }
         }}
@@ -192,6 +230,18 @@ function HomeContentInner() {
           if (e.key === "Enter") runCheck();
         }}
       />
+
+      {view.kind === "fetching" && (
+        <div
+          data-testid="fetching-status"
+          className="w-full max-w-lg rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
+        >
+          <p className="flex items-center gap-2 text-sm text-white/80">
+            <Loader2 className="size-4 animate-spin" />
+            Récupération de l&apos;annonce en cours...
+          </p>
+        </div>
+      )}
 
       {view.kind === "known" && (
         <div
@@ -270,13 +320,33 @@ function HomeContentInner() {
         </div>
       )}
 
-      {view.kind === "new" && (
+      {view.kind === "created" && (
         <div
-          data-testid="new-job-card"
+          data-testid="created-job-card"
+          className="w-full max-w-lg space-y-2 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
+        >
+          <p className="text-sm font-medium">
+            Ajoutée : {view.title}
+            {view.companyName ? ` chez ${view.companyName}` : ""}
+          </p>
+          <Link
+            href="/board"
+            className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
+          >
+            Voir dans le board
+          </Link>
+        </div>
+      )}
+
+      {view.kind === "fallback" && (
+        <div
+          data-testid="fallback-job-card"
           className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
         >
-          <p className="text-sm text-white/70">
-            Nouvelle offre — ajoute-la à ton suivi.
+          <p className="text-sm text-[#f0a0a0]">
+            Impossible de récupérer automatiquement le titre de cette offre
+            (page bloquée, inaccessible, ou sans titre détectable).
+            Renseigne-le manuellement pour l&apos;ajouter.
           </p>
           <Input
             placeholder="Titre du poste"
@@ -313,7 +383,11 @@ function HomeContentInner() {
               </SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleSave} disabled={saving} className="w-full">
+          <Button
+            onClick={handleSave}
+            disabled={saving || !title.trim()}
+            className="w-full"
+          >
             {saving && <Loader2 className="animate-spin" />}
             Enregistrer
           </Button>

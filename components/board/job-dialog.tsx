@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import {
   Select,
   SelectContent,
@@ -47,6 +48,7 @@ import { XIcon } from "lucide-react";
 import {
   addTagToJob,
   archiveJob,
+  deleteJob,
   markFollowUpToday,
   removeTagFromJob,
   updateJobDetails,
@@ -250,6 +252,18 @@ export function JobDialog({
     }
     onDeleted(job.id);
     toast.success("Candidature archivée");
+  }
+
+  async function handleDelete(): Promise<boolean> {
+    if (!job) return false;
+    const result = await deleteJob(job.id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return false;
+    }
+    onDeleted(job.id);
+    toast.success("Candidature supprimée");
+    return true;
   }
 
   return (
@@ -529,6 +543,16 @@ export function JobDialog({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          <ConfirmDeleteModal
+            trigger={<Button variant="destructive">Supprimer</Button>}
+            title="Supprimer cette candidature ?"
+            description={
+              job.title && job.companyName
+                ? `${job.title} chez ${job.companyName} sera définitivement supprimée.`
+                : `${job.title || job.companyName || "Cette candidature"} sera définitivement supprimée.`
+            }
+            onConfirm={handleDelete}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>
