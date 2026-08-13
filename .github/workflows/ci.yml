@@ -32,6 +32,12 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      - name: Generate Next.js route types
+        # Typecheck relies on the ambient PageProps/LayoutProps helpers,
+        # which only exist after `next dev`, `next build`, or this — .next/
+        # is gitignored so a fresh checkout has none of them yet.
+        run: npx next typegen
+
       - name: Lint
         run: npm run lint
 
