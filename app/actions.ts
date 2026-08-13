@@ -788,6 +788,7 @@ export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
 
   try {
     const jobs = await prisma.job.findMany({
+      where: { userId: auth.user.id },
       include: { tags: { include: { tag: true } } },
       orderBy: { createdAt: "asc" },
     });
@@ -804,6 +805,7 @@ export async function exportBackupJson(): Promise<ActionResult<{ json: string }>
   try {
     const [jobs, tags] = await Promise.all([
       prisma.job.findMany({
+        where: { userId: auth.user.id },
         include: {
           tags: { include: { tag: true } },
           contacts: true,
@@ -811,7 +813,10 @@ export async function exportBackupJson(): Promise<ActionResult<{ json: string }>
         },
         orderBy: { createdAt: "asc" },
       }),
-      prisma.tag.findMany({ orderBy: { name: "asc" } }),
+      prisma.tag.findMany({
+        where: { userId: auth.user.id },
+        orderBy: { name: "asc" },
+      }),
     ]);
     const backup = buildBackupFile(jobs, tags);
     return { ok: true, data: { json: JSON.stringify(backup, null, 2) } };
@@ -844,8 +849,8 @@ export async function importBackupJson(
 
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.job.deleteMany({});
-      await tx.tag.deleteMany({});
+      await tx.job.deleteMany({ where: { userId: auth.user.id } });
+      await tx.tag.deleteMany({ where: { userId: auth.user.id } });
 
       if (backup.tags.length > 0) {
         await tx.tag.createMany({
