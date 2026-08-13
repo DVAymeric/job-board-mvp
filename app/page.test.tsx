@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { Job } from "@prisma/client";
 import Home from "@/components/home/home-content";
 import {
   checkJobUrl,
@@ -212,7 +213,7 @@ describe("Home — nouvelle candidature (auto-création par scraping)", () => {
   });
 });
 
-const archivedJob = {
+const archivedJob: Job = {
   id: "job-1",
   url: "https://example.com/job",
   title: "Développeur Backend",
@@ -233,7 +234,7 @@ const archivedJob = {
   updatedAt: new Date("2026-01-01"),
 };
 
-const activeJob = { ...archivedJob, archived: false, status: "APPLIED" };
+const activeJob: Job = { ...archivedJob, archived: false, status: "APPLIED" };
 
 describe("Home — repost d'une offre archivée", () => {
   beforeEach(() => {

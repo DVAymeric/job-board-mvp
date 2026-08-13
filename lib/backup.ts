@@ -1,7 +1,20 @@
 import { z } from "zod";
+import { SALARY_TYPE, STATUS } from "@/lib/constants";
 import type { JobWithRelations } from "@/lib/types";
 
 export const BACKUP_SCHEMA_VERSION = 1;
+
+const statusBackupSchema = z.enum([
+  STATUS.TO_APPLY,
+  STATUS.APPLIED,
+  STATUS.INTERVIEW,
+  STATUS.REJECTED,
+]);
+
+const salaryTypeBackupSchema = z.enum([
+  SALARY_TYPE.ANNUAL,
+  SALARY_TYPE.DAILY_RATE,
+]);
 
 const contactBackupSchema = z.object({
   id: z.string().min(1),
@@ -14,7 +27,7 @@ const contactBackupSchema = z.object({
 
 const statusHistoryBackupSchema = z.object({
   id: z.string().min(1),
-  status: z.string(),
+  status: statusBackupSchema,
   changedAt: z.string(),
 });
 
@@ -25,12 +38,12 @@ const jobBackupSchema = z.object({
   companyName: z.string().nullable(),
   companyLogoUrl: z.string().nullable(),
   notes: z.string().nullable(),
-  status: z.string(),
+  status: statusBackupSchema,
   archived: z.boolean(),
   order: z.number(),
   lastFollowUp: z.string().nullable(),
   salaryAmount: z.number().nullable(),
-  salaryType: z.string().nullable(),
+  salaryType: salaryTypeBackupSchema.nullable(),
   resumeUrl: z.string().nullable(),
   coverLetterUrl: z.string().nullable(),
   interviewDate: z.string().nullable(),

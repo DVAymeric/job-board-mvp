@@ -3,29 +3,41 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+enum JobStatus {
+  TO_APPLY
+  APPLIED
+  INTERVIEW
+  REJECTED
+}
+
+enum SalaryType {
+  ANNUAL
+  DAILY_RATE
+}
+
 model Job {
-  id              String    @id @default(uuid())
-  url             String    @unique
+  id              String     @id @default(uuid())
+  url             String     @unique
   title           String?
   companyName     String?
   companyLogoUrl  String?
   notes           String?
-  status          String    @default("TO_APPLY") // TO_APPLY | APPLIED | INTERVIEW | REJECTED
-  archived        Boolean   @default(false)
-  order           Int       @default(0)
+  status          JobStatus  @default(TO_APPLY)
+  archived        Boolean    @default(false)
+  order           Int        @default(0)
   lastFollowUp    DateTime?
   salaryAmount    Int?
-  salaryType      String? // ANNUAL | DAILY_RATE
+  salaryType      SalaryType?
   resumeUrl       String?
   coverLetterUrl  String?
   interviewDate   DateTime?
   descriptionText String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   contacts      Contact[]
   tags          JobTag[]
@@ -61,10 +73,10 @@ model JobTag {
 }
 
 model StatusHistory {
-  id     String @id @default(uuid())
+  id     String    @id @default(uuid())
   jobId  String
-  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  status String
+  job    Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  status JobStatus
 
   changedAt DateTime @default(now())
 }

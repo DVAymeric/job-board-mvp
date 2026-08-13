@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Job } from "@prisma/client";
 import { computeReorderedColumn } from "@/lib/board-reorder";
 
-function job(id: string, status: string, order: number): Job {
+function job(id: string, status: Job["status"], order: number): Job {
   return {
     id,
     url: `https://example.com/${id}`,
