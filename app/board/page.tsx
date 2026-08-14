@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { BOARD_JOBS_SAFETY_LIMIT } from "@/lib/constants";
 import { Board } from "@/components/board/board";
 
 export default async function BoardPage() {
@@ -14,6 +15,7 @@ export default async function BoardPage() {
       statusHistory: { orderBy: { changedAt: "asc" } },
     },
     orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+    take: BOARD_JOBS_SAFETY_LIMIT,
   });
 
   return (

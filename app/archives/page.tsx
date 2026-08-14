@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ARCHIVED_JOBS_SAFETY_LIMIT } from "@/lib/constants";
 import { ArchivesView } from "@/components/archives/archives-view";
 
 export default async function ArchivesPage() {
@@ -14,6 +15,7 @@ export default async function ArchivesPage() {
       statusHistory: { orderBy: { changedAt: "asc" } },
     },
     orderBy: { updatedAt: "desc" },
+    take: ARCHIVED_JOBS_SAFETY_LIMIT,
   });
 
   return (
