@@ -51,3 +51,8 @@ Next.js 16 (App Router, Server Actions) · Auth.js (Credentials) · Prisma + Pos
 
 Procédure de déploiement et de rollback (code + migrations Postgres) :
 [`docs/runbook-deploiement.md`](docs/runbook-deploiement.md).
+
+## Sécurité
+
+Revue des secrets et procédure de rotation en cas de fuite :
+[`docs/gestion-des-secrets.md`](docs/gestion-des-secrets.md).
