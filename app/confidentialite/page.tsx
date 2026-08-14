@@ -58,8 +58,11 @@ export default function ConfidentialitePage() {
         <p>
           Récupération automatique du titre de l&apos;offre : l&apos;URL que
           tu colles est visitée pour en extraire le titre et l&apos;entreprise
-          — ne colle pas une URL contenant un identifiant de session
-          personnel dans les paramètres si tu préfères l&apos;éviter.
+          — la récupération se fait entièrement sur notre infrastructure
+          (aucun service tiers de navigation automatisée). Les paramètres
+          ressemblant à un jeton de session ou d&apos;authentification
+          (token, session, api_key, mot de passe…) sont automatiquement
+          retirés de l&apos;URL avant tout traitement ou enregistrement.
         </p>
         <p>
           Si le monitoring d&apos;erreurs (Sentry) est activé, le message

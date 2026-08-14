@@ -43,6 +43,57 @@ describe("normalizeUrl", () => {
   it("still allows a public IP address that isn't in a private range", () => {
     expect(normalizeUrl("http://8.8.8.8/job")).toBe("http://8.8.8.8/job");
   });
+
+  it("strips known tracking query params", () => {
+    expect(
+      normalizeUrl(
+        "https://example.com/job?utm_source=x&utm_medium=y&gclid=z&fbclid=a&ref=b"
+      )
+    ).toBe("https://example.com/job");
+  });
+
+  it("keeps non-tracking, non-sensitive query params", () => {
+    expect(normalizeUrl("https://example.com/job?id=42")).toBe(
+      "https://example.com/job?id=42"
+    );
+  });
+
+  describe("filtre les paramètres sensibles de type session/token (JOB-121)", () => {
+    it.each([
+      "token",
+      "access_token",
+      "id_token",
+      "refresh_token",
+      "auth",
+      "authorization",
+      "session",
+      "session_id",
+      "sid",
+      "sessionid",
+      "api_key",
+      "apikey",
+      "jwt",
+      "secret",
+      "password",
+      "pwd",
+    ])("strips the %s param before storing/fetching the URL", (param) => {
+      expect(normalizeUrl(`https://example.com/job?${param}=super-secret-value`)).toBe(
+        "https://example.com/job"
+      );
+    });
+
+    it("is case-insensitive on the param name", () => {
+      expect(normalizeUrl("https://example.com/job?TOKEN=abc")).toBe(
+        "https://example.com/job"
+      );
+    });
+
+    it("only strips the sensitive param, keeping the rest of the query string", () => {
+      expect(
+        normalizeUrl("https://example.com/job?id=42&token=abc&lang=fr")
+      ).toBe("https://example.com/job?id=42&lang=fr");
+    });
+  });
 });
 
 describe("isDisallowedFetchTarget", () => {
