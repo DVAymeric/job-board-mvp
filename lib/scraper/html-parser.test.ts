@@ -56,4 +56,23 @@ describe("extractJobMetadataFromHtml", () => {
       "R&D Engineer 'Remote'"
     );
   });
+
+  it("handles a literal '>' inside a quoted attribute value", () => {
+    const html = `<meta property="og:title" content="Growth: 3 > 2 ans d'XP" />`;
+    expect(extractJobMetadataFromHtml(html).title).toBe(
+      "Growth: 3 > 2 ans d'XP"
+    );
+  });
+
+  it("handles single-quoted attributes whose value contains a double quote", () => {
+    const html = `<meta property='og:site_name' content='Rejoignez "les meilleurs"' />`;
+    expect(extractJobMetadataFromHtml(html).companyName).toBe(
+      'Rejoignez "les meilleurs"'
+    );
+  });
+
+  it("ignores unrelated attributes and ordering noise around the meta tag", () => {
+    const html = `<meta data-test="x" property="og:title" data-other='y' content="Ingénieur Cloud" class="hidden">`;
+    expect(extractJobMetadataFromHtml(html).title).toBe("Ingénieur Cloud");
+  });
 });

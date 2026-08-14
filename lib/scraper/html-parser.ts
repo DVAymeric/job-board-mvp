@@ -1,38 +1,16 @@
-const HTML_ENTITIES: Record<string, string> = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  "#39": "'",
-  nbsp: " ",
-};
+import * as cheerio from "cheerio";
 
-function decodeHtmlEntities(value: string): string {
-  return value.replace(/&([a-zA-Z]+|#\d+);/g, (match, entity: string) => {
-    if (entity in HTML_ENTITIES) return HTML_ENTITIES[entity];
-    if (entity.startsWith("#")) {
-      const codePoint = Number(entity.slice(1));
-      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match;
-    }
-    return match;
-  });
+function extractMetaContent($: cheerio.CheerioAPI, property: string): string | undefined {
+  const content = $(`meta[property="${property}" i], meta[name="${property}" i]`)
+    .first()
+    .attr("content");
+  const trimmed = content?.trim();
+  return trimmed || undefined;
 }
 
-function extractMetaContent(html: string, property: string): string | undefined {
-  const tags = html.match(/<meta\b[^>]*>/gi) ?? [];
-  for (const tag of tags) {
-    const propMatch = tag.match(/(?:property|name)\s*=\s*["']([^"']+)["']/i);
-    if (!propMatch || propMatch[1].toLowerCase() !== property) continue;
-    const contentMatch = tag.match(/content\s*=\s*["']([^"']*)["']/i);
-    if (contentMatch) return decodeHtmlEntities(contentMatch[1]).trim();
-  }
-  return undefined;
-}
-
-function extractTitleTag(html: string): string | undefined {
-  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match ? decodeHtmlEntities(match[1]).trim() : undefined;
+function extractTitleTag($: cheerio.CheerioAPI): string | undefined {
+  const trimmed = $("title").first().text().trim();
+  return trimmed || undefined;
 }
 
 export function extractJobMetadataFromHtml(html: string): {
@@ -40,11 +18,11 @@ export function extractJobMetadataFromHtml(html: string): {
   companyName: string | null;
   descriptionText: string | null;
 } {
-  const title = extractMetaContent(html, "og:title") ?? extractTitleTag(html);
-  const companyName = extractMetaContent(html, "og:site_name");
+  const $ = cheerio.load(html);
+  const title = extractMetaContent($, "og:title") ?? extractTitleTag($);
+  const companyName = extractMetaContent($, "og:site_name");
   const descriptionText =
-    extractMetaContent(html, "og:description") ??
-    extractMetaContent(html, "description");
+    extractMetaContent($, "og:description") ?? extractMetaContent($, "description");
   return {
     title: title || null,
     companyName: companyName || null,
