@@ -20,6 +20,27 @@ async function loginAs(page: import("@playwright/test").Page, email: string) {
   await page.waitForURL("**/board");
 }
 
+/**
+ * `waitForURL` ne prouve que la navigation client — pas que le cookie de
+ * session a réellement été effacé côté navigateur. Sous forte contention
+ * (suite E2E complète, 5 workers Playwright partageant un seul process
+ * `next start`), le Set-Cookie de logoutAction peut être traité par le
+ * navigateur après que `waitForURL` s'est déjà résolu, laissant une courte
+ * fenêtre où /board reste accessible (JOB-131 — flake, jamais reproduit en
+ * isolation ni via une requête HTTP directe, donc probablement un artefact
+ * de contention du test plutôt qu'un vrai risque côté serveur). On attend
+ * explicitement la disparition du cookie plutôt que de dépendre des retries
+ * CI pour absorber la course.
+ */
+async function waitForSessionCookieCleared(page: import("@playwright/test").Page) {
+  await expect
+    .poll(async () => {
+      const cookies = await page.context().cookies();
+      return cookies.some((c) => c.name.includes("session-token"));
+    })
+    .toBe(false);
+}
+
 test.describe("Gestion de compte (E2E, JOB-79)", () => {
   test("le bouton de déconnexion termine la session", async ({ page }) => {
     const stamp = Date.now();
@@ -34,6 +55,7 @@ test.describe("Gestion de compte (E2E, JOB-79)", () => {
 
       await page.getByRole("button", { name: "Se déconnecter" }).click();
       await page.waitForURL("**/");
+      await waitForSessionCookieCleared(page);
 
       await page.goto("/board");
       await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fboard/);
@@ -74,6 +96,7 @@ test.describe("Gestion de compte (E2E, JOB-79)", () => {
         .click();
 
       await page.waitForURL("**/");
+      await waitForSessionCookieCleared(page);
 
       // La session est bien terminée : /board redemande une connexion.
       await page.goto("/board");

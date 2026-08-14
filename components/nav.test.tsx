@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ReactNode } from "react";
 import type { Session } from "next-auth";
 import { Nav } from "@/components/nav";
 import { exportJobsCsv } from "@/app/actions";
@@ -8,6 +9,23 @@ import { exportJobsCsv } from "@/app/actions";
 vi.mock("next/navigation", () => ({
   usePathname: () => "/board",
   useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    prefetch,
+    children,
+    ...rest
+  }: {
+    href: string;
+    prefetch?: boolean;
+    children: ReactNode;
+  }) => (
+    <a href={href} data-prefetch={prefetch === false ? "false" : "true"} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 vi.mock("@/app/actions", () => ({
@@ -82,5 +100,27 @@ describe("Nav — état de session", () => {
       screen.queryByRole("button", { name: "Se déconnecter" })
     ).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Mon compte" })).not.toBeInTheDocument();
+  });
+});
+
+describe("Nav — prefetch des liens protégés (JOB-131)", () => {
+  it("disables prefetch on links to protected routes, to avoid a background prefetch resurrecting the session cookie right after logout", () => {
+    render(<Nav session={session} />);
+
+    for (const name of ["Board", "Archives", "Analytics", "Mon compte"]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute(
+        "data-prefetch",
+        "false"
+      );
+    }
+  });
+
+  it("leaves prefetch enabled for the public home link", () => {
+    render(<Nav session={session} />);
+
+    expect(screen.getByRole("link", { name: "Accueil" })).toHaveAttribute(
+      "data-prefetch",
+      "true"
+    );
   });
 });
