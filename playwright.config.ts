@@ -26,5 +26,13 @@ export default defineConfig({
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 60_000,
+        env: {
+          ...process.env,
+          // Autorise le scraper à atteindre le serveur de fixtures HTML
+          // local (127.0.0.1) de la suite e2e/scraper-fixtures.spec.ts.
+          // Scopé à ce process de dev éphémère spawné par Playwright —
+          // jamais actif pour `npm run dev` en usage normal, ni en prod.
+          ALLOW_LOOPBACK_FETCH_FOR_TESTS: "1",
+        },
       },
 });
