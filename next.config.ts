@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const isDev = process.env.NODE_ENV === "development";
+
+// Le SDK client Sentry (JOB-113) envoie les événements directement au DSN
+// configuré : whitelist son origine dans connect-src si un DSN est défini,
+// sinon rien à ajouter (SENTRY_DSN absent = SDK désactivé, cf.
+// instrumentation-client.ts).
+const sentryDsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+const sentryConnectSrc = sentryDsn ? ` ${new URL(sentryDsn).origin}` : "";
 
 // Sans nonce (pas de rendu dynamique forcé sur toutes les routes) : l'app
 // n'a pas besoin d'un CSP strict à base de nonce (pas de contenu utilisateur
@@ -17,7 +25,7 @@ const cspHeader = `
   style-src 'self' 'unsafe-inline';
   img-src 'self' data: https://logo.clearbit.com https://cdn.brandfetch.io;
   font-src 'self';
-  connect-src 'self';
+  connect-src 'self'${sentryConnectSrc};
   worker-src 'self';
   object-src 'none';
   base-uri 'self';
@@ -58,4 +66,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// silent + les identifiants org/project/authToken absents (dev/CI locaux) :
+// le plugin Sentry saute l'upload des source maps sans faire échouer le
+// build (JOB-113) — seule la prod, avec SENTRY_AUTH_TOKEN configuré côté
+// Vercel, uploade réellement des source maps.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  widenClientFileUpload: true,
+});
