@@ -146,4 +146,24 @@ describe("fetchMetadataViaHttp", () => {
     expect(headers["User-Agent"]).toMatch(/Mozilla\/5\.0/);
     expect(headers["Accept-Language"]).toMatch(/^fr-FR/);
   });
+
+  it("attaches the userId to scraping logs when the caller has an authenticated context", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({ ok: false, status: 403 } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job", { userId: "user-1" });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "scraper.fetch_not_ok",
+      expect.objectContaining({ userId: "user-1" })
+    );
+  });
+
+  it("omits userId from scraping logs for anonymous callers (no context)", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({ ok: false, status: 403 } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job");
+
+    const [, fields] = vi.mocked(logger.warn).mock.calls[0];
+    expect(fields).not.toHaveProperty("userId");
+  });
 });
