@@ -25,7 +25,8 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "Suivi de candidatures",
-  description: "Outil local de suivi de candidatures d'emploi",
+  description:
+    "Suivez vos candidatures d'emploi en un board : statuts, relances, historique. Gratuit, prêt en 2 minutes.",
 };
 
 export const viewport: Viewport = {
