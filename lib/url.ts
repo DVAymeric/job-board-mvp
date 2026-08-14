@@ -45,6 +45,14 @@ function isPrivateOrLoopbackHostname(rawHostname: string): boolean {
 /**
  * Whether a URL is unsafe to fetch server-side: non-http(s) schemes, or a
  * hostname resolving to a loopback/private/link-local address (SSRF guard).
+ *
+ * ALLOW_LOOPBACK_FETCH_FOR_TESTS: escape hatch for the E2E scraper fixture
+ * suite (JOB-69), which serves controlled HTML fixtures from a local
+ * server. Must be exactly "1" to take effect; unset/any other value keeps
+ * the guard fully active. Only ever set via `playwright.config.ts`'s
+ * `webServer.env` for the Playwright-spawned dev server — never set in a
+ * `.env` file, never read from user/request input, never active in the
+ * production build.
  */
 export function isDisallowedFetchTarget(rawUrl: string): boolean {
   let parsed: URL;
@@ -54,6 +62,12 @@ export function isDisallowedFetchTarget(rawUrl: string): boolean {
     return true;
   }
   if (!ALLOWED_PROTOCOLS.has(parsed.protocol)) return true;
+  if (
+    process.env.ALLOW_LOOPBACK_FETCH_FOR_TESTS === "1" &&
+    isPrivateOrLoopbackHostname(parsed.hostname)
+  ) {
+    return false;
+  }
   return isPrivateOrLoopbackHostname(parsed.hostname);
 }
 

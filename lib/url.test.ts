@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterEach } from "vitest";
 import { isDisallowedFetchTarget, normalizeUrl } from "@/lib/url";
 
 describe("normalizeUrl", () => {
@@ -56,5 +56,35 @@ describe("isDisallowedFetchTarget", () => {
 
   it("allows a normal public target", () => {
     expect(isDisallowedFetchTarget("https://example.com/x")).toBe(false);
+  });
+
+  describe("ALLOW_LOOPBACK_FETCH_FOR_TESTS escape hatch", () => {
+    afterEach(() => {
+      delete process.env.ALLOW_LOOPBACK_FETCH_FOR_TESTS;
+    });
+
+    it("still rejects loopback targets when the flag is unset (production-safe default)", () => {
+      expect(isDisallowedFetchTarget("http://127.0.0.1:4000/fixture")).toBe(true);
+    });
+
+    it("still rejects loopback targets when the flag has any value other than exactly \"1\"", () => {
+      process.env.ALLOW_LOOPBACK_FETCH_FOR_TESTS = "true";
+      expect(isDisallowedFetchTarget("http://127.0.0.1:4000/fixture")).toBe(true);
+    });
+
+    it("allows loopback targets only when the flag is exactly \"1\" (E2E fixture server)", () => {
+      process.env.ALLOW_LOOPBACK_FETCH_FOR_TESTS = "1";
+      expect(isDisallowedFetchTarget("http://127.0.0.1:4000/fixture")).toBe(false);
+    });
+
+    it("still rejects a disallowed scheme even when the flag is set", () => {
+      process.env.ALLOW_LOOPBACK_FETCH_FOR_TESTS = "1";
+      expect(isDisallowedFetchTarget("file:///etc/passwd")).toBe(true);
+    });
+
+    it("still rejects a public target's usual rules unaffected by the flag", () => {
+      process.env.ALLOW_LOOPBACK_FETCH_FOR_TESTS = "1";
+      expect(isDisallowedFetchTarget("https://example.com/x")).toBe(false);
+    });
   });
 });
