@@ -27,6 +27,16 @@ cette échelle (référence à copier telle quelle, pas à réinventer par écra
 | Corps de texte | `text-sm text-muted-foreground` | Sous-titres, descriptions, états vides |
 | Meta | `text-xs text-muted-foreground` | Info secondaire en prose (ex. nom d'entreprise sous le titre) |
 | Meta technique/numérique | `font-mono text-xs text-muted-foreground` | Dates, compteurs (mono pour l'alignement des chiffres) |
+| Valeur chiffrée mise en avant | `font-heading text-2xl text-heading` | Chiffre des mini-stats bento (`ArchiveStatsRow`, `status-detail-card.tsx`) |
+
+Audit post-Refonte Graphique (Epic 22, JOB-102) : `JobCard` (JOB-94/95/96) et
+la grille `ArchivedJobCard` (JOB-98/99) réutilisent strictement les rôles
+déjà documentés — aucun nouveau rôle introduit par ces deux écrans. Les
+boutons d'action au survol de la carte (JOB-96) sont icône + `aria-label`
+uniquement, sans libellé visible : pas de rôle de texte à documenter. Seul
+`ArchiveStatsRow` (JOB-97) a révélé un rôle déjà utilisé ailleurs
+(`status-detail-card.tsx`, Analytics) mais jamais ajouté au tableau —
+corrigé ci-dessus plutôt que réinventé.
 
 Espacements observés et à réutiliser (ne pas en inventer d'autres sans raison) :
 
