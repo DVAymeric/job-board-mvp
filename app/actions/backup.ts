@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
+import { can } from "@/lib/plan";
 import { buildJobsCsv } from "@/lib/csv-export";
 import {
   backupFileSchema,
@@ -14,6 +15,12 @@ import { actionError, type ActionResult, logActionError } from "./_shared";
 export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
+
+  // Exemple d'usage du point d'extension palier payant (JOB-80) — toujours
+  // vrai aujourd'hui (un seul plan, FREE, entitled à tout).
+  if (!(await can(auth.user.id, "csv_export"))) {
+    return actionError("FORBIDDEN", "Fonctionnalité non disponible sur votre offre");
+  }
 
   try {
     const jobs = await prisma.job.findMany({

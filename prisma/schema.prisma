@@ -19,11 +19,18 @@ model User {
   email        String   @unique
   passwordHash String
   name         String?
+  // Point d'extension pour un futur palier payant (JOB-80) — un seul palier
+  // existe aujourd'hui, tout lui est accessible (voir lib/plan.ts).
+  plan         Plan     @default(FREE)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   jobs Job[]
   tags Tag[]
+}
+
+enum Plan {
+  FREE
 }
 
 enum JobStatus {
