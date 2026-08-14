@@ -1,3 +1,15 @@
+// Audit multi-tenant (JOB-126) : décision actée — garder le mode offline
+// basique tel quel, sans le retirer ni le scoper par utilisateur. Le seul
+// contenu jamais mis en cache est OFFLINE_URL, une page statique et
+// générique sans donnée personnelle (public/offline.html). Le handler
+// "fetch" ci-dessous ne cache jamais les pages authentifiées ni les
+// réponses de Server Actions (uniquement les navigations passent par un
+// network-first avec repli statique ; tout le reste va directement au
+// réseau, jamais intercepté). Il n'existe donc structurellement aucun cache
+// à invalider au changement de compte sur le même appareil — la question de
+// scoping par utilisateur ne s'applique pas : il n'y a rien à scoper.
+// Vérifié par e2e/offline-cache-safety.spec.ts (le Cache Storage ne contient
+// jamais que OFFLINE_URL, même après navigation authentifiée).
 const CACHE_NAME = "job-board-shell-v1";
 const OFFLINE_URL = "/offline.html";
 
