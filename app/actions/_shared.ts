@@ -1,4 +1,5 @@
 import { z } from "zod";
+import * as Sentry from "@sentry/nextjs";
 import { checkJobUrlSchema } from "@/lib/validation";
 import { scrapeJobMetadata, type ScrapedJobMetadata } from "@/lib/scraper";
 import { logger } from "@/lib/logger";
@@ -28,6 +29,11 @@ export function firstIssueMessage(error: z.ZodError, fallback: string): string {
  * Logue l'erreur réelle avant qu'un `catch` ne la remplace par le message
  * générique renvoyé à l'utilisateur (JOB-88). `userId` uniquement quand un
  * contexte authentifié vérifié est disponible (jamais fourni par le client).
+ *
+ * Remonte aussi à Sentry au niveau "error" (JOB-113) — pas "warn", qui couvre
+ * des conditions attendues (rate limit, validation) plutôt que des bugs.
+ * Sans SENTRY_DSN configuré (dev/CI), Sentry.captureException est un no-op
+ * silencieux (cf. instrumentation.ts).
  */
 export function logActionError(
   action: string,
@@ -42,9 +48,13 @@ export function logActionError(
   };
   if (level === "warn") {
     logger.warn("action.failed", fields);
-  } else {
-    logger.error("action.failed", fields);
+    return;
   }
+  logger.error("action.failed", fields);
+  Sentry.captureException(error, {
+    tags: { action },
+    ...(context?.userId ? { user: { id: context.userId } } : {}),
+  });
 }
 
 /**
