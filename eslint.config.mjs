@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Rapport de couverture Vitest (JOB-106) — généré, jamais versionné
+    // (.gitignore), mais peut exister localement lors du lint.
+    "coverage/**",
   ]),
 ]);
 
