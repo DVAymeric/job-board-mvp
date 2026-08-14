@@ -83,20 +83,22 @@ test.describe("Parcours critique du board (E2E, JOB-70)", () => {
     test.setTimeout(60_000);
     await loginAs(page, userEmail);
 
-    // 1. Coller une URL sur la page d'accueil → auto-création de la candidature.
+    // 1. Coller une URL sur la page d'accueil → auto-création immédiate de
+    // la candidature, sans attendre le scraping (JOB-ASYNC-ENRICH).
     await page.goto("/");
     await page.getByPlaceholder(URL_PLACEHOLDER).fill(`${fixtureServer.url}/static-title`);
     await page.getByPlaceholder(URL_PLACEHOLDER).press("Enter");
     const createdCard = page.getByTestId("created-job-card");
-    await expect(createdCard).toBeVisible({ timeout: 15_000 });
-    await expect(createdCard).toContainText(ORIGINAL_TITLE);
+    await expect(createdCard).toBeVisible({ timeout: 5_000 });
+    await expect(createdCard.getByTestId("created-job-enriching")).toBeVisible();
 
-    // 2. La candidature apparaît dans la colonne "À postuler" du board.
+    // 2. La candidature apparaît dans la colonne "À postuler" du board, le
+    // titre se résolvant en tâche de fond.
     await page.goto("/board");
     const toApplyColumn = page.getByTestId("column-TO_APPLY");
     await expect(
       toApplyColumn.locator('[data-slot="card"]', { hasText: ORIGINAL_TITLE })
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
     // La carte est déjà dans le HTML rendu côté serveur, mais dnd-kit
     // n'attache ses listeners de pointeur qu'après l'hydratation React :
     // sans cette attente, le drag ci-dessous peut démarrer avant qu'ils ne

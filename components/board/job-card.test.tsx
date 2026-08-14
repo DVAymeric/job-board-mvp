@@ -28,6 +28,7 @@ const baseJob: JobWithRelations = {
   companyLogoUrl: null,
   notes: null,
   status: "TO_APPLY",
+  enrichmentStatus: "DONE",
   archived: false,
   order: 0,
   lastFollowUp: null,
@@ -87,6 +88,57 @@ describe("JobCard title/company display", () => {
     const badge = screen.getByText("Remote");
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveAttribute("data-variant", "secondary");
+  });
+});
+
+describe("JobCard — enrichissement asynchrone (JOB-ASYNC-ENRICH)", () => {
+  it("shows a shimmer placeholder instead of the title while enrichment is pending", () => {
+    render(
+      <JobCard
+        job={{ ...baseJob, enrichmentStatus: "PENDING", title: null, companyName: null }}
+        onOpen={() => {}}
+      />
+    );
+    expect(screen.getByTestId("job-card-enriching")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Récupération du titre en cours")
+    ).toBeInTheDocument();
+  });
+
+  it("shows a clear manual-entry prompt when enrichment failed", () => {
+    render(
+      <JobCard
+        job={{ ...baseJob, enrichmentStatus: "FAILED", title: null, companyName: null }}
+        onOpen={() => {}}
+      />
+    );
+    expect(
+      screen.getByText(/Titre non détecté.*renseigner manuellement/)
+    ).toBeInTheDocument();
+  });
+
+  it("clicking a FAILED card still opens the dialog to let the user fill in the title", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
+    render(
+      <JobCard
+        job={{ ...baseJob, enrichmentStatus: "FAILED", title: null, companyName: null }}
+        onOpen={onOpen}
+      />
+    );
+    await user.click(screen.getByText(/Titre non détecté/));
+    expect(onOpen).toHaveBeenCalledWith("job-1");
+  });
+
+  it("shows the real title normally once enrichment is DONE", () => {
+    render(
+      <JobCard
+        job={{ ...baseJob, enrichmentStatus: "DONE", title: "Développeur", companyName: "Acme" }}
+        onOpen={() => {}}
+      />
+    );
+    expect(screen.queryByTestId("job-card-enriching")).not.toBeInTheDocument();
+    expect(screen.getByText("Développeur")).toBeInTheDocument();
   });
 });
 

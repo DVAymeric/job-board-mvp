@@ -2,6 +2,12 @@ import { z } from "zod";
 import * as Sentry from "@sentry/nextjs";
 import { checkJobUrlSchema } from "@/lib/validation";
 import { scrapeJobMetadata, type ScrapedJobMetadata } from "@/lib/scraper";
+import { safeFetch } from "@/lib/safe-fetch";
+import {
+  buildBrandfetchLogoUrl,
+  buildClearbitLogoUrl,
+  extractCompanyDomain,
+} from "@/lib/company-logo";
 import { logger } from "@/lib/logger";
 import type { ActionErrorCode } from "@/lib/types";
 
@@ -96,4 +102,51 @@ export async function resolveScrapedMetadata(
     return empty;
   }
   return scrapeJobMetadata(parsed.data, context);
+}
+
+const LOGO_FETCH_TIMEOUT_MS = 3000;
+
+async function logoUrlResolves(url: string): Promise<boolean> {
+  try {
+    const response = await safeFetch(url, {
+      method: "GET",
+      signal: AbortSignal.timeout(LOGO_FETCH_TIMEOUT_MS),
+    });
+    return (
+      !!response &&
+      response.ok &&
+      (response.headers.get("content-type") ?? "").startsWith("image/")
+    );
+  } catch (error) {
+    logActionError("fetchCompanyLogo", error, undefined, "warn");
+    return false;
+  }
+}
+
+/**
+ * Résout un logo d'entreprise à partir du domaine d'une URL d'offre —
+ * Clearbit puis Brandfetch en repli (si `BRANDFETCH_CLIENT_ID` est
+ * configuré). N'envoie jamais que le nom de domaine à ces tiers (JOB-121).
+ * Partagée entre `fetchCompanyLogo` (appel direct depuis le client, avant
+ * ce ticket) et `enrichJob` (enrichissement en tâche de fond) — même raison
+ * que `resolveScrapedMetadata` : une seule implémentation, pas de
+ * duplication de la logique de repli.
+ */
+export async function resolveCompanyLogo(rawUrl: string): Promise<string | null> {
+  const parsed = checkJobUrlSchema.safeParse(rawUrl);
+  if (!parsed.success) return null;
+
+  const domain = extractCompanyDomain(parsed.data);
+  if (!domain) return null;
+
+  const clearbitUrl = buildClearbitLogoUrl(domain);
+  if (await logoUrlResolves(clearbitUrl)) return clearbitUrl;
+
+  const brandfetchClientId = process.env.BRANDFETCH_CLIENT_ID;
+  if (brandfetchClientId) {
+    const brandfetchUrl = buildBrandfetchLogoUrl(domain, brandfetchClientId);
+    if (await logoUrlResolves(brandfetchUrl)) return brandfetchUrl;
+  }
+
+  return null;
 }

@@ -5,23 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { Job } from "@prisma/client";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { HeroSection } from "@/components/home/hero-section";
 import { UrlCheckBar } from "@/components/home/url-check-bar";
 import {
   checkJobUrl,
   checkRepost,
   createJob,
-  fetchCompanyLogo,
-  fetchJobMetadata,
   reactivateJobWithContent,
 } from "@/app/actions";
 import { STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
@@ -32,11 +22,14 @@ import { toast } from "sonner";
 type ViewState =
   | { kind: "idle" }
   | { kind: "checking" }
-  | { kind: "fetching" }
   | { kind: "error"; message: string }
   | { kind: "known"; job: Job }
-  | { kind: "created"; title: string; companyName: string | null }
-  | { kind: "fallback"; normalizedUrl: string };
+  | {
+      kind: "created";
+      title: string | null;
+      companyName: string | null;
+      enrichmentStatus: "PENDING" | "DONE";
+    };
 
 type RepostFresh = {
   title: string | null;
@@ -56,17 +49,15 @@ function HomeContentInner() {
   const consumedBookmarklet = useRef(false);
   const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
   const [view, setView] = useState<ViewState>({ kind: "idle" });
-  const [title, setTitle] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [companyLogoUrl, setCompanyLogoUrl] = useState("");
-  const [descriptionText, setDescriptionText] = useState<string | null>(null);
-  const [initialStatus, setInitialStatus] = useState<JobStatus>(
-    STATUS.TO_APPLY
-  );
-  const [saving, setSaving] = useState(false);
   const [repostState, setRepostState] = useState<RepostState>({ kind: "idle" });
   const [reactivating, setReactivating] = useState(false);
 
+  // Vérification (checkJobUrl, une seule requête en base) et création
+  // (createJob) sont deux Server Actions déjà distinctes côté serveur — ce
+  // qui les couplait, c'était d'attendre le scraping *entre les deux* ici.
+  // createJob ne bloque plus dessus : la candidature est créée dès que
+  // l'URL est confirmée nouvelle, avec un enrichissement (titre/entreprise/
+  // logo) qui continue en tâche de fond côté serveur (JOB-ASYNC-ENRICH).
   const runCheck = useCallback(async (explicitUrl?: string, fallbackTitle?: string) => {
     const trimmed = (explicitUrl ?? url).trim();
     if (!trimmed) {
@@ -85,36 +76,9 @@ function HomeContentInner() {
       return;
     }
 
-    const normalizedUrl = result.data.normalizedUrl;
-    setView({ kind: "fetching" });
-    const [metadata, logo] = await Promise.all([
-      fetchJobMetadata(normalizedUrl),
-      fetchCompanyLogo(normalizedUrl),
-    ]);
-    const scrapedTitle =
-      (metadata.ok ? metadata.data.title : null) || fallbackTitle || null;
-    const scrapedCompanyName = metadata.ok ? metadata.data.companyName ?? "" : "";
-    const scrapedLogoUrl = logo.ok ? logo.data.logoUrl ?? "" : "";
-    const scrapedDescription = metadata.ok
-      ? metadata.data.descriptionText ?? undefined
-      : undefined;
-
-    if (!scrapedTitle) {
-      setTitle("");
-      setCompanyName(scrapedCompanyName);
-      setCompanyLogoUrl(scrapedLogoUrl);
-      setDescriptionText(scrapedDescription ?? null);
-      setInitialStatus(STATUS.TO_APPLY);
-      setView({ kind: "fallback", normalizedUrl });
-      return;
-    }
-
     const createResult = await createJob({
-      url: normalizedUrl,
-      title: scrapedTitle,
-      companyName: scrapedCompanyName,
-      companyLogoUrl: scrapedLogoUrl,
-      descriptionText: scrapedDescription,
+      url: result.data.normalizedUrl,
+      title: fallbackTitle || undefined,
       status: STATUS.TO_APPLY,
     });
 
@@ -127,8 +91,9 @@ function HomeContentInner() {
     setUrl("");
     setView({
       kind: "created",
-      title: scrapedTitle,
-      companyName: scrapedCompanyName || null,
+      title: fallbackTitle || null,
+      companyName: null,
+      enrichmentStatus: createResult.data.enrichmentStatus,
     });
   }, [url]);
 
@@ -143,32 +108,6 @@ function HomeContentInner() {
       void runCheck(bookmarkletUrl, fallbackTitle);
     });
   }, [searchParams, router, runCheck]);
-
-  async function handleSave() {
-    if (view.kind !== "fallback") return;
-    setSaving(true);
-    const result = await createJob({
-      url: view.normalizedUrl,
-      title,
-      companyName,
-      companyLogoUrl,
-      descriptionText: descriptionText ?? undefined,
-      status: initialStatus,
-    });
-    setSaving(false);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Candidature enregistrée");
-    setUrl("");
-    setTitle("");
-    setCompanyName("");
-    setCompanyLogoUrl("");
-    setDescriptionText(null);
-    setInitialStatus(STATUS.TO_APPLY);
-    setView({ kind: "idle" });
-  }
 
   async function handleCheckRepost() {
     if (view.kind !== "known") return;
@@ -201,7 +140,7 @@ function HomeContentInner() {
     setView({ kind: "idle" });
   }
 
-  const checking = view.kind === "checking" || view.kind === "fetching";
+  const checking = view.kind === "checking";
 
   return (
     <HeroSection>
@@ -216,11 +155,7 @@ function HomeContentInner() {
         }
         onUrlChange={(value) => {
           setUrl(value);
-          if (
-            view.kind !== "idle" &&
-            view.kind !== "checking" &&
-            view.kind !== "fetching"
-          ) {
+          if (view.kind !== "idle" && view.kind !== "checking") {
             setView({ kind: "idle" });
           }
         }}
@@ -230,18 +165,6 @@ function HomeContentInner() {
           if (e.key === "Enter") runCheck();
         }}
       />
-
-      {view.kind === "fetching" && (
-        <div
-          data-testid="fetching-status"
-          className="w-full max-w-lg rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
-        >
-          <p className="flex items-center gap-2 text-sm text-white/80">
-            <Loader2 className="size-4 animate-spin" />
-            Récupération de l&apos;annonce en cours...
-          </p>
-        </div>
-      )}
 
       {view.kind === "known" && (
         <div
@@ -325,72 +248,26 @@ function HomeContentInner() {
           data-testid="created-job-card"
           className="w-full max-w-lg space-y-2 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
         >
-          <p className="text-sm font-medium">
-            Ajoutée : {view.title}
-            {view.companyName ? ` chez ${view.companyName}` : ""}
-          </p>
+          {view.enrichmentStatus === "PENDING" ? (
+            <p
+              data-testid="created-job-enriching"
+              className="flex items-center gap-2 text-sm font-medium"
+            >
+              <Loader2 className="size-4 animate-spin" />
+              Candidature ajoutée — récupération du titre en cours...
+            </p>
+          ) : (
+            <p className="text-sm font-medium">
+              Ajoutée : {view.title}
+              {view.companyName ? ` chez ${view.companyName}` : ""}
+            </p>
+          )}
           <Link
             href="/board"
             className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
           >
             Voir dans le board
           </Link>
-        </div>
-      )}
-
-      {view.kind === "fallback" && (
-        <div
-          data-testid="fallback-job-card"
-          className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
-        >
-          <p className="text-sm text-palette-corail">
-            Impossible de récupérer automatiquement le titre de cette offre
-            (page bloquée, inaccessible, ou sans titre détectable).
-            Renseigne-le manuellement pour l&apos;ajouter.
-          </p>
-          <Input
-            placeholder="Titre du poste"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            disabled={saving}
-            className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
-          />
-          <Input
-            placeholder="Entreprise"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            disabled={saving}
-            className="border-white/20 bg-transparent text-white placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
-          />
-          <Select
-            value={initialStatus}
-            onValueChange={(value) => setInitialStatus(value as JobStatus)}
-          >
-            <SelectTrigger
-              className="w-full border-white/20 bg-white/5 text-white data-placeholder:text-white/50 focus-visible:border-white/40 focus-visible:ring-white/30"
-              disabled={saving}
-            >
-              <SelectValue>
-                {(value: JobStatus) => STATUS_CONFIG[value]?.label ?? value}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={STATUS.TO_APPLY}>
-                {STATUS_CONFIG.TO_APPLY.label}
-              </SelectItem>
-              <SelectItem value={STATUS.APPLIED}>
-                {STATUS_CONFIG.APPLIED.label}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !title.trim()}
-            className="w-full"
-          >
-            {saving && <Loader2 className="animate-spin" />}
-            Enregistrer
-          </Button>
         </div>
       )}
     </HeroSection>

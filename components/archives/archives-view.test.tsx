@@ -24,6 +24,7 @@ function job(overrides: Partial<JobWithRelations>): JobWithRelations {
     companyLogoUrl: null,
     notes: null,
     status: "REJECTED",
+    enrichmentStatus: "DONE",
     archived: true,
     order: 0,
     lastFollowUp: null,

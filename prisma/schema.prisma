@@ -45,27 +45,39 @@ enum SalaryType {
   DAILY_RATE
 }
 
+// PENDING : créé sans titre, enrichissement (scraping) programmé en tâche
+// de fond après la réponse de createJob (JOB-ASYNC-ENRICH). DONE : titre
+// connu dès la création, ou enrichissement réussi. FAILED : enrichissement
+// tenté sans succès — l'utilisateur renseigne alors le titre à la main
+// (updateJobDetails repasse le statut à DONE dans ce cas).
+enum EnrichmentStatus {
+  PENDING
+  DONE
+  FAILED
+}
+
 model Job {
-  id              String      @id @default(uuid())
-  userId          String
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  url             String
-  title           String?
-  companyName     String?
-  companyLogoUrl  String?
-  notes           String?
-  status          JobStatus   @default(TO_APPLY)
-  archived        Boolean     @default(false)
-  order           Int         @default(0)
-  lastFollowUp    DateTime?
-  salaryAmount    Int?
-  salaryType      SalaryType?
-  resumeUrl       String?
-  coverLetterUrl  String?
-  interviewDate   DateTime?
-  descriptionText String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url              String
+  title            String?
+  companyName      String?
+  companyLogoUrl   String?
+  notes            String?
+  status           JobStatus        @default(TO_APPLY)
+  enrichmentStatus EnrichmentStatus @default(DONE)
+  archived         Boolean          @default(false)
+  order            Int              @default(0)
+  lastFollowUp     DateTime?
+  salaryAmount     Int?
+  salaryType       SalaryType?
+  resumeUrl        String?
+  coverLetterUrl   String?
+  interviewDate    DateTime?
+  descriptionText  String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   contacts      Contact[]
   tags          JobTag[]
