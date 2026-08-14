@@ -37,12 +37,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test:
-    name: Lint, typecheck & tests
+    name: Lint, typecheck, tests & build
     runs-on: ubuntu-latest
     env:
-      # No test in this job touches a live database (`prisma generate` only
-      # reads schema.prisma); this dummy value just matches the postgresql
-      # provider so nothing looks inconsistent in CI logs.
+      # No step in this job touches a live database (`prisma generate` only
+      # reads schema.prisma, and `next build` doesn't query the DB — every
+      # route in this app is dynamically rendered); this dummy value just
+      # matches the postgresql provider so nothing looks inconsistent in CI
+      # logs.
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
       # `prisma generate` needs directUrl set too (JOB-85 pooling split) even
       # though it never connects here.
@@ -75,6 +77,14 @@ jobs:
 
       - name: Unit tests (avec couverture, seuil 70% — JOB-106)
         run: npm run test:coverage
+
+      - name: Build
+        # `next build` directement, pas `npm run build` : ce dernier enchaîne
+        # `prisma migrate deploy`, qui a besoin d'une vraie base Postgres
+        # joignable — inutile ici, ce job ne valide que la compilation.
+        # `next build` ne fait aucune requête DB (aucune route statique
+        # générée à partir de données).
+        run: npx next build
 
       - name: Audit des dépendances (High/Critical — JOB-122)
         run: npm audit --audit-level=high
