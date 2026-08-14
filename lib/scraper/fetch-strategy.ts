@@ -1,6 +1,7 @@
 import { safeFetch } from "@/lib/safe-fetch";
 import { extractJobMetadataFromHtml } from "@/lib/scraper/html-parser";
 import { EMPTY_SCRAPED_METADATA, type ScrapedJobMetadata } from "@/lib/scraper/types";
+import { logger } from "@/lib/logger";
 
 const FETCH_TIMEOUT_MS = 5000;
 
@@ -13,6 +14,10 @@ const REQUEST_HEADERS = {
   "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
 };
 
+// Statuts couramment renvoyés par les protections anti-bot (Cloudflare,
+// rate limiting, mur d'auth) plutôt que par une absence de page/contenu.
+const ANTI_BOT_STATUS_CODES = new Set([401, 403, 429, 503]);
+
 export async function fetchMetadataViaHttp(url: string): Promise<ScrapedJobMetadata> {
   try {
     const response = await safeFetch(url, {
@@ -20,10 +25,21 @@ export async function fetchMetadataViaHttp(url: string): Promise<ScrapedJobMetad
       headers: REQUEST_HEADERS,
     });
     if (!response || !response.ok) {
+      if (response) {
+        logger.warn("scraper.fetch_not_ok", {
+          url,
+          status: response.status,
+          likelyAntiBotBlock: ANTI_BOT_STATUS_CODES.has(response.status),
+        });
+      }
       return EMPTY_SCRAPED_METADATA;
     }
     const html = await response.text();
-    return extractJobMetadataFromHtml(html);
+    const metadata = extractJobMetadataFromHtml(html);
+    if (!metadata.title) {
+      logger.info("scraper.no_title_found", { url, status: response.status });
+    }
+    return metadata;
   } catch {
     return EMPTY_SCRAPED_METADATA;
   }

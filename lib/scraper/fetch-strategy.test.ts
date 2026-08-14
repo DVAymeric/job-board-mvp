@@ -1,9 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fetchMetadataViaHttp } from "@/lib/scraper/fetch-strategy";
 import { safeFetch } from "@/lib/safe-fetch";
+import { logger } from "@/lib/logger";
 
 vi.mock("@/lib/safe-fetch", () => ({
   safeFetch: vi.fn(),
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 const EMPTY = { title: null, companyName: null, descriptionText: null };
@@ -11,6 +16,8 @@ const EMPTY = { title: null, companyName: null, descriptionText: null };
 describe("fetchMetadataViaHttp", () => {
   beforeEach(() => {
     vi.mocked(safeFetch).mockReset();
+    vi.mocked(logger.info).mockReset();
+    vi.mocked(logger.warn).mockReset();
   });
 
   it("parses metadata from the fetched HTML on success", async () => {
@@ -30,7 +37,7 @@ describe("fetchMetadataViaHttp", () => {
   });
 
   it("returns empty metadata when the response is not ok", async () => {
-    vi.mocked(safeFetch).mockResolvedValue({ ok: false } as Response);
+    vi.mocked(safeFetch).mockResolvedValue({ ok: false, status: 404 } as Response);
 
     const result = await fetchMetadataViaHttp("https://example.com/job");
 
@@ -51,6 +58,62 @@ describe("fetchMetadataViaHttp", () => {
     const result = await fetchMetadataViaHttp("https://example.com/job");
 
     expect(result).toEqual(EMPTY);
+  });
+
+  it.each([401, 403, 429, 503])(
+    "flags status %i as a likely anti-bot block when logging the non-ok response",
+    async (status) => {
+      vi.mocked(safeFetch).mockResolvedValue({ ok: false, status } as Response);
+
+      await fetchMetadataViaHttp("https://example.com/job");
+
+      expect(logger.warn).toHaveBeenCalledWith(
+        "scraper.fetch_not_ok",
+        expect.objectContaining({
+          url: "https://example.com/job",
+          status,
+          likelyAntiBotBlock: true,
+        })
+      );
+    }
+  );
+
+  it("does not flag an ordinary non-ok status (e.g. 404) as an anti-bot block", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({ ok: false, status: 404 } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job");
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "scraper.fetch_not_ok",
+      expect.objectContaining({ status: 404, likelyAntiBotBlock: false })
+    );
+  });
+
+  it("logs when the page is fetched successfully but no title could be extracted", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "<html><body>No metadata here</body></html>",
+    } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job");
+
+    expect(logger.info).toHaveBeenCalledWith(
+      "scraper.no_title_found",
+      expect.objectContaining({ url: "https://example.com/job", status: 200 })
+    );
+  });
+
+  it("does not log a missing-title notice when a title is found", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => `<meta property="og:title" content="Développeur Backend" />`,
+    } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job");
+
+    expect(logger.info).not.toHaveBeenCalled();
   });
 
   it("requests HTML explicitly and bounds the request with a timeout signal", async () => {
