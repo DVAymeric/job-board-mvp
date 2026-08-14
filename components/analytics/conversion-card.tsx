@@ -14,7 +14,7 @@ export function ConversionCard({
   return (
     <BentoCard tone="default" label="Conversion clé" title="Postulé → Entretien">
       <div className="flex flex-1 flex-col justify-between gap-2">
-        <p className="font-heading text-4xl font-medium text-[#783f8e] italic">
+        <p className="font-heading text-4xl font-medium text-palette-orchidee italic">
           {rate === null ? "—" : `${rate}%`}
         </p>
         <p>

@@ -19,30 +19,30 @@ const SPAN_CLASSES: Record<BentoSpan, string> = {
 // .dark and become unreadable against this fixed light background.
 const TONE_CLASSES: Record<BentoTone, string> = {
   default: "border border-border bg-card text-card-foreground",
-  dark: "border border-transparent bg-gradient-to-br from-[#4a4063] to-[#2e2440] text-white",
-  accent: "border border-transparent bg-[#783f8e] text-white",
-  muted: "border border-transparent bg-[#c8c6d7]",
+  dark: "border border-transparent bg-gradient-to-br from-palette-encre to-palette-minuit text-white",
+  accent: "border border-transparent bg-palette-orchidee text-white",
+  muted: "border border-transparent bg-palette-brume",
 };
 
 const TONE_LABEL_CLASSES: Record<BentoTone, string> = {
-  default: "text-[#783f8e] dark:text-[#c094d3]",
-  dark: "text-[#bfacc8]",
+  default: "text-palette-orchidee dark:text-palette-lilas",
+  dark: "text-palette-poudre",
   accent: "text-white/65",
-  muted: "text-[#4a4063]",
+  muted: "text-palette-encre",
 };
 
 const TONE_TITLE_CLASSES: Record<BentoTone, string> = {
   default: "text-heading",
   dark: "text-white",
   accent: "text-white",
-  muted: "text-[#4f1271]",
+  muted: "text-palette-nuit",
 };
 
 const TONE_BODY_CLASSES: Record<BentoTone, string> = {
   default: "text-muted-foreground",
   dark: "text-white/60",
   accent: "text-white/75",
-  muted: "text-[#4a4063]",
+  muted: "text-palette-encre",
 };
 
 interface BentoCardProps {

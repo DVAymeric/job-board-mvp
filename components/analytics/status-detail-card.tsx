@@ -15,7 +15,7 @@ export function StatusDetailCard({ stages }: StatusDetailCardProps) {
     >
       {stages.map((stage) => (
         <div key={stage.status} className="flex-1 space-y-1.5 p-5">
-          <p className="font-mono text-xs tracking-wide text-[#783f8e] uppercase">
+          <p className="font-mono text-xs tracking-wide text-palette-orchidee uppercase">
             {stage.label}
           </p>
           <p className="font-heading text-2xl font-medium text-heading">

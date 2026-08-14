@@ -11,6 +11,17 @@
   --color-accent-border: var(--accent-border);
   --color-palette-eclipse: var(--palette-eclipse);
   --color-palette-minuit: var(--palette-minuit);
+  --color-palette-brume: var(--palette-brume);
+  --color-palette-poudre: var(--palette-poudre);
+  --color-palette-orchidee: var(--palette-orchidee);
+  --color-palette-nuit: var(--palette-nuit);
+  --color-palette-encre: var(--palette-encre);
+  --color-palette-abysse: var(--palette-abysse);
+  --color-palette-lilas: var(--palette-lilas);
+  --color-palette-mousse: var(--palette-mousse);
+  --color-palette-menthe: var(--palette-menthe);
+  --color-palette-corail: var(--palette-corail);
+  --color-palette-miel: var(--palette-miel);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-fraunces);
@@ -62,6 +73,15 @@
   /* Tons les plus sombres du hero (fond flouté + overlay), pas utilisés ailleurs */
   --palette-minuit: #2e2440;
   --palette-eclipse: #1c1728;
+  /* Accents fixes du hero et des panneaux sombres translucides (jamais
+     inversés par le thème — ces surfaces restent sombres quel que soit le
+     thème de l'app) */
+  --palette-abysse: #0a0712;
+  --palette-lilas: #c094d3;
+  --palette-mousse: #7bab8a;
+  --palette-menthe: #a9d4b6;
+  --palette-corail: #f0a0a0;
+  --palette-miel: #f0c88a;
 
   --background: #f6f4f9;
   --foreground: #453b5c;
@@ -114,6 +134,12 @@
   --palette-encre: #4a4063;
   --palette-minuit: #2e2440;
   --palette-eclipse: #1c1728;
+  --palette-abysse: #0a0712;
+  --palette-lilas: #c094d3;
+  --palette-mousse: #7bab8a;
+  --palette-menthe: #a9d4b6;
+  --palette-corail: #f0a0a0;
+  --palette-miel: #f0c88a;
 
   --background: #1d1727;
   --foreground: #e4dcec;

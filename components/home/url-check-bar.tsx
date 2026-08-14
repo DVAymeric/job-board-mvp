@@ -72,7 +72,7 @@ export function UrlCheckBar({
       </div>
       <div aria-live="polite" className="min-h-6 px-1 pt-2">
         {error && (
-          <p data-testid="url-check-error" className="text-sm text-[#f0a0a0]">
+          <p data-testid="url-check-error" className="text-sm text-palette-corail">
             {error}
           </p>
         )}
@@ -82,7 +82,7 @@ export function UrlCheckBar({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-xs",
               resultTag.kind === "new"
-                ? "bg-[#7bab8a]/20 text-[#a9d4b6]"
+                ? "bg-palette-mousse/20 text-palette-menthe"
                 : "bg-white/10 text-white/80"
             )}
           >

@@ -9,9 +9,9 @@ interface OverviewCardProps {
 export function OverviewCard({ total, statusCounts }: OverviewCardProps) {
   return (
     <BentoCard span="2x1" tone="muted" label="Vue d'ensemble" className="justify-center">
-      <div className="flex items-baseline gap-2.5 font-heading text-4xl leading-none text-[#4f1271]">
+      <div className="flex items-baseline gap-2.5 font-heading text-4xl leading-none text-palette-nuit">
         {total}
-        <span className="font-mono text-sm font-normal text-[#4a4063]/70">
+        <span className="font-mono text-sm font-normal text-palette-encre/70">
           candidature{total > 1 ? "s" : ""} suivie{total > 1 ? "s" : ""} au
           total
         </span>
@@ -20,9 +20,9 @@ export function OverviewCard({ total, statusCounts }: OverviewCardProps) {
         {STATUS_ORDER.map((status) => (
           <span
             key={status}
-            className="rounded-full border border-white/40 bg-white/50 px-2.5 py-1 font-mono text-xs text-[#4a4063]"
+            className="rounded-full border border-white/40 bg-white/50 px-2.5 py-1 font-mono text-xs text-palette-encre"
           >
-            <b className="font-semibold text-[#4f1271]">
+            <b className="font-semibold text-palette-nuit">
               {statusCounts[status]}
             </b>{" "}
             {STATUS_CONFIG[status].label}

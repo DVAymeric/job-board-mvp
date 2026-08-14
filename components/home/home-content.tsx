@@ -280,7 +280,7 @@ function HomeContentInner() {
               </Button>
 
               {repostState.kind === "error" && (
-                <p className="text-sm text-[#f0a0a0]">{repostState.message}</p>
+                <p className="text-sm text-palette-corail">{repostState.message}</p>
               )}
 
               {repostState.kind === "result" && !repostState.changed && (
@@ -297,7 +297,7 @@ function HomeContentInner() {
                       className={cn(
                         "whitespace-pre-wrap",
                         line.type === "removed" &&
-                          "text-[#f0a0a0] line-through",
+                          "text-palette-corail line-through",
                         line.type === "added" && "font-medium text-white",
                         line.type === "unchanged" && "text-white/50"
                       )}
@@ -343,7 +343,7 @@ function HomeContentInner() {
           data-testid="fallback-job-card"
           className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-sm"
         >
-          <p className="text-sm text-[#f0a0a0]">
+          <p className="text-sm text-palette-corail">
             Impossible de récupérer automatiquement le titre de cette offre
             (page bloquée, inaccessible, ou sans titre détectable).
             Renseigne-le manuellement pour l&apos;ajouter.

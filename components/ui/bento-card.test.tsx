@@ -78,12 +78,14 @@ describe("BentoCard", () => {
     // The muted tone (light lilac) doesn't invert in dark mode, so its text
     // can't rely on theme-aware tokens like text-heading (which flips to a
     // light color in .dark and becomes unreadable on this fixed light bg).
+    // Both sides use the dark-mode-invariant --palette-* tokens (JOB-101)
+    // rather than raw hex literals.
     render(<BentoCard title="Relance" tone="muted" />);
     const title = screen.getByText("Relance", { selector: "h3" });
     const card = title.closest('[data-slot="bento-card"]');
-    expect(card).toHaveClass("bg-[#c8c6d7]");
+    expect(card).toHaveClass("bg-palette-brume");
     expect(title).not.toHaveClass("text-heading");
-    expect(title.className).toMatch(/text-\[#/);
+    expect(title).toHaveClass("text-palette-nuit");
   });
 
   it("omits the h3 entirely when no title is given", () => {
