@@ -57,3 +57,5 @@ Procédure de déploiement et de rollback (code + migrations Postgres) :
 Revue des secrets et procédure de rotation en cas de fuite :
 [`docs/gestion-des-secrets.md`](docs/gestion-des-secrets.md). Chiffrement
 in-transit/at-rest des données : [`docs/chiffrement-donnees.md`](docs/chiffrement-donnees.md).
+Politique de sauvegarde et procédure de restauration :
+[`docs/sauvegardes-donnees.md`](docs/sauvegardes-donnees.md).
