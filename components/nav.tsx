@@ -12,11 +12,17 @@ import { logoutAction } from "@/app/auth-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+// prefetch: false sur les routes protégées (JOB-131) — le prefetch par
+// défaut de <Link> déclenche des GET en arrière-plan avec le cookie de
+// session encore valide au moment de l'envoi ; si l'un d'eux arrive après un
+// logout, le serveur le traite comme authentifié et réémet un cookie de
+// session valide, ressuscitant la session juste effacée. "/" n'est pas
+// protégée, aucun risque à la préfetcher.
 const LINKS = [
-  { href: "/", label: "Accueil" },
-  { href: "/board", label: "Board" },
-  { href: "/archives", label: "Archives" },
-  { href: "/analytics", label: "Analytics" },
+  { href: "/", label: "Accueil", prefetch: undefined },
+  { href: "/board", label: "Board", prefetch: false },
+  { href: "/archives", label: "Archives", prefetch: false },
+  { href: "/analytics", label: "Analytics", prefetch: false },
 ] as const;
 
 export function Nav({ session }: { session: Session | null }) {
@@ -53,6 +59,7 @@ export function Nav({ session }: { session: Session | null }) {
           <Link
             key={link.href}
             href={link.href}
+            prefetch={link.prefetch}
             className={cn(
               "border-b-2 border-transparent py-1 text-sm font-medium transition-colors hover:text-heading",
               pathname === link.href
@@ -66,6 +73,7 @@ export function Nav({ session }: { session: Session | null }) {
         {session?.user && (
           <Link
             href="/account"
+            prefetch={false}
             className={cn(
               "border-b-2 border-transparent py-1 text-sm font-medium transition-colors hover:text-heading",
               pathname === "/account"
