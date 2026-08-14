@@ -92,6 +92,73 @@ describe("scrapeJobMetadata", () => {
     expect(result).toEqual(EMPTY);
   });
 
+  describe("scraper.metrics (JOB-114)", () => {
+    it("logs a metrics event with success and latency when the HTTP strategy alone succeeds", async () => {
+      vi.mocked(fetchMetadataViaHttp).mockResolvedValue({
+        title: "Développeur Backend",
+        companyName: "Acme",
+        descriptionText: null,
+      });
+
+      await scrapeJobMetadata("https://example.com/job", { userId: "user-1" });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        "scraper.metrics",
+        expect.objectContaining({
+          url: "https://example.com/job",
+          userId: "user-1",
+          httpSuccess: true,
+          playwrightTriggered: false,
+          httpLatencyMs: expect.any(Number),
+        })
+      );
+    });
+
+    it("logs a metrics event marking the Playwright fallback as triggered, with both latencies and its own success flag", async () => {
+      vi.mocked(fetchMetadataViaHttp).mockResolvedValue(EMPTY);
+      vi.mocked(fetchMetadataViaPlaywright).mockResolvedValue({
+        title: "Développeur Backend",
+        companyName: null,
+        descriptionText: null,
+      });
+
+      await scrapeJobMetadata("https://example.com/job");
+
+      expect(logger.info).toHaveBeenCalledWith(
+        "scraper.metrics",
+        expect.objectContaining({
+          httpSuccess: false,
+          playwrightTriggered: true,
+          playwrightSuccess: true,
+          httpLatencyMs: expect.any(Number),
+          playwrightLatencyMs: expect.any(Number),
+        })
+      );
+    });
+
+    it("logs a metrics event without triggering Playwright when the kill switch is off", async () => {
+      const original = process.env.SCRAPER_PLAYWRIGHT_ENABLED;
+      process.env.SCRAPER_PLAYWRIGHT_ENABLED = "0";
+      vi.mocked(fetchMetadataViaHttp).mockResolvedValue(EMPTY);
+
+      try {
+        await scrapeJobMetadata("https://example.com/job");
+      } finally {
+        if (original === undefined) delete process.env.SCRAPER_PLAYWRIGHT_ENABLED;
+        else process.env.SCRAPER_PLAYWRIGHT_ENABLED = original;
+      }
+
+      expect(logger.info).toHaveBeenCalledWith(
+        "scraper.metrics",
+        expect.objectContaining({ httpSuccess: false, playwrightTriggered: false })
+      );
+      expect(logger.info).not.toHaveBeenCalledWith(
+        "scraper.metrics",
+        expect.objectContaining({ playwrightSuccess: expect.anything() })
+      );
+    });
+  });
+
   describe("SCRAPER_PLAYWRIGHT_ENABLED kill switch (JOB-65)", () => {
     const original = process.env.SCRAPER_PLAYWRIGHT_ENABLED;
 
