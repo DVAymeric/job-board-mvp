@@ -44,6 +44,9 @@ jobs:
       # reads schema.prisma); this dummy value just matches the postgresql
       # provider so nothing looks inconsistent in CI logs.
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # `prisma generate` needs directUrl set too (JOB-85 pooling split) even
+      # though it never connects here.
+      DIRECT_URL: "postgresql://ci:ci@localhost:5432/ci"
     steps:
       - uses: actions/checkout@v4
 
@@ -97,6 +100,9 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: "postgresql://jobtracker:jobtracker@localhost:5432/jobtracker"
+      # Pas de pooler dans ce service Postgres éphémère (JOB-85) : les deux
+      # pointent vers la même connexion.
+      DIRECT_URL: "postgresql://jobtracker:jobtracker@localhost:5432/jobtracker"
       # Secret de signature JWT jetable, propre à ce run de CI — aucune
       # donnée réelle n'est en jeu (Postgres du job est lui aussi éphémère).
       AUTH_SECRET: "ci-e2e-ephemeral-signing-secret-not-for-production-use"
