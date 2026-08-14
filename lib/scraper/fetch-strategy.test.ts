@@ -64,9 +64,23 @@ describe("fetchMetadataViaHttp", () => {
     expect(safeFetch).toHaveBeenCalledWith(
       "https://example.com/job",
       expect.objectContaining({
-        headers: { Accept: "text/html" },
+        headers: expect.objectContaining({ Accept: "text/html" }),
         signal: expect.any(AbortSignal),
       })
     );
+  });
+
+  it("sends a realistic desktop User-Agent and Accept-Language to avoid basic anti-bot blocks", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true,
+      text: async () => "",
+    } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job");
+
+    const [, init] = vi.mocked(safeFetch).mock.calls[0];
+    const headers = init?.headers as Record<string, string>;
+    expect(headers["User-Agent"]).toMatch(/Mozilla\/5\.0/);
+    expect(headers["Accept-Language"]).toMatch(/^fr-FR/);
   });
 });
