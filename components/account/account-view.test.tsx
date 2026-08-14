@@ -54,6 +54,7 @@ describe("AccountView", () => {
     vi.mocked(deleteAccount).mockResolvedValue({
       ok: false,
       error: "Impossible de supprimer le compte",
+      code: "INTERNAL_ERROR",
     });
 
     render(<AccountView email="jane@example.com" />);

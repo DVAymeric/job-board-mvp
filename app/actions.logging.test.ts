@@ -66,7 +66,11 @@ describe("logging structuré des Server Actions (JOB-88)", () => {
 
     const result = await checkJobUrl("https://example.com/job");
 
-    expect(result).toEqual({ ok: false, error: "Impossible de vérifier cette offre" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Impossible de vérifier cette offre",
+      code: "INTERNAL_ERROR",
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "action.failed",
       expect.objectContaining({
@@ -87,7 +91,11 @@ describe("logging structuré des Server Actions (JOB-88)", () => {
       status: STATUS.TO_APPLY,
     });
 
-    expect(result).toEqual({ ok: false, error: "Impossible d'enregistrer cette offre" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Impossible d'enregistrer cette offre",
+      code: "INTERNAL_ERROR",
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "action.failed",
       expect.objectContaining({ action: "createJob", userId: "user-2", error: "db down" })
@@ -100,7 +108,11 @@ describe("logging structuré des Server Actions (JOB-88)", () => {
 
     const result = await deleteJob("job-1");
 
-    expect(result).toEqual({ ok: false, error: "Impossible de supprimer l'offre" });
+    expect(result).toEqual({
+      ok: false,
+      error: "Impossible de supprimer l'offre",
+      code: "INTERNAL_ERROR",
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "action.failed",
       expect.objectContaining({ action: "deleteJob", userId: "user-3" })
@@ -125,7 +137,11 @@ describe("logging structuré des Server Actions (JOB-88)", () => {
     mockAuthedAs("user-4");
 
     const parseResult = await importBackupJson("not json");
-    expect(parseResult).toEqual({ ok: false, error: "Fichier JSON illisible" });
+    expect(parseResult).toEqual({
+      ok: false,
+      error: "Fichier JSON illisible",
+      code: "VALIDATION_ERROR",
+    });
     expect(logger.error).toHaveBeenCalledWith(
       "action.failed",
       expect.objectContaining({ action: "importBackupJson.parse", userId: "user-4" })

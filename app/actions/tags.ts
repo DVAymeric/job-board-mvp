@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { addTagToJobSchema, removeTagFromJobSchema } from "@/lib/validation";
-import { type ActionResult, firstIssueMessage, jobOwnerWhere, logActionError } from "./_shared";
+import {
+  actionError,
+  type ActionResult,
+  firstIssueMessage,
+  jobOwnerWhere,
+  logActionError,
+} from "./_shared";
 
 export async function addTagToJob(
   jobId: string,
@@ -17,17 +23,17 @@ export async function addTagToJob(
 
   const parsed = addTagToJobSchema.safeParse({ jobId, tagName });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible d'ajouter ce tag"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible d'ajouter ce tag")
+    );
   }
   try {
     const job = await prisma.job.findUnique({
       where: jobOwnerWhere(parsed.data.jobId, auth.user.id),
     });
     if (!job) {
-      return { ok: false, error: "Offre introuvable" };
+      return actionError("NOT_FOUND", "Offre introuvable");
     }
 
     const tag = await prisma.tag.upsert({
@@ -49,7 +55,7 @@ export async function addTagToJob(
     };
   } catch (error) {
     logActionError("addTagToJob", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible d'ajouter ce tag" };
+    return actionError("INTERNAL_ERROR", "Impossible d'ajouter ce tag");
   }
 }
 
@@ -62,17 +68,17 @@ export async function removeTagFromJob(
 
   const parsed = removeTagFromJobSchema.safeParse({ jobId, tagId });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible de retirer ce tag"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible de retirer ce tag")
+    );
   }
   try {
     const job = await prisma.job.findUnique({
       where: jobOwnerWhere(parsed.data.jobId, auth.user.id),
     });
     if (!job) {
-      return { ok: false, error: "Offre introuvable" };
+      return actionError("NOT_FOUND", "Offre introuvable");
     }
 
     await prisma.jobTag.delete({
@@ -84,6 +90,6 @@ export async function removeTagFromJob(
     return { ok: true, data: null };
   } catch (error) {
     logActionError("removeTagFromJob", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de retirer ce tag" };
+    return actionError("INTERNAL_ERROR", "Impossible de retirer ce tag");
   }
 }

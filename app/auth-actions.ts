@@ -6,6 +6,7 @@ import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
 import { requireUser } from "@/lib/auth/session";
+import type { ActionErrorCode } from "@/lib/types";
 
 export type AuthFormState = { error: string | null };
 
@@ -26,12 +27,15 @@ export async function registerUser(input: {
   email: string;
   password: string;
   name?: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<
+  { ok: true } | { ok: false; error: string; code: ActionErrorCode }
+> {
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
     return {
       ok: false,
       error: parsed.error.issues[0]?.message ?? "Formulaire invalide",
+      code: "VALIDATION_ERROR",
     };
   }
 
@@ -40,7 +44,11 @@ export async function registerUser(input: {
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      return { ok: false, error: "Un compte existe déjà avec cet email" };
+      return {
+        ok: false,
+        error: "Un compte existe déjà avec cet email",
+        code: "CONFLICT",
+      };
     }
 
     await prisma.user.create({
@@ -53,7 +61,7 @@ export async function registerUser(input: {
 
     return { ok: true };
   } catch {
-    return { ok: false, error: "Impossible de créer le compte" };
+    return { ok: false, error: "Impossible de créer le compte", code: "INTERNAL_ERROR" };
   }
 }
 
@@ -115,7 +123,7 @@ export async function logoutAction(): Promise<void> {
 }
 
 export async function deleteAccount(): Promise<
-  { ok: true } | { ok: false; error: string }
+  { ok: true } | { ok: false; error: string; code: ActionErrorCode }
 > {
   const auth = await requireUser();
   if (!auth.ok) return auth;
@@ -126,7 +134,7 @@ export async function deleteAccount(): Promise<
     // suffit à effacer l'intégralité des données de l'utilisateur.
     await prisma.user.delete({ where: { id: auth.user.id } });
   } catch {
-    return { ok: false, error: "Impossible de supprimer le compte" };
+    return { ok: false, error: "Impossible de supprimer le compte", code: "INTERNAL_ERROR" };
   }
 
   await signOut({ redirect: false });

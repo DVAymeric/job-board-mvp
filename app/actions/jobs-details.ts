@@ -10,7 +10,13 @@ import {
   updateJobNotesSchema,
   updateJobSalarySchema,
 } from "@/lib/validation";
-import { type ActionResult, firstIssueMessage, jobOwnerWhere, logActionError } from "./_shared";
+import {
+  actionError,
+  type ActionResult,
+  firstIssueMessage,
+  jobOwnerWhere,
+  logActionError,
+} from "./_shared";
 
 export async function updateJobDetails(
   id: string,
@@ -22,10 +28,10 @@ export async function updateJobDetails(
 
   const parsed = updateJobDetailsSchema.safeParse({ id, title, companyName });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible de mettre à jour l'offre"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible de mettre à jour l'offre")
+    );
   }
   try {
     await prisma.job.update({
@@ -39,7 +45,7 @@ export async function updateJobDetails(
     return { ok: true, data: null };
   } catch (error) {
     logActionError("updateJobDetails", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de mettre à jour l'offre" };
+    return actionError("INTERNAL_ERROR", "Impossible de mettre à jour l'offre");
   }
 }
 
@@ -52,10 +58,10 @@ export async function updateJobNotes(
 
   const parsed = updateJobNotesSchema.safeParse({ id, notes });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer les notes"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible d'enregistrer les notes")
+    );
   }
   try {
     await prisma.job.update({
@@ -66,7 +72,7 @@ export async function updateJobNotes(
     return { ok: true, data: null };
   } catch (error) {
     logActionError("updateJobNotes", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible d'enregistrer les notes" };
+    return actionError("INTERNAL_ERROR", "Impossible d'enregistrer les notes");
   }
 }
 
@@ -80,10 +86,10 @@ export async function updateJobSalary(
 
   const parsed = updateJobSalarySchema.safeParse({ id, salaryAmount, salaryType });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer le salaire"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible d'enregistrer le salaire")
+    );
   }
   try {
     await prisma.job.update({
@@ -97,7 +103,7 @@ export async function updateJobSalary(
     return { ok: true, data: null };
   } catch (error) {
     logActionError("updateJobSalary", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible d'enregistrer le salaire" };
+    return actionError("INTERNAL_ERROR", "Impossible d'enregistrer le salaire");
   }
 }
 
@@ -111,10 +117,10 @@ export async function updateJobDocuments(
 
   const parsed = updateJobDocumentsSchema.safeParse({ id, resumeUrl, coverLetterUrl });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer les documents"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible d'enregistrer les documents")
+    );
   }
   try {
     await prisma.job.update({
@@ -128,7 +134,7 @@ export async function updateJobDocuments(
     return { ok: true, data: null };
   } catch (error) {
     logActionError("updateJobDocuments", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible d'enregistrer les documents" };
+    return actionError("INTERNAL_ERROR", "Impossible d'enregistrer les documents");
   }
 }
 
@@ -141,10 +147,10 @@ export async function updateJobInterviewDate(
 
   const parsed = updateJobInterviewDateSchema.safeParse({ id, interviewDate });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible d'enregistrer la date d'entretien"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible d'enregistrer la date d'entretien")
+    );
   }
   try {
     await prisma.job.update({
@@ -159,6 +165,6 @@ export async function updateJobInterviewDate(
     return { ok: true, data: null };
   } catch (error) {
     logActionError("updateJobInterviewDate", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible d'enregistrer la date d'entretien" };
+    return actionError("INTERNAL_ERROR", "Impossible d'enregistrer la date d'entretien");
   }
 }

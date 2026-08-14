@@ -42,9 +42,13 @@ describe("requireUser", () => {
     mockAuth.mockReset();
   });
 
-  it("returns ok:false with a French error when unauthenticated", async () => {
+  it("returns ok:false with a French error and the UNAUTHENTICATED code when unauthenticated", async () => {
     mockAuth.mockResolvedValue(null);
-    expect(await requireUser()).toEqual({ ok: false, error: UNAUTHENTICATED_ERROR });
+    expect(await requireUser()).toEqual({
+      ok: false,
+      error: UNAUTHENTICATED_ERROR,
+      code: "UNAUTHENTICATED",
+    });
   });
 
   it("returns ok:true with the user when authenticated", async () => {

@@ -14,6 +14,7 @@ import {
   reactivateJobSchema,
 } from "@/lib/validation";
 import {
+  actionError,
   type ActionResult,
   firstIssueMessage,
   jobOwnerWhere,
@@ -42,12 +43,12 @@ export async function checkJobUrl(
 
   const limit = CHECK_JOB_URL_RATE_LIMIT.check(auth.user.id);
   if (!limit.allowed) {
-    return { ok: false, error: rateLimitError(limit.retryAfterSeconds) };
+    return actionError("RATE_LIMITED", rateLimitError(limit.retryAfterSeconds));
   }
 
   const parsed = checkJobUrlSchema.safeParse(rawUrl);
   if (!parsed.success) {
-    return { ok: false, error: firstIssueMessage(parsed.error, "URL invalide") };
+    return actionError("VALIDATION_ERROR", firstIssueMessage(parsed.error, "URL invalide"));
   }
   const url = parsed.data;
   try {
@@ -60,7 +61,7 @@ export async function checkJobUrl(
     return { ok: true, data: { found: false, normalizedUrl: url } };
   } catch (error) {
     logActionError("checkJobUrl", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de vérifier cette offre" };
+    return actionError("INTERNAL_ERROR", "Impossible de vérifier cette offre");
   }
 }
 
@@ -77,15 +78,12 @@ export async function createJob(input: {
 
   const limit = CREATE_JOB_RATE_LIMIT.check(auth.user.id);
   if (!limit.allowed) {
-    return { ok: false, error: rateLimitError(limit.retryAfterSeconds) };
+    return actionError("RATE_LIMITED", rateLimitError(limit.retryAfterSeconds));
   }
 
   const parsed = createJobSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Offre invalide"),
-    };
+    return actionError("VALIDATION_ERROR", firstIssueMessage(parsed.error, "Offre invalide"));
   }
   const { url, title, companyName, companyLogoUrl, descriptionText, status } =
     parsed.data;
@@ -110,10 +108,10 @@ export async function createJob(input: {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return { ok: false, error: "Cette offre a déjà été enregistrée" };
+      return actionError("CONFLICT", "Cette offre a déjà été enregistrée");
     }
     logActionError("createJob", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible d'enregistrer cette offre" };
+    return actionError("INTERNAL_ERROR", "Impossible d'enregistrer cette offre");
   }
 }
 
@@ -133,10 +131,10 @@ export async function checkRepost(id: string): Promise<
 
   const parsed = checkRepostSchema.safeParse({ id });
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Identifiant invalide"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Identifiant invalide")
+    );
   }
   let job;
   try {
@@ -145,13 +143,13 @@ export async function checkRepost(id: string): Promise<
     });
   } catch (error) {
     logActionError("checkRepost", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de vérifier cette offre" };
+    return actionError("INTERNAL_ERROR", "Impossible de vérifier cette offre");
   }
   if (!job) {
-    return { ok: false, error: "Offre introuvable" };
+    return actionError("NOT_FOUND", "Offre introuvable");
   }
   if (!job.archived) {
-    return { ok: false, error: "Cette offre est déjà active" };
+    return actionError("CONFLICT", "Cette offre est déjà active");
   }
 
   const fresh = await resolveScrapedMetadata(job.url, { userId: auth.user.id });
@@ -177,10 +175,10 @@ export async function reactivateJobWithContent(input: {
 
   const parsed = reactivateJobSchema.safeParse(input);
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: firstIssueMessage(parsed.error, "Impossible de réactiver l'offre"),
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible de réactiver l'offre")
+    );
   }
   const { id, title, companyName, descriptionText } = parsed.data;
   try {
@@ -201,6 +199,6 @@ export async function reactivateJobWithContent(input: {
     return { ok: true, data: null };
   } catch (error) {
     logActionError("reactivateJobWithContent", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de réactiver l'offre" };
+    return actionError("INTERNAL_ERROR", "Impossible de réactiver l'offre");
   }
 }

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { checkJobUrlSchema } from "@/lib/validation";
 import { scrapeJobMetadata, type ScrapedJobMetadata } from "@/lib/scraper";
 import { logger } from "@/lib/logger";
+import type { ActionErrorCode } from "@/lib/types";
 
 // Pas de "use server" ici : ce module exporte des helpers synchrones et des
 // types, ce que Next.js interdit dans un fichier Server Actions (tout export
@@ -9,7 +10,15 @@ import { logger } from "@/lib/logger";
 // action réseau). Importé uniquement par les fichiers "use server" du dossier
 // app/actions/ — jamais par un composant client.
 
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
+export type { ActionResult, ActionErrorCode } from "@/lib/types";
+
+/** Raccourci pour construire une erreur { ok: false, error, code } (JOB-89). */
+export function actionError(
+  code: ActionErrorCode,
+  message: string
+): { ok: false; error: string; code: ActionErrorCode } {
+  return { ok: false, error: message, code };
+}
 
 export function firstIssueMessage(error: z.ZodError, fallback: string): string {
   return error.issues[0]?.message || fallback;
