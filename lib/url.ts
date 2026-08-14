@@ -88,6 +88,32 @@ const TRACKING_PARAMS = new Set([
   "_ga",
 ]);
 
+/**
+ * L'URL collée est à la fois stockée en base et fetchée par notre serveur
+ * (scraper) — si elle contient un jeton de session/auth personnel (copiée
+ * depuis une page connectée plutôt que l'annonce publique), il ne doit être
+ * ni persisté ni transmis. Décision actée (JOB-121) : filtrage systématique
+ * plutôt qu'un simple avertissement UI, qui serait facile à ignorer.
+ */
+const SENSITIVE_PARAMS = new Set([
+  "token",
+  "access_token",
+  "id_token",
+  "refresh_token",
+  "auth",
+  "authorization",
+  "session",
+  "session_id",
+  "sid",
+  "sessionid",
+  "api_key",
+  "apikey",
+  "jwt",
+  "secret",
+  "password",
+  "pwd",
+]);
+
 export function normalizeUrl(rawUrl: string): string {
   const trimmed = rawUrl.trim();
   if (!trimmed) {
@@ -127,7 +153,9 @@ export function normalizeUrl(rawUrl: string): string {
   }
 
   const remainingParams = Array.from(parsed.searchParams.entries()).filter(
-    ([key]) => !TRACKING_PARAMS.has(key.toLowerCase())
+    ([key]) =>
+      !TRACKING_PARAMS.has(key.toLowerCase()) &&
+      !SENSITIVE_PARAMS.has(key.toLowerCase())
   );
   remainingParams.sort(([a], [b]) => a.localeCompare(b));
 
