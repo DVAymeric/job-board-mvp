@@ -138,6 +138,8 @@ describe("ArchivesView", () => {
 
 describe("ArchivesView — grille de cartes (JOB-98)", () => {
   it("renders each archived job as a card sharing the Board's card language, with a muted treatment", () => {
+    // Désaturation seule, pas d'opacity (JOB-104) : opacity dilue aussi le
+    // texte vers le fond clair et fait chuter le contraste sous le seuil AA.
     const { container } = render(
       <ArchivesView
         initialJobs={[job({ id: "job-1", title: "Développeur Backend" })]}
@@ -146,7 +148,7 @@ describe("ArchivesView — grille de cartes (JOB-98)", () => {
 
     const card = container.querySelector('[data-slot="card"]');
     expect(card).not.toBeNull();
-    expect(card!.className).toMatch(/opacity-/);
+    expect(card!.className).toMatch(/saturate-/);
   });
 
   it("lays archived jobs out as a grid, not a single-column row list", () => {
