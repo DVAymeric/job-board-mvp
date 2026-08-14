@@ -4,7 +4,13 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Suivi de candidatures",
     short_name: "Job Board",
-    description: "Outil local de suivi de candidatures d'emploi",
+    description:
+      "Suivez vos candidatures d'emploi en un board : statuts, relances, historique. Gratuit, prêt en 2 minutes.",
+    // Protégé par proxy.ts (JOB-78) : un utilisateur non connecté qui lance
+    // la PWA est redirigé vers /login comme en navigation classique — le
+    // service worker (public/sw.js) ne fait qu'un fallback offline
+    // network-first sur les navigations, il n'intercepte/ne cache jamais
+    // /board lui-même (JOB-125, vérifié en navigateur).
     start_url: "/board",
     display: "standalone",
     background_color: "#f8f6fb",
