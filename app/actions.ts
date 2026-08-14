@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth/session";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { scrapeJobMetadata, type ScrapedJobMetadata } from "@/lib/scraper";
 import { safeFetch } from "@/lib/safe-fetch";
+import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
 import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
 import { buildJobsCsv } from "@/lib/csv-export";
 import { backupFileSchema, buildBackupFile } from "@/lib/backup";
@@ -58,6 +59,17 @@ function contactOwnerWhere(id: string, userId: string) {
   return { id_userId: { id, userId } };
 }
 
+// checkJobUrl est le premier appel du flow de collage d'URL (suivi de
+// fetchJobMetadata, coûteux — jusqu'au fallback Playwright) ; createJob
+// est l'écriture qui conclut ce même flow. Rate-limités par userId pour
+// éviter l'abus (JOB-81). Limiteur en mémoire du process — cf. lib/rate-limit.ts.
+const CHECK_JOB_URL_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
+const CREATE_JOB_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
+
+function rateLimitError(retryAfterSeconds: number): string {
+  return `Trop de requêtes. Réessaie dans ${retryAfterSeconds}s.`;
+}
+
 export async function checkJobUrl(
   rawUrl: string
 ): Promise<
@@ -68,6 +80,11 @@ export async function checkJobUrl(
 > {
   const auth = await requireUser();
   if (!auth.ok) return auth;
+
+  const limit = CHECK_JOB_URL_RATE_LIMIT.check(auth.user.id);
+  if (!limit.allowed) {
+    return { ok: false, error: rateLimitError(limit.retryAfterSeconds) };
+  }
 
   const parsed = checkJobUrlSchema.safeParse(rawUrl);
   if (!parsed.success) {
@@ -174,6 +191,11 @@ export async function createJob(input: {
 }): Promise<ActionResult<{ id: string }>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
+
+  const limit = CREATE_JOB_RATE_LIMIT.check(auth.user.id);
+  if (!limit.allowed) {
+    return { ok: false, error: rateLimitError(limit.retryAfterSeconds) };
+  }
 
   const parsed = createJobSchema.safeParse(input);
   if (!parsed.success) {
