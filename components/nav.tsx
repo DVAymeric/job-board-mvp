@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
 import { BackupControls } from "@/components/backup/backup-controls";
 import { exportJobsCsv } from "@/app/actions";
+import { logoutAction } from "@/app/auth-actions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -17,7 +19,7 @@ const LINKS = [
   { href: "/analytics", label: "Analytics" },
 ] as const;
 
-export function Nav() {
+export function Nav({ session }: { session: Session | null }) {
   const pathname = usePathname();
   const [exporting, setExporting] = useState(false);
 
@@ -61,12 +63,32 @@ export function Nav() {
             {link.label}
           </Link>
         ))}
+        {session?.user && (
+          <Link
+            href="/account"
+            className={cn(
+              "border-b-2 border-transparent py-1 text-sm font-medium transition-colors hover:text-heading",
+              pathname === "/account"
+                ? "border-primary text-heading"
+                : "text-muted-foreground"
+            )}
+          >
+            Mon compte
+          </Link>
+        )}
       </nav>
       <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
         {exporting && <Loader2 className="animate-spin" />}
         Exporter CSV
       </Button>
       <BackupControls />
+      {session?.user && (
+        <form action={logoutAction}>
+          <Button type="submit" variant="ghost" size="sm">
+            Se déconnecter
+          </Button>
+        </form>
+      )}
     </header>
   );
 }

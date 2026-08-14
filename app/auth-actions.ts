@@ -2,9 +2,10 @@
 
 import { z } from "zod";
 import { AuthError } from "next-auth";
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth/password";
+import { requireUser } from "@/lib/auth/session";
 
 export type AuthFormState = { error: string | null };
 
@@ -107,4 +108,27 @@ export async function registerAction(
     }
     throw error;
   }
+}
+
+export async function logoutAction(): Promise<void> {
+  await signOut({ redirectTo: "/" });
+}
+
+export async function deleteAccount(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  try {
+    // Le schéma Prisma cascade la suppression de tous les Job/Contact/Tag/
+    // JobTag/StatusHistory liés (onDelete: Cascade), donc un seul delete
+    // suffit à effacer l'intégralité des données de l'utilisateur.
+    await prisma.user.delete({ where: { id: auth.user.id } });
+  } catch {
+    return { ok: false, error: "Impossible de supprimer le compte" };
+  }
+
+  await signOut({ redirect: false });
+  return { ok: true };
 }

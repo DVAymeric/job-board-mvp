@@ -1,13 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { registerUser } from "@/app/auth-actions";
+import { registerUser, deleteAccount } from "@/app/auth-actions";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/auth/password";
+import { requireUser } from "@/lib/auth/session";
+import { signOut } from "@/auth";
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      delete: vi.fn(),
     },
   },
 }));
@@ -17,10 +20,16 @@ vi.mock("@/lib/prisma", () => ({
 // real next-auth chain isn't needed and doesn't resolve under Vitest.
 vi.mock("@/auth", () => ({
   signIn: vi.fn(),
+  signOut: vi.fn(),
 }));
 
 vi.mock("next-auth", () => ({
   AuthError: class AuthError extends Error {},
+}));
+
+vi.mock("@/lib/auth/session", () => ({
+  requireUser: vi.fn(),
+  UNAUTHENTICATED_ERROR: "Vous devez être connecté pour effectuer cette action.",
 }));
 
 describe("registerUser", () => {
@@ -97,5 +106,59 @@ describe("registerUser", () => {
     expect(
       verifyPassword("correct horse battery staple", createCall.data.passwordHash as string)
     ).toBe(true);
+  });
+});
+
+describe("deleteAccount", () => {
+  beforeEach(() => {
+    vi.mocked(requireUser).mockReset();
+    vi.mocked(prisma.user.delete).mockReset();
+    vi.mocked(signOut).mockReset();
+  });
+
+  it("rejects an unauthenticated caller without touching the database", async () => {
+    vi.mocked(requireUser).mockResolvedValue({
+      ok: false,
+      error: "Vous devez être connecté pour effectuer cette action.",
+    });
+
+    const result = await deleteAccount();
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Vous devez être connecté pour effectuer cette action.",
+    });
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  it("deletes the authenticated user's account and signs them out", async () => {
+    vi.mocked(requireUser).mockResolvedValue({
+      ok: true,
+      user: { id: "user-1", email: "jane@example.com", name: null },
+    });
+    vi.mocked(prisma.user.delete).mockResolvedValue({} as never);
+
+    const result = await deleteAccount();
+
+    expect(result).toEqual({ ok: true });
+    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: "user-1" } });
+    expect(signOut).toHaveBeenCalledWith({ redirect: false });
+  });
+
+  it("reports an error and does not sign out when the deletion fails", async () => {
+    vi.mocked(requireUser).mockResolvedValue({
+      ok: true,
+      user: { id: "user-1", email: "jane@example.com", name: null },
+    });
+    vi.mocked(prisma.user.delete).mockRejectedValue(new Error("db down"));
+
+    const result = await deleteAccount();
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Impossible de supprimer le compte",
+    });
+    expect(signOut).not.toHaveBeenCalled();
   });
 });
