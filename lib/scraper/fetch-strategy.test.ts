@@ -36,6 +36,26 @@ describe("fetchMetadataViaHttp", () => {
     });
   });
 
+  it("logs a Cheerio-only success (for the success-rate metric vs Playwright fallback)", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        `<meta property="og:title" content="Développeur Backend" />`,
+    } as Response);
+
+    await fetchMetadataViaHttp("https://example.com/job", { userId: "user-1" });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      "scraper.fetch_ok",
+      expect.objectContaining({
+        url: "https://example.com/job",
+        status: 200,
+        userId: "user-1",
+      })
+    );
+  });
+
   it("returns empty metadata when the response is not ok", async () => {
     vi.mocked(safeFetch).mockResolvedValue({ ok: false, status: 404 } as Response);
 
@@ -113,7 +133,10 @@ describe("fetchMetadataViaHttp", () => {
 
     await fetchMetadataViaHttp("https://example.com/job");
 
-    expect(logger.info).not.toHaveBeenCalled();
+    expect(logger.info).not.toHaveBeenCalledWith(
+      "scraper.no_title_found",
+      expect.anything()
+    );
   });
 
   it("requests HTML explicitly and bounds the request with a timeout signal", async () => {

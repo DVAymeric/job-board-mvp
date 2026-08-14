@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { scrapeJobMetadata } from "@/lib/scraper";
 import { fetchMetadataViaHttp } from "@/lib/scraper/fetch-strategy";
 import { fetchMetadataViaPlaywright } from "@/lib/scraper/playwright-strategy";
@@ -79,5 +79,38 @@ describe("scrapeJobMetadata", () => {
       "scraper.playwright_fallback_triggered",
       expect.objectContaining({ url: "https://example.com/job", userId: "user-1" })
     );
+  });
+
+  describe("SCRAPER_PLAYWRIGHT_ENABLED kill switch (JOB-65)", () => {
+    const original = process.env.SCRAPER_PLAYWRIGHT_ENABLED;
+
+    afterEach(() => {
+      if (original === undefined) delete process.env.SCRAPER_PLAYWRIGHT_ENABLED;
+      else process.env.SCRAPER_PLAYWRIGHT_ENABLED = original;
+    });
+
+    it("falls back to Playwright by default (flag unset)", async () => {
+      delete process.env.SCRAPER_PLAYWRIGHT_ENABLED;
+      vi.mocked(fetchMetadataViaHttp).mockResolvedValue(EMPTY);
+      vi.mocked(fetchMetadataViaPlaywright).mockResolvedValue(EMPTY);
+
+      await scrapeJobMetadata("https://example.com/job");
+
+      expect(fetchMetadataViaPlaywright).toHaveBeenCalled();
+    });
+
+    it("skips the Playwright fallback and logs why when explicitly disabled (\"0\")", async () => {
+      process.env.SCRAPER_PLAYWRIGHT_ENABLED = "0";
+      vi.mocked(fetchMetadataViaHttp).mockResolvedValue(EMPTY);
+
+      const result = await scrapeJobMetadata("https://example.com/job", { userId: "user-1" });
+
+      expect(fetchMetadataViaPlaywright).not.toHaveBeenCalled();
+      expect(result).toEqual(EMPTY);
+      expect(logger.info).toHaveBeenCalledWith(
+        "scraper.playwright_disabled",
+        expect.objectContaining({ url: "https://example.com/job", userId: "user-1" })
+      );
+    });
   });
 });

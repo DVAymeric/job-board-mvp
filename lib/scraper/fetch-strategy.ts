@@ -44,12 +44,17 @@ export async function fetchMetadataViaHttp(
     }
     const html = await response.text();
     const metadata = extractJobMetadataFromHtml(html);
-    if (!metadata.title) {
-      logger.info("scraper.no_title_found", {
-        url,
-        status: response.status,
-        ...(context?.userId ? { userId: context.userId } : {}),
-      });
+    const logFields = {
+      url,
+      status: response.status,
+      ...(context?.userId ? { userId: context.userId } : {}),
+    };
+    if (metadata.title) {
+      // Sert de base au taux de succès Cheerio-seul vs fallback Playwright
+      // (JOB-65) : compter scraper.fetch_ok vs scraper.playwright_fallback_triggered.
+      logger.info("scraper.fetch_ok", logFields);
+    } else {
+      logger.info("scraper.no_title_found", logFields);
     }
     return metadata;
   } catch {

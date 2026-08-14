@@ -1,10 +1,23 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { fetchMetadataViaPlaywright } from "@/lib/scraper/playwright-strategy";
 import { chromium } from "playwright";
+import { chromium as chromiumCore } from "playwright-core";
+import sparticuzChromium from "@sparticuz/chromium";
 import { logger } from "@/lib/logger";
 
 vi.mock("playwright", () => ({
   chromium: { launch: vi.fn() },
+}));
+
+vi.mock("playwright-core", () => ({
+  chromium: { launch: vi.fn() },
+}));
+
+vi.mock("@sparticuz/chromium", () => ({
+  default: {
+    args: ["--no-sandbox", "--disable-gpu"],
+    executablePath: vi.fn().mockResolvedValue("/tmp/chromium/chromium"),
+  },
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -32,10 +45,19 @@ function makeBrowser({
 }
 
 describe("fetchMetadataViaPlaywright", () => {
+  const originalVercel = process.env.VERCEL;
+
   beforeEach(() => {
     vi.mocked(chromium.launch).mockReset();
+    vi.mocked(chromiumCore.launch).mockReset();
     vi.mocked(logger.info).mockReset();
     vi.mocked(logger.warn).mockReset();
+    delete process.env.VERCEL;
+  });
+
+  afterEach(() => {
+    if (originalVercel === undefined) delete process.env.VERCEL;
+    else process.env.VERCEL = originalVercel;
   });
 
   it("parses metadata from the rendered page's HTML", async () => {
@@ -140,5 +162,31 @@ describe("fetchMetadataViaPlaywright", () => {
 
     const [, fields] = vi.mocked(logger.info).mock.calls[0];
     expect(fields).not.toHaveProperty("userId");
+  });
+
+  it("launches via the full local playwright Chromium when not running on Vercel", async () => {
+    delete process.env.VERCEL;
+    const { browser } = makeBrowser({ contentHtml: "<title>ok</title>" });
+    vi.mocked(chromium.launch).mockResolvedValue(browser as never);
+
+    await fetchMetadataViaPlaywright("https://example.com/job");
+
+    expect(chromium.launch).toHaveBeenCalledWith(expect.objectContaining({ headless: true }));
+    expect(chromiumCore.launch).not.toHaveBeenCalled();
+  });
+
+  it("launches via playwright-core + @sparticuz/chromium when running on Vercel (JOB-65)", async () => {
+    process.env.VERCEL = "1";
+    const { browser } = makeBrowser({ contentHtml: "<title>ok</title>" });
+    vi.mocked(chromiumCore.launch).mockResolvedValue(browser as never);
+
+    await fetchMetadataViaPlaywright("https://example.com/job");
+
+    expect(chromiumCore.launch).toHaveBeenCalledWith({
+      args: sparticuzChromium.args,
+      executablePath: "/tmp/chromium/chromium",
+      headless: true,
+    });
+    expect(chromium.launch).not.toHaveBeenCalled();
   });
 });
