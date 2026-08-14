@@ -1,4 +1,4 @@
-import { BentoCard } from "@/components/home/bento-card";
+import { BentoCard } from "@/components/ui/bento-card";
 import type { MostActiveMonth } from "@/lib/analytics";
 
 interface ActiveMonthCardProps {
