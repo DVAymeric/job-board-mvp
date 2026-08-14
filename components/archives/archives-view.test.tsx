@@ -135,3 +135,31 @@ describe("ArchivesView", () => {
     expect(screen.getByText(/Développeur Backend chez Acme/)).toBeInTheDocument();
   });
 });
+
+describe("ArchivesView — grille de cartes (JOB-98)", () => {
+  it("renders each archived job as a card sharing the Board's card language, with a muted treatment", () => {
+    const { container } = render(
+      <ArchivesView
+        initialJobs={[job({ id: "job-1", title: "Développeur Backend" })]}
+      />
+    );
+
+    const card = container.querySelector('[data-slot="card"]');
+    expect(card).not.toBeNull();
+    expect(card!.className).toMatch(/opacity-/);
+  });
+
+  it("lays archived jobs out as a grid, not a single-column row list", () => {
+    const { container } = render(
+      <ArchivesView
+        initialJobs={[
+          job({ id: "job-1", title: "Développeur Backend" }),
+          job({ id: "job-2", title: "Chef de projet" }),
+        ]}
+      />
+    );
+
+    const grid = container.querySelector('[data-slot="card"]')?.parentElement;
+    expect(grid?.className).toMatch(/grid/);
+  });
+});
