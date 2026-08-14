@@ -17,6 +17,17 @@ import {
   logActionError,
 } from "./_shared";
 
+/**
+ * Ajoute un contact lié à une candidature.
+ *
+ * @param jobId Identifiant de la candidature.
+ * @param input.name Nom du contact.
+ * @param input.role `RECRUITER` | `MANAGER` | `REFERRAL` | `OTHER`.
+ * @param input.linkedinUrl URL de profil LinkedIn, optionnelle.
+ * @returns Le contact créé.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `NOT_FOUND` (offre
+ * introuvable pour cet utilisateur), `INTERNAL_ERROR`.
+ */
 export async function addContact(
   jobId: string,
   input: { name: string; role: string; linkedinUrl?: string }
@@ -66,6 +77,15 @@ export async function addContact(
   }
 }
 
+/**
+ * Met à jour un contact existant.
+ *
+ * @param contactId Identifiant du contact.
+ * @param input.name Nom du contact.
+ * @param input.role `RECRUITER` | `MANAGER` | `REFERRAL` | `OTHER`.
+ * @param input.linkedinUrl URL de profil LinkedIn, optionnelle.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function updateContact(
   contactId: string,
   input: { name: string; role: string; linkedinUrl?: string }
@@ -97,6 +117,12 @@ export async function updateContact(
   }
 }
 
+/**
+ * Supprime définitivement un contact.
+ *
+ * @param contactId Identifiant du contact.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function deleteContact(
   contactId: string
 ): Promise<ActionResult<null>> {

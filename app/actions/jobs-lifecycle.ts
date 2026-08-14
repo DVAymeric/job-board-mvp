@@ -20,6 +20,16 @@ import {
   logActionError,
 } from "./_shared";
 
+/**
+ * Change le statut d'une candidature (drag & drop entre colonnes du board,
+ * ou changement manuel). Marque `lastFollowUp` à maintenant quand le
+ * nouveau statut est `APPLIED`, et ajoute une entrée à `statusHistory`.
+ *
+ * @param id Identifiant de la candidature.
+ * @param status Nouveau statut (`TO_APPLY` | `APPLIED` | `INTERVIEW` |
+ * `REJECTED`).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function updateJobStatus(
   id: string,
   status: string
@@ -50,6 +60,13 @@ export async function updateJobStatus(
   }
 }
 
+/**
+ * Marque une candidature comme relancée aujourd'hui — repousse son badge
+ * "Relancer ?" de `FOLLOW_UP_DAYS` jours (lib/constants.ts).
+ *
+ * @param id Identifiant de la candidature.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function markFollowUpToday(
   id: string
 ): Promise<ActionResult<null>> {
@@ -76,6 +93,14 @@ export async function markFollowUpToday(
   }
 }
 
+/**
+ * Supprime définitivement une candidature (et, en cascade au niveau du
+ * schéma, ses contacts/tags/historique liés). Irréversible — l'appelant
+ * doit passer par une confirmation utilisateur avant d'invoquer ceci.
+ *
+ * @param id Identifiant de la candidature.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function deleteJob(id: string): Promise<ActionResult<null>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
@@ -98,6 +123,13 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
   }
 }
 
+/**
+ * Archive une candidature (soft delete) — disparaît du board, reste
+ * consultable dans /archives.
+ *
+ * @param id Identifiant de la candidature.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function archiveJob(id: string): Promise<ActionResult<null>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
@@ -123,6 +155,13 @@ export async function archiveJob(id: string): Promise<ActionResult<null>> {
   }
 }
 
+/**
+ * Restaure une candidature archivée — réapparaît dans le board, avec son
+ * statut inchangé.
+ *
+ * @param id Identifiant de la candidature.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
@@ -148,6 +187,16 @@ export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
   }
 }
 
+/**
+ * Persiste un nouvel ordre de tri au sein d'une colonne du board, après un
+ * drag & drop de réordonnancement intra-colonne.
+ *
+ * @param orderedIds IDs des candidatures dans leur nouvel ordre — chaque id
+ * doit appartenir à l'utilisateur courant, sinon la transaction échoue
+ * entière (aucune mise à jour partielle).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (liste vide),
+ * `INTERNAL_ERROR`.
+ */
 export async function reorderJobs(
   orderedIds: string[]
 ): Promise<ActionResult<null>> {
