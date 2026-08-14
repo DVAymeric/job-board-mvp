@@ -19,6 +19,7 @@ export const ACTION_ERROR_CODES = [
   "NOT_FOUND",
   "CONFLICT",
   "INTERNAL_ERROR",
+  "FORBIDDEN",
 ] as const;
 
 export type ActionErrorCode = (typeof ACTION_ERROR_CODES)[number];
