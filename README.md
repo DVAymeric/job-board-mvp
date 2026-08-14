@@ -46,3 +46,8 @@ npm run test:e2e         # E2E (Playwright, build de production en CI)
 ## Stack
 
 Next.js 16 (App Router, Server Actions) · Auth.js (Credentials) · Prisma + PostgreSQL · Tailwind CSS + shadcn/ui + Base UI · @dnd-kit · Cheerio + Playwright (scraping) · Vitest + Playwright (tests) · Sentry (monitoring, optionnel)
+
+## Déploiement
+
+Procédure de déploiement et de rollback (code + migrations Postgres) :
+[`docs/runbook-deploiement.md`](docs/runbook-deploiement.md).
