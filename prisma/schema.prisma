@@ -3,8 +3,15 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // DATABASE_URL : connexion utilisée par le moteur de requêtes à l'exécution
+  // — en prod serverless, pointe vers le pooler (PgBouncer/Supavisor).
+  // DIRECT_URL : connexion utilisée par `prisma migrate`/`db push` — les
+  // migrations ont besoin d'une connexion directe, non poolée en mode
+  // transaction (JOB-85). En local, les deux pointent vers le même Postgres
+  // (voir .env.example) : aucun pooler n'est nécessaire en dev.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
