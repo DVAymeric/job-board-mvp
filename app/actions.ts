@@ -6,7 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { JobStatus, STATUS } from "@/lib/constants";
-import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
+import { scrapeJobMetadata, type ScrapedJobMetadata } from "@/lib/scraper";
 import { safeFetch } from "@/lib/safe-fetch";
 import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
 import { buildJobsCsv } from "@/lib/csv-export";
@@ -87,33 +87,19 @@ export async function checkJobUrl(
   }
 }
 
-const METADATA_FETCH_TIMEOUT_MS = 5000;
-
-export async function fetchJobMetadata(rawUrl: string): Promise<
-  ActionResult<{
-    title: string | null;
-    companyName: string | null;
-    descriptionText: string | null;
-  }>
-> {
+export async function fetchJobMetadata(
+  rawUrl: string
+): Promise<ActionResult<ScrapedJobMetadata>> {
   const parsed = checkJobUrlSchema.safeParse(rawUrl);
-  const empty = { title: null, companyName: null, descriptionText: null };
+  const empty: ScrapedJobMetadata = {
+    title: null,
+    companyName: null,
+    descriptionText: null,
+  };
   if (!parsed.success) {
     return { ok: true, data: empty };
   }
-  try {
-    const response = await safeFetch(parsed.data, {
-      signal: AbortSignal.timeout(METADATA_FETCH_TIMEOUT_MS),
-      headers: { Accept: "text/html" },
-    });
-    if (!response || !response.ok) {
-      return { ok: true, data: empty };
-    }
-    const html = await response.text();
-    return { ok: true, data: extractJobMetadataFromHtml(html) };
-  } catch {
-    return { ok: true, data: empty };
-  }
+  return { ok: true, data: await scrapeJobMetadata(parsed.data) };
 }
 
 const LOGO_FETCH_TIMEOUT_MS = 3000;

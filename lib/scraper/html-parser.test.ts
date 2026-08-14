@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractJobMetadataFromHtml } from "@/lib/og-metadata";
+import { extractJobMetadataFromHtml } from "@/lib/scraper/html-parser";
 
 describe("extractJobMetadataFromHtml", () => {
   it("prefers og:title over the <title> tag", () => {
