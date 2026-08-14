@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { FileJson, FileUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -97,7 +97,7 @@ export function BackupControls() {
         onChange={handleFileSelected}
       />
       <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
-        {exporting && <Loader2 className="animate-spin" />}
+        {exporting ? <Loader2 className="animate-spin" /> : <FileJson />}
         Exporter JSON
       </Button>
       <Button
@@ -105,6 +105,7 @@ export function BackupControls() {
         size="sm"
         onClick={() => fileInputRef.current?.click()}
       >
+        <FileUp />
         Importer JSON
       </Button>
 

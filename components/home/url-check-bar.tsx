@@ -1,5 +1,5 @@
 import { useRef, type FocusEvent, type KeyboardEvent } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -66,7 +66,7 @@ export function UrlCheckBar({
           disabled={checking || !url.trim()}
           className="h-11 shrink-0"
         >
-          {checking && <Loader2 className="animate-spin" />}
+          {checking ? <Loader2 className="animate-spin" /> : <Search />}
           Vérifier
         </Button>
       </div>

@@ -3,11 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import type { Session } from "next-auth";
+import { usePathname } from "next/navigation";
 import { Nav } from "@/components/nav";
 import { exportJobsCsv } from "@/app/actions";
 
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/board",
+  usePathname: vi.fn(() => "/board"),
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
@@ -46,6 +47,10 @@ const session: Session = {
   user: { id: "user-1", email: "jane@example.com", name: null },
   expires: "2099-01-01T00:00:00.000Z",
 };
+
+beforeEach(() => {
+  vi.mocked(usePathname).mockReturnValue("/board");
+});
 
 describe("Nav — export CSV", () => {
   beforeEach(() => {
@@ -135,4 +140,36 @@ describe("Nav — prefetch des liens protégés (JOB-131)", () => {
       "true"
     );
   });
+});
+
+describe("Nav — Export/Import réservés à Board et Analytics", () => {
+  it.each(["/board", "/analytics"])(
+    "shows the export/import actions on %s",
+    (pathname) => {
+      vi.mocked(usePathname).mockReturnValue(pathname);
+      render(<Nav session={session} />);
+
+      expect(screen.getByRole("button", { name: "Exporter CSV" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Exporter JSON" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Importer JSON" })).toBeInTheDocument();
+    }
+  );
+
+  it.each(["/", "/archives", "/account"])(
+    "hides the export/import actions on %s",
+    (pathname) => {
+      vi.mocked(usePathname).mockReturnValue(pathname);
+      render(<Nav session={session} />);
+
+      expect(
+        screen.queryByRole("button", { name: "Exporter CSV" })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Exporter JSON" })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Importer JSON" })
+      ).not.toBeInTheDocument();
+    }
+  );
 });

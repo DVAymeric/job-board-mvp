@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ArchiveRestore, Trash2 } from "lucide-react";
 import type { JobWithRelations } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -90,11 +91,13 @@ function ArchivedJobCard({
         </p>
         <div className="flex items-center gap-2 pt-1">
           <Button variant="outline" size="sm" onClick={handleUnarchive}>
+            <ArchiveRestore />
             Désarchiver
           </Button>
           <ConfirmDeleteModal
             trigger={
               <Button variant="ghost" size="sm" className="text-destructive">
+                <Trash2 />
                 Supprimer définitivement
               </Button>
             }
