@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { BentoGrid } from "@/components/home/bento-grid";
+import { BentoGrid } from "@/components/ui/bento-grid";
 
 describe("BentoGrid", () => {
   it("renders its children inside a grid container", () => {

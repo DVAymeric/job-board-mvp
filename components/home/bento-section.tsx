@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { computeStatusCounts, computeFollowUpSummary } from "@/lib/home-stats";
 import { buildHeatmapDays } from "@/lib/heatmap";
-import { BentoGrid } from "@/components/home/bento-grid";
+import { BentoGrid } from "@/components/ui/bento-grid";
 import { KanbanPreviewCard } from "@/components/home/kanban-preview-card";
 import { FollowUpCard } from "@/components/home/follow-up-card";
 import { HeatmapCard } from "@/components/home/heatmap-card";

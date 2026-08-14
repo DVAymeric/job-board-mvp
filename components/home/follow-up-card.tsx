@@ -1,4 +1,4 @@
-import { BentoCard } from "@/components/home/bento-card";
+import { BentoCard } from "@/components/ui/bento-card";
 
 interface FollowUpCardProps {
   summary: { count: number; oldestDays: number | null };

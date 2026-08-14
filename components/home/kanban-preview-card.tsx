@@ -1,4 +1,4 @@
-import { BentoCard } from "@/components/home/bento-card";
+import { BentoCard } from "@/components/ui/bento-card";
 import { STATUS_ORDER, STATUS_CONFIG, JobStatus } from "@/lib/constants";
 
 interface KanbanPreviewCardProps {

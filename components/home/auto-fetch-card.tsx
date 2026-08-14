@@ -1,4 +1,4 @@
-import { BentoCard } from "@/components/home/bento-card";
+import { BentoCard } from "@/components/ui/bento-card";
 import { CompanyAvatar, type AvatarJob } from "@/components/board/company-avatar";
 
 const PREVIEW_LIMIT = 3;

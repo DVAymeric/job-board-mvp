@@ -1,4 +1,4 @@
-import { BentoCard } from "@/components/home/bento-card";
+import { BentoCard } from "@/components/ui/bento-card";
 import { ApplicationHeatmap } from "@/components/analytics/application-heatmap";
 import type { HeatmapDay } from "@/lib/heatmap";
 

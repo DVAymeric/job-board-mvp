@@ -1,4 +1,4 @@
-import { BentoCard } from "@/components/home/bento-card";
+import { BentoCard } from "@/components/ui/bento-card";
 import type { FunnelStage } from "@/lib/analytics";
 
 interface StatusDetailCardProps {

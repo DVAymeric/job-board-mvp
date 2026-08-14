@@ -4,7 +4,7 @@ import { computeStatusFunnel, computeMostActiveMonth } from "@/lib/analytics";
 import { computeStatusCounts } from "@/lib/home-stats";
 import { buildHeatmapDays } from "@/lib/heatmap";
 import { STATUS } from "@/lib/constants";
-import { BentoGrid } from "@/components/home/bento-grid";
+import { BentoGrid } from "@/components/ui/bento-grid";
 import { OverviewCard } from "@/components/analytics/overview-card";
 import { ConversionCard } from "@/components/analytics/conversion-card";
 import { ActiveMonthCard } from "@/components/analytics/active-month-card";
