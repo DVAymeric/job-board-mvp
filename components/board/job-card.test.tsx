@@ -105,12 +105,15 @@ describe("JobCard — accent par colonne (JOB-95)", () => {
     expect(getCard(container)).not.toHaveClass("border-l-8");
   });
 
-  it("applies a muted treatment (reduced opacity/saturation) for REJECTED cards", () => {
+  it("applies a muted treatment (reduced saturation, no opacity) for REJECTED cards", () => {
+    // No opacity (JOB-104) : opacity dilue aussi le texte vers le fond
+    // clair et fait chuter le contraste sous le seuil AA — la désaturation
+    // seule préserve la luminance.
     const { container } = render(
       <JobCard job={{ ...baseJob, status: "REJECTED" }} onOpen={() => {}} />
     );
     const card = getCard(container);
-    expect(card.className).toMatch(/opacity-/);
+    expect(card.className).not.toMatch(/opacity-/);
     expect(card.className).toMatch(/saturate-/);
   });
 

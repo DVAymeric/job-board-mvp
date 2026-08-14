@@ -83,9 +83,11 @@ export function JobCard({
         STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName,
         // Liseré plus marqué pour Entretien ; traitement assourdi pour Refusé
         // (JOB-95) — étend accentBorderLeftClassName plutôt que d'introduire
-        // un nouveau composant.
+        // un nouveau composant. Désaturation seule (pas d'opacity) : opacity
+        // dilue aussi le texte vers le fond clair et fait chuter le contraste
+        // sous le seuil AA (JOB-104).
         job.status === STATUS.INTERVIEW && "border-l-8",
-        job.status === STATUS.REJECTED && "opacity-75 saturate-50 hover:opacity-100 hover:saturate-100",
+        job.status === STATUS.REJECTED && "saturate-50 hover:saturate-100",
         isDragging && "z-10 opacity-60",
         focused && "ring-2 ring-ring ring-offset-2 ring-offset-background"
       )}

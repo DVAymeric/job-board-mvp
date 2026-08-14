@@ -59,7 +59,10 @@ function ArchivedJobCard({
   return (
     <Card
       className={cn(
-        "border-l-4 opacity-80 saturate-[0.6] grayscale-[0.15] transition-[opacity,filter] duration-150 ease-out hover:opacity-100 hover:saturate-100 hover:grayscale-0 focus-within:opacity-100 focus-within:saturate-100 focus-within:grayscale-0 motion-reduce:transition-none",
+        // Désaturation seule (pas d'opacity) : opacity dilue aussi le texte
+        // vers le fond clair et fait chuter le contraste sous le seuil AA
+        // (JOB-104).
+        "border-l-4 saturate-[0.6] grayscale-[0.15] transition-[filter] duration-150 ease-out hover:saturate-100 hover:grayscale-0 focus-within:saturate-100 focus-within:grayscale-0 motion-reduce:transition-none",
         STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName
       )}
     >
