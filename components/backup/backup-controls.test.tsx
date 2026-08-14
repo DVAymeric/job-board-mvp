@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BackupControls } from "@/components/backup/backup-controls";
 import { exportBackupJson, importBackupJson } from "@/app/actions";
+import { MAX_BACKUP_FILE_SIZE_BYTES } from "@/lib/backup";
 
 const refreshMock = vi.fn();
 vi.mock("next/navigation", () => ({
@@ -100,6 +101,20 @@ describe("BackupControls — import", () => {
     await screen.findByText(/irréversible/i);
     await user.click(screen.getByRole("button", { name: "Annuler" }));
 
+    expect(importBackupJson).not.toHaveBeenCalled();
+  });
+
+  it("rejects an oversized file client-side (UX), before sending anything (JOB-90)", async () => {
+    const user = userEvent.setup();
+    const { toast } = await import("sonner");
+    const { container } = render(<BackupControls />);
+
+    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const oversized = makeJsonFile("a".repeat(MAX_BACKUP_FILE_SIZE_BYTES + 1));
+    await user.upload(fileInput, oversized);
+
+    expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/volumineux/i));
+    expect(screen.queryByText(/irréversible/i)).not.toBeInTheDocument();
     expect(importBackupJson).not.toHaveBeenCalled();
   });
 });

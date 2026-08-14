@@ -1,6 +1,48 @@
 import { describe, expect, it } from "vitest";
 import { buildBackupFile, backupFileSchema, BACKUP_SCHEMA_VERSION } from "@/lib/backup";
+import {
+  COMPANY_NAME_MAX_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  NOTES_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
+} from "@/lib/validation";
 import type { JobWithRelations } from "@/lib/types";
+
+function rawBackupJob(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "job-1",
+    url: "https://example.com/job",
+    title: "Développeur",
+    companyName: "Acme",
+    companyLogoUrl: null,
+    notes: null,
+    status: "TO_APPLY",
+    archived: false,
+    order: 0,
+    lastFollowUp: null,
+    salaryAmount: null,
+    salaryType: null,
+    resumeUrl: null,
+    coverLetterUrl: null,
+    interviewDate: null,
+    descriptionText: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    tagIds: [],
+    contacts: [],
+    statusHistory: [],
+    ...overrides,
+  };
+}
+
+function rawBackupFile(job: Record<string, unknown>) {
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    tags: [],
+    jobs: [job],
+  };
+}
 
 function job(overrides: Partial<JobWithRelations>): JobWithRelations {
   return {
@@ -134,6 +176,35 @@ describe("backupFileSchema", () => {
       tags: [],
       jobs: [],
     });
+    expect(result.success).toBe(true);
+  });
+
+  it.each([
+    ["title", TITLE_MAX_LENGTH],
+    ["companyName", COMPANY_NAME_MAX_LENGTH],
+    ["notes", NOTES_MAX_LENGTH],
+    ["descriptionText", DESCRIPTION_MAX_LENGTH],
+  ] as const)(
+    "rejects a job entry whose %s exceeds the shared length limit (JOB-90)",
+    (field, maxLength) => {
+      const result = backupFileSchema.safeParse(
+        rawBackupFile(rawBackupJob({ [field]: "a".repeat(maxLength + 1) }))
+      );
+      expect(result.success).toBe(false);
+    }
+  );
+
+  it("accepts a job entry with fields right at the shared length limits", () => {
+    const result = backupFileSchema.safeParse(
+      rawBackupFile(
+        rawBackupJob({
+          title: "a".repeat(TITLE_MAX_LENGTH),
+          companyName: "a".repeat(COMPANY_NAME_MAX_LENGTH),
+          notes: "a".repeat(NOTES_MAX_LENGTH),
+          descriptionText: "a".repeat(DESCRIPTION_MAX_LENGTH),
+        })
+      )
+    );
     expect(result.success).toBe(true);
   });
 });

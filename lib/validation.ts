@@ -2,6 +2,38 @@ import { z } from "zod";
 import { normalizeUrl } from "@/lib/url";
 import { CONTACT_ROLE, SALARY_TYPE, STATUS } from "@/lib/constants";
 
+// Limites de longueur explicites (JOB-90) : évitent qu'un scraping de page
+// énorme (descriptionText) ou un texte libre (notes) ne sature la base ou
+// la requête. Réutilisées par lib/backup.ts pour le JSON de sauvegarde
+// importé, qui doit accepter exactement les mêmes formes de contenu.
+export const TITLE_MAX_LENGTH = 300;
+export const COMPANY_NAME_MAX_LENGTH = 200;
+export const NOTES_MAX_LENGTH = 10_000;
+export const DESCRIPTION_MAX_LENGTH = 50_000;
+
+const titleSchema = z
+  .string()
+  .trim()
+  .max(TITLE_MAX_LENGTH, `Titre trop long (${TITLE_MAX_LENGTH} caractères max)`);
+const companyNameSchema = z
+  .string()
+  .trim()
+  .max(
+    COMPANY_NAME_MAX_LENGTH,
+    `Nom d'entreprise trop long (${COMPANY_NAME_MAX_LENGTH} caractères max)`
+  );
+const notesSchema = z
+  .string()
+  .trim()
+  .max(NOTES_MAX_LENGTH, `Notes trop longues (${NOTES_MAX_LENGTH} caractères max)`);
+const descriptionTextSchema = z
+  .string()
+  .trim()
+  .max(
+    DESCRIPTION_MAX_LENGTH,
+    `Description trop longue (${DESCRIPTION_MAX_LENGTH} caractères max)`
+  );
+
 const urlSchema = z
   .string()
   .trim()
@@ -21,10 +53,10 @@ export const checkJobUrlSchema = urlSchema;
 
 export const createJobSchema = z.object({
   url: urlSchema,
-  title: z.string().trim().optional(),
-  companyName: z.string().trim().optional(),
+  title: titleSchema.optional(),
+  companyName: companyNameSchema.optional(),
   companyLogoUrl: z.url().optional().or(z.literal("")),
-  descriptionText: z.string().trim().optional(),
+  descriptionText: descriptionTextSchema.optional(),
   status: z.enum([STATUS.TO_APPLY, STATUS.APPLIED], {
     error: "Statut initial invalide",
   }),
@@ -40,13 +72,13 @@ export const updateJobStatusSchema = z.object({
 
 export const updateJobDetailsSchema = z.object({
   id: jobIdSchema,
-  title: z.string(),
-  companyName: z.string(),
+  title: titleSchema,
+  companyName: companyNameSchema,
 });
 
 export const updateJobNotesSchema = z.object({
   id: jobIdSchema,
-  notes: z.string(),
+  notes: notesSchema,
 });
 
 export const markFollowUpTodaySchema = z.object({
@@ -153,7 +185,7 @@ export const checkRepostSchema = z.object({
 
 export const reactivateJobSchema = z.object({
   id: jobIdSchema,
-  title: z.string().nullable(),
-  companyName: z.string().nullable(),
-  descriptionText: z.string().nullable(),
+  title: titleSchema.nullable(),
+  companyName: companyNameSchema.nullable(),
+  descriptionText: descriptionTextSchema.nullable(),
 });

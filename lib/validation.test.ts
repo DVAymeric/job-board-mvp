@@ -5,13 +5,17 @@ import {
   archiveJobSchema,
   checkJobUrlSchema,
   checkRepostSchema,
+  COMPANY_NAME_MAX_LENGTH,
   createJobSchema,
+  DESCRIPTION_MAX_LENGTH,
   deleteContactSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
+  NOTES_MAX_LENGTH,
   reactivateJobSchema,
   removeTagFromJobSchema,
   reorderJobsSchema,
+  TITLE_MAX_LENGTH,
   unarchiveJobSchema,
   updateContactSchema,
   updateJobDetailsSchema,
@@ -97,6 +101,42 @@ describe("createJobSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("rejects a title over the length limit", () => {
+    const result = createJobSchema.safeParse({
+      url: "example.com/job",
+      status: "TO_APPLY",
+      title: "a".repeat(TITLE_MAX_LENGTH + 1),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a companyName over the length limit", () => {
+    const result = createJobSchema.safeParse({
+      url: "example.com/job",
+      status: "TO_APPLY",
+      companyName: "a".repeat(COMPANY_NAME_MAX_LENGTH + 1),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a descriptionText over the length limit (scraped page content)", () => {
+    const result = createJobSchema.safeParse({
+      url: "example.com/job",
+      status: "TO_APPLY",
+      descriptionText: "a".repeat(DESCRIPTION_MAX_LENGTH + 1),
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts a descriptionText right at the length limit", () => {
+    const result = createJobSchema.safeParse({
+      url: "example.com/job",
+      status: "TO_APPLY",
+      descriptionText: "a".repeat(DESCRIPTION_MAX_LENGTH),
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("updateJobStatusSchema", () => {
@@ -136,6 +176,24 @@ describe("updateJobDetailsSchema", () => {
     const result = updateJobDetailsSchema.safeParse({ title: "x", companyName: "y" });
     expect(result.success).toBe(false);
   });
+
+  it("rejects a title over the length limit", () => {
+    const result = updateJobDetailsSchema.safeParse({
+      id: "job-1",
+      title: "a".repeat(TITLE_MAX_LENGTH + 1),
+      companyName: "Acme",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a companyName over the length limit", () => {
+    const result = updateJobDetailsSchema.safeParse({
+      id: "job-1",
+      title: "Développeur",
+      companyName: "a".repeat(COMPANY_NAME_MAX_LENGTH + 1),
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("updateJobNotesSchema", () => {
@@ -155,6 +213,25 @@ describe("updateJobNotesSchema", () => {
 
   it("rejects a missing id", () => {
     expect(updateJobNotesSchema.safeParse({ notes: "x" }).success).toBe(false);
+  });
+
+  it("accepts notes right at the length limit", () => {
+    const result = updateJobNotesSchema.safeParse({
+      id: "job-1",
+      notes: "a".repeat(NOTES_MAX_LENGTH),
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects notes over the length limit, with a clear message", () => {
+    const result = updateJobNotesSchema.safeParse({
+      id: "job-1",
+      notes: "a".repeat(NOTES_MAX_LENGTH + 1),
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toMatch(/trop longues?/i);
+    }
   });
 });
 
@@ -455,6 +532,16 @@ describe("reactivateJobSchema", () => {
       title: null,
       companyName: null,
       descriptionText: null,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a descriptionText over the length limit", () => {
+    const result = reactivateJobSchema.safeParse({
+      id: "job-1",
+      title: null,
+      companyName: null,
+      descriptionText: "a".repeat(DESCRIPTION_MAX_LENGTH + 1),
     });
     expect(result.success).toBe(false);
   });

@@ -1,8 +1,20 @@
 import { z } from "zod";
 import { SALARY_TYPE, STATUS } from "@/lib/constants";
+import {
+  COMPANY_NAME_MAX_LENGTH,
+  DESCRIPTION_MAX_LENGTH,
+  NOTES_MAX_LENGTH,
+  TITLE_MAX_LENGTH,
+} from "@/lib/validation";
 import type { JobWithRelations } from "@/lib/types";
 
 export const BACKUP_SCHEMA_VERSION = 1;
+
+// Taille max du fichier de sauvegarde importé (JOB-90), vérifiée côté
+// serveur dans importBackupJson avant même le JSON.parse — indépendamment
+// des limites par champ ci-dessous, qui bornent chaque valeur individuelle
+// une fois le fichier parsé.
+export const MAX_BACKUP_FILE_SIZE_BYTES = 4 * 1024 * 1024;
 
 const statusBackupSchema = z.enum([
   STATUS.TO_APPLY,
@@ -34,10 +46,10 @@ const statusHistoryBackupSchema = z.object({
 const jobBackupSchema = z.object({
   id: z.string().min(1),
   url: z.string(),
-  title: z.string().nullable(),
-  companyName: z.string().nullable(),
+  title: z.string().max(TITLE_MAX_LENGTH).nullable(),
+  companyName: z.string().max(COMPANY_NAME_MAX_LENGTH).nullable(),
   companyLogoUrl: z.string().nullable(),
-  notes: z.string().nullable(),
+  notes: z.string().max(NOTES_MAX_LENGTH).nullable(),
   status: statusBackupSchema,
   archived: z.boolean(),
   order: z.number(),
@@ -47,7 +59,7 @@ const jobBackupSchema = z.object({
   resumeUrl: z.string().nullable(),
   coverLetterUrl: z.string().nullable(),
   interviewDate: z.string().nullable(),
-  descriptionText: z.string().nullable(),
+  descriptionText: z.string().max(DESCRIPTION_MAX_LENGTH).nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
   tagIds: z.array(z.string()),
