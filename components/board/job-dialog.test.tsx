@@ -44,6 +44,7 @@ const baseJob: JobWithRelations = {
   companyLogoUrl: null,
   notes: null,
   status: "TO_APPLY",
+  enrichmentStatus: "DONE",
   archived: false,
   order: 0,
   lastFollowUp: null,

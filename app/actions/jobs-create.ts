@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -20,13 +21,16 @@ import {
   jobOwnerWhere,
   logActionError,
   rateLimitError,
+  resolveCompanyLogo,
   resolveScrapedMetadata,
 } from "./_shared";
 
-// checkJobUrl est le premier appel du flow de collage d'URL (suivi de
-// fetchJobMetadata, coûteux — jusqu'au fallback Playwright) ; createJob
-// est l'écriture qui conclut ce même flow. Rate-limités par userId pour
-// éviter l'abus (JOB-81). Limiteur en mémoire du process — cf. lib/rate-limit.ts.
+// checkJobUrl (lecture rapide, une seule requête) est le premier appel du
+// flow de collage d'URL ; createJob (écriture) est le second et dernier —
+// il ne bloque plus sur le scraping, programmé en tâche de fond après coup
+// (JOB-ASYNC-ENRICH, cf. enrichJob ci-dessous). Rate-limités par userId
+// pour éviter l'abus (JOB-81). Limiteur en mémoire du process — cf.
+// lib/rate-limit.ts.
 const CHECK_JOB_URL_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
 const CREATE_JOB_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
 
@@ -36,7 +40,8 @@ const CREATE_JOB_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
  *
  * @param rawUrl URL brute collée par l'utilisateur (sera normalisée).
  * @returns `{ found: true, job }` si déjà connue, sinon
- * `{ found: false, normalizedUrl }` pour poursuivre vers `fetchJobMetadata`.
+ * `{ found: false, normalizedUrl }` pour poursuivre vers `createJob`
+ * (immédiat, sans attendre de scraping — JOB-ASYNC-ENRICH).
  * @errors `UNAUTHENTICATED`, `RATE_LIMITED`, `VALIDATION_ERROR` (URL
  * invalide), `INTERNAL_ERROR`.
  */
@@ -75,15 +80,85 @@ export async function checkJobUrl(
   }
 }
 
+type KnownJobFields = {
+  title: string | null;
+  companyName: string | null;
+  companyLogoUrl: string | null;
+  descriptionText: string | null;
+};
+
 /**
- * Crée une candidature pour l'utilisateur courant. Second appel du flow de
- * collage d'URL, après `checkJobUrl` (et `fetchJobMetadata`/
- * `fetchCompanyLogo` côté client) — ou appelé directement pour le repli
- * manuel quand le scraping échoue.
+ * Enrichit en tâche de fond une candidature (scraping du titre/entreprise/
+ * logo/description), après la réponse de `createJob` — jamais attendue par
+ * le client, qui a déjà reçu sa réponse (feature "vérification instantanée
+ * + enrichissement asynchrone"). `known` porte ce que `createJob` savait
+ * déjà (ex. titre fourni par le bookmarklet) : jamais écrasé par un
+ * scraping qui trouverait moins d'information — seuls les champs encore
+ * vides sont complétés. `enrichmentStatus` passe à `DONE` si un titre est
+ * connu à l'issue (déjà fourni, ou scrapé), `FAILED` sinon (l'utilisateur
+ * renseigne alors le titre à la main — `updateJobDetails` repasse le
+ * statut à `DONE` dans ce cas).
+ *
+ * Non exportée depuis un fichier "use server" : jamais appelable
+ * directement par un client, uniquement programmée via `after()` dans
+ * `createJob`, qui possède déjà son contexte utilisateur vérifié.
+ */
+async function enrichJob(
+  jobId: string,
+  url: string,
+  userId: string,
+  known: KnownJobFields
+): Promise<void> {
+  try {
+    const [metadata, logoUrl] = await Promise.all([
+      resolveScrapedMetadata(url, { userId }),
+      resolveCompanyLogo(url),
+    ]);
+
+    const title = known.title || metadata.title;
+    await prisma.job.update({
+      where: { id: jobId },
+      data: {
+        title,
+        companyName: known.companyName || metadata.companyName,
+        companyLogoUrl: known.companyLogoUrl || logoUrl,
+        descriptionText: known.descriptionText || metadata.descriptionText,
+        enrichmentStatus: title ? "DONE" : "FAILED",
+      },
+    });
+  } catch (error) {
+    logActionError("enrichJob", error, { userId });
+    // La ligne reste en PENDING si cette mise à jour échoue elle-même
+    // (panne DB transitoire, etc.) plutôt que de risquer d'écraser un
+    // enrichissement entre-temps réussi par ailleurs. Best-effort : on
+    // retente de la marquer FAILED (sauf si un titre était déjà connu —
+    // dans ce cas la candidature reste DONE, rien n'est réellement en échec
+    // du point de vue utilisateur), sans relancer si ça échoue encore.
+    if (!known.title) {
+      await prisma.job
+        .update({ where: { id: jobId }, data: { enrichmentStatus: "FAILED" } })
+        .catch(() => {});
+    }
+  } finally {
+    revalidatePath("/board");
+  }
+}
+
+/**
+ * Crée une candidature pour l'utilisateur courant. Deuxième et dernier
+ * appel du flow de collage d'URL, juste après `checkJobUrl` — n'attend plus
+ * le scraping (JOB-ASYNC-ENRICH) : si `title` et/ou `companyName` sont
+ * omis, la candidature est créée immédiatement (avec `enrichmentStatus:
+ * PENDING` si `title` manque) et un enrichissement en tâche de fond est
+ * programmé (`after()`, cf. `enrichJob`) qui complète les champs manquants
+ * une fois le scraping terminé, sans bloquer la réponse ni jamais écraser
+ * une valeur déjà fournie ici (ex. titre du bookmarklet). Si `title` est
+ * déjà fourni, la candidature est `DONE` dès la création (même si un
+ * enrichissement en tâche de fond tourne encore pour l'entreprise/le logo).
  *
  * @param input.url URL de l'offre (déjà normalisée par l'appelant).
  * @param input.status Statut initial — uniquement `TO_APPLY` ou `APPLIED`.
- * @returns `{ id }` de la candidature créée.
+ * @returns `{ id, enrichmentStatus }` de la candidature créée.
  * @errors `UNAUTHENTICATED`, `RATE_LIMITED`, `VALIDATION_ERROR`,
  * `CONFLICT` (URL déjà enregistrée pour cet utilisateur — idempotence,
  * JOB-91), `INTERNAL_ERROR`.
@@ -95,7 +170,7 @@ export async function createJob(input: {
   companyLogoUrl?: string;
   descriptionText?: string;
   status: JobStatus;
-}): Promise<ActionResult<{ id: string }>> {
+}): Promise<ActionResult<{ id: string; enrichmentStatus: "PENDING" | "DONE" }>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
 
@@ -110,22 +185,43 @@ export async function createJob(input: {
   }
   const { url, title, companyName, companyLogoUrl, descriptionText, status } =
     parsed.data;
+  const known: KnownJobFields = {
+    title: title || null,
+    companyName: companyName || null,
+    companyLogoUrl: companyLogoUrl || null,
+    descriptionText: descriptionText || null,
+  };
+  const enrichmentStatus = known.title ? "DONE" : "PENDING";
   try {
     const job = await prisma.job.create({
       data: {
         userId: auth.user.id,
         url,
-        title: title || null,
-        companyName: companyName || null,
-        companyLogoUrl: companyLogoUrl || null,
-        descriptionText: descriptionText || null,
+        ...known,
         status,
+        enrichmentStatus,
         lastFollowUp: status === STATUS.APPLIED ? new Date() : null,
         statusHistory: { create: { status } },
       },
     });
+
+    if (!known.title || !known.companyName) {
+      try {
+        after(() => enrichJob(job.id, url, auth.user.id, known));
+      } catch {
+        // after() exige un vrai contexte de requête Next.js — absent hors
+        // d'une requête HTTP réelle (tests d'intégration appelant la
+        // Server Action directement, scripts, etc. — jamais le cas en
+        // production sur Vercel). Repli en fire-and-forget simple pour que
+        // createJob reste utilisable partout : ne bloque toujours pas la
+        // réponse, perd seulement la prolongation de durée de vie que
+        // after()/waitUntil() offre en serverless.
+        void enrichJob(job.id, url, auth.user.id, known);
+      }
+    }
+
     revalidatePath("/board");
-    return { ok: true, data: { id: job.id } };
+    return { ok: true, data: { id: job.id, enrichmentStatus } };
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

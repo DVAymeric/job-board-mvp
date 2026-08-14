@@ -96,11 +96,28 @@ export function JobCard({
         <div className="flex items-start gap-2">
           <CompanyAvatar job={job} />
           <div className="min-w-0 flex-1">
-            <p className="font-heading text-sm leading-snug text-heading">
-              {displayName}
-            </p>
-            {job.title && job.companyName && (
-              <p className="text-xs text-muted-foreground">{job.companyName}</p>
+            {job.enrichmentStatus === "PENDING" ? (
+              <div
+                data-testid="job-card-enriching"
+                aria-label="Récupération du titre en cours"
+                className="space-y-1.5 py-0.5"
+              >
+                <div className="h-3.5 w-3/4 animate-pulse rounded bg-palette-poudre" />
+                <div className="h-2.5 w-1/2 animate-pulse rounded bg-palette-lilas/40" />
+              </div>
+            ) : job.enrichmentStatus === "FAILED" ? (
+              <p className="font-heading text-sm leading-snug text-muted-foreground italic">
+                Titre non détecté — cliquer pour renseigner manuellement
+              </p>
+            ) : (
+              <>
+                <p className="font-heading text-sm leading-snug text-heading">
+                  {displayName}
+                </p>
+                {job.title && job.companyName && (
+                  <p className="text-xs text-muted-foreground">{job.companyName}</p>
+                )}
+              </>
             )}
           </div>
           {/* Actions rapides (JOB-96) : masquées par défaut, révélées au

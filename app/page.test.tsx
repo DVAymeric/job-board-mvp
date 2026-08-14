@@ -8,8 +8,6 @@ import {
   checkJobUrl,
   checkRepost,
   createJob,
-  fetchCompanyLogo,
-  fetchJobMetadata,
   reactivateJobWithContent,
 } from "@/app/actions";
 
@@ -17,8 +15,6 @@ vi.mock("@/app/actions", () => ({
   checkJobUrl: vi.fn(),
   checkRepost: vi.fn(),
   createJob: vi.fn(),
-  fetchCompanyLogo: vi.fn(),
-  fetchJobMetadata: vi.fn(),
   reactivateJobWithContent: vi.fn(),
 }));
 
@@ -40,41 +36,22 @@ beforeEach(() => {
   } as unknown as ReturnType<typeof useRouter>);
 });
 
-describe("Home — nouvelle candidature (auto-création par scraping)", () => {
+describe("Home — nouvelle candidature (vérification instantanée + enrichissement asynchrone, JOB-ASYNC-ENRICH)", () => {
   beforeEach(() => {
     vi.mocked(checkJobUrl).mockReset();
     vi.mocked(createJob).mockReset();
-    vi.mocked(fetchJobMetadata).mockReset();
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
-      ok: true,
-      data: { title: null, companyName: null, descriptionText: null },
-    });
-    vi.mocked(fetchCompanyLogo).mockReset();
-    vi.mocked(fetchCompanyLogo).mockResolvedValue({
-      ok: true,
-      data: { logoUrl: null },
-    });
   });
 
-  it("auto-creates the job as soon as a title is scraped, without any manual form", async () => {
+  it("creates the job immediately after checkJobUrl, without waiting for any scraping call", async () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
       data: { found: false, normalizedUrl: "https://example.com/job" },
     });
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
+    vi.mocked(createJob).mockResolvedValue({
       ok: true,
-      data: {
-        title: "Développeur Backend",
-        companyName: "Acme",
-        descriptionText: "Description.",
-      },
+      data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
-    vi.mocked(fetchCompanyLogo).mockResolvedValue({
-      ok: true,
-      data: { logoUrl: "https://logo.clearbit.com/example.com?size=128" },
-    });
-    vi.mocked(createJob).mockResolvedValue({ ok: true, data: { id: "job-1" } });
 
     render(<Home />);
     await user.type(
@@ -86,113 +63,65 @@ describe("Home — nouvelle candidature (auto-création par scraping)", () => {
     expect(await screen.findByTestId("created-job-card")).toBeInTheDocument();
     expect(createJob).toHaveBeenCalledWith({
       url: "https://example.com/job",
-      title: "Développeur Backend",
-      companyName: "Acme",
-      companyLogoUrl: "https://logo.clearbit.com/example.com?size=128",
-      descriptionText: "Description.",
-      status: "TO_APPLY",
-    });
-    expect(screen.getByText(/Développeur Backend/)).toBeInTheDocument();
-    expect(screen.getByText(/Acme/)).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Titre du poste")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Enregistrer" })).not.toBeInTheDocument();
-  });
-
-  it("shows a loading state while the job page is being scraped", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: false, normalizedUrl: "https://example.com/job" },
-    });
-    let resolveMetadata!: (
-      value: Awaited<ReturnType<typeof fetchJobMetadata>>
-    ) => void;
-    vi.mocked(fetchJobMetadata).mockReturnValue(
-      new Promise((resolve) => {
-        resolveMetadata = resolve;
-      })
-    );
-    vi.mocked(createJob).mockResolvedValue({ ok: true, data: { id: "job-1" } });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    expect(await screen.findByTestId("fetching-status")).toBeInTheDocument();
-
-    resolveMetadata({
-      ok: true,
-      data: { title: "Développeur", companyName: null, descriptionText: null },
-    });
-    await screen.findByTestId("created-job-card");
-  });
-
-  it("falls back to a minimal manual form when no title could be scraped", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: false, normalizedUrl: "https://example.com/job" },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    expect(
-      await screen.findByText(/Impossible de récupérer automatiquement/)
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Titre du poste")).toHaveValue("");
-    expect(createJob).not.toHaveBeenCalled();
-  });
-
-  it("lets the fallback form save manually once a title is filled in", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: false, normalizedUrl: "https://example.com/job" },
-    });
-    vi.mocked(createJob).mockResolvedValue({ ok: true, data: { id: "job-1" } });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    const titleInput = await screen.findByPlaceholderText("Titre du poste");
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-
-    await user.type(titleInput, "Développeur");
-    await user.type(screen.getByPlaceholderText("Entreprise"), "Acme");
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
-
-    expect(createJob).toHaveBeenCalledWith({
-      url: "https://example.com/job",
-      title: "Développeur",
-      companyName: "Acme",
-      companyLogoUrl: "",
-      descriptionText: undefined,
+      title: undefined,
       status: "TO_APPLY",
     });
   });
 
-  it("shows an error if automatic creation fails after a successful scrape", async () => {
+  it("shows a pending-enrichment indicator when the job is created without a title yet", async () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
       data: { found: false, normalizedUrl: "https://example.com/job" },
     });
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
+    vi.mocked(createJob).mockResolvedValue({
       ok: true,
-      data: { title: "Développeur", companyName: null, descriptionText: null },
+      data: { id: "job-1", enrichmentStatus: "PENDING" },
+    });
+
+    render(<Home />);
+    await user.type(
+      screen.getByPlaceholderText(/Colle l'URL/),
+      "example.com/job"
+    );
+    await user.click(screen.getByRole("button", { name: "Vérifier" }));
+
+    expect(await screen.findByTestId("created-job-enriching")).toHaveTextContent(
+      /récupération du titre en cours/i
+    );
+  });
+
+  it("shows the resolved title directly when a title was already known at creation (e.g. bookmarklet fallback)", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams({
+        url: "https://example.com/careers/dev",
+        title: "Développeur depuis LinkedIn",
+      }) as ReturnType<typeof useSearchParams>
+    );
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
+    });
+    vi.mocked(createJob).mockResolvedValue({
+      ok: true,
+      data: { id: "job-1", enrichmentStatus: "DONE" },
+    });
+
+    render(<Home />);
+
+    const card = await screen.findByTestId("created-job-card");
+    expect(card).toHaveTextContent("Développeur depuis LinkedIn");
+    expect(screen.queryByTestId("created-job-enriching")).not.toBeInTheDocument();
+    expect(createJob).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Développeur depuis LinkedIn" })
+    );
+  });
+
+  it("shows an error when creation fails, without showing a created card", async () => {
+    const user = userEvent.setup();
+    vi.mocked(checkJobUrl).mockResolvedValue({
+      ok: true,
+      data: { found: false, normalizedUrl: "https://example.com/job" },
     });
     vi.mocked(createJob).mockResolvedValue({
       ok: false,
@@ -222,6 +151,7 @@ const archivedJob: Job = {
   companyLogoUrl: null,
   notes: null,
   status: "REJECTED",
+  enrichmentStatus: "DONE",
   archived: true,
   order: 0,
   lastFollowUp: null,
@@ -410,15 +340,10 @@ describe("Home — repost d'une offre archivée", () => {
 describe("Home — bookmarklet", () => {
   beforeEach(() => {
     vi.mocked(checkJobUrl).mockReset();
-    vi.mocked(fetchJobMetadata).mockReset();
-    vi.mocked(fetchCompanyLogo).mockReset();
-    vi.mocked(fetchCompanyLogo).mockResolvedValue({
-      ok: true,
-      data: { logoUrl: null },
-    });
+    vi.mocked(createJob).mockReset();
   });
 
-  it("pre-fills the url, auto-checks it, and auto-creates using the bookmarklet's fallback title", async () => {
+  it("pre-fills the url and auto-checks it as soon as the page loads", async () => {
     vi.mocked(useSearchParams).mockReturnValue(
       new URLSearchParams({
         url: "https://example.com/careers/dev",
@@ -429,11 +354,10 @@ describe("Home — bookmarklet", () => {
       ok: true,
       data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
     });
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
+    vi.mocked(createJob).mockResolvedValue({
       ok: true,
-      data: { title: null, companyName: null, descriptionText: null },
+      data: { id: "job-1", enrichmentStatus: "DONE" },
     });
-    vi.mocked(createJob).mockResolvedValue({ ok: true, data: { id: "job-1" } });
 
     render(<Home />);
 
@@ -441,35 +365,7 @@ describe("Home — bookmarklet", () => {
       await screen.findByDisplayValue("https://example.com/careers/dev")
     ).toBeInTheDocument();
     expect(checkJobUrl).toHaveBeenCalledWith("https://example.com/careers/dev");
-    expect(await screen.findByTestId("created-job-card")).toBeInTheDocument();
-    expect(createJob).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Développeur depuis LinkedIn" })
-    );
-  });
-
-  it("prefers the fetched metadata title over the bookmarklet's fallback title", async () => {
-    vi.mocked(useSearchParams).mockReturnValue(
-      new URLSearchParams({
-        url: "https://example.com/careers/dev",
-        title: "Titre de secours",
-      }) as ReturnType<typeof useSearchParams>
-    );
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
-    });
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
-      ok: true,
-      data: { title: "Titre extrait", companyName: null, descriptionText: null },
-    });
-    vi.mocked(createJob).mockResolvedValue({ ok: true, data: { id: "job-1" } });
-
-    render(<Home />);
-
     await screen.findByTestId("created-job-card");
-    expect(createJob).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Titre extrait" })
-    );
   });
 
   it("clears the query string once the bookmarklet url has been consumed", async () => {
@@ -486,14 +382,14 @@ describe("Home — bookmarklet", () => {
       ok: true,
       data: { found: false, normalizedUrl: "https://example.com/careers/dev" },
     });
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
+    vi.mocked(createJob).mockResolvedValue({
       ok: true,
-      data: { title: null, companyName: null, descriptionText: null },
+      data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
 
     render(<Home />);
 
-    await screen.findByPlaceholderText("Titre du poste");
+    await screen.findByTestId("created-job-card");
     expect(replace).toHaveBeenCalledWith("/");
   });
 
@@ -506,16 +402,7 @@ describe("Home — bookmarklet", () => {
 describe("Home — intégration visuelle des états dans la carte hero", () => {
   beforeEach(() => {
     vi.mocked(checkJobUrl).mockReset();
-    vi.mocked(fetchJobMetadata).mockReset();
-    vi.mocked(fetchCompanyLogo).mockReset();
-    vi.mocked(fetchJobMetadata).mockResolvedValue({
-      ok: true,
-      data: { title: null, companyName: null, descriptionText: null },
-    });
-    vi.mocked(fetchCompanyLogo).mockResolvedValue({
-      ok: true,
-      data: { logoUrl: null },
-    });
+    vi.mocked(createJob).mockReset();
   });
 
   it("renders the known-url panel with the hero's dark translucent card style", async () => {
@@ -537,11 +424,15 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     expect(panel.className).toContain("border-white/15");
   });
 
-  it("renders the fallback form panel with the hero's dark translucent card style", async () => {
+  it("renders the created panel with the hero's dark translucent card style", async () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
       data: { found: false, normalizedUrl: "https://example.com/job" },
+    });
+    vi.mocked(createJob).mockResolvedValue({
+      ok: true,
+      data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
 
     render(<Home />);
@@ -551,26 +442,8 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     );
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
-    const panel = await screen.findByTestId("fallback-job-card");
+    const panel = await screen.findByTestId("created-job-card");
     expect(panel.className).toContain("bg-white/10");
     expect(panel.className).toContain("border-white/15");
-  });
-
-  it("keeps the known/fallback panels inside the hero section, not below it", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: false, normalizedUrl: "https://example.com/job" },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    const panel = await screen.findByTestId("fallback-job-card");
-    expect(panel.closest("section")).not.toBeNull();
   });
 });

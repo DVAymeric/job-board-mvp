@@ -19,7 +19,9 @@ import {
 } from "./_shared";
 
 /**
- * Met à jour le titre et l'entreprise d'une candidature.
+ * Met à jour le titre et l'entreprise d'une candidature. Une saisie
+ * manuelle de titre non vide résout un enrichissement en attente ou en
+ * échec (`enrichmentStatus` repassé à `DONE`) — voir `jobs-create.ts`.
  *
  * @param id Identifiant de la candidature.
  * @param title Nouveau titre — chaîne vide acceptée (efface le champ).
@@ -41,12 +43,14 @@ export async function updateJobDetails(
       firstIssueMessage(parsed.error, "Impossible de mettre à jour l'offre")
     );
   }
+  const trimmedTitle = parsed.data.title.trim();
   try {
     await prisma.job.update({
       where: jobOwnerWhere(parsed.data.id, auth.user.id),
       data: {
-        title: parsed.data.title.trim() || null,
+        title: trimmedTitle || null,
         companyName: parsed.data.companyName.trim() || null,
+        ...(trimmedTitle ? { enrichmentStatus: "DONE" } : {}),
       },
     });
     revalidatePath("/board");
