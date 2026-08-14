@@ -1,9 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fetchMetadataViaPlaywright } from "@/lib/scraper/playwright-strategy";
 import { chromium } from "playwright";
+import { logger } from "@/lib/logger";
 
 vi.mock("playwright", () => ({
   chromium: { launch: vi.fn() },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
 const EMPTY = { title: null, companyName: null, descriptionText: null };
@@ -29,6 +34,8 @@ function makeBrowser({
 describe("fetchMetadataViaPlaywright", () => {
   beforeEach(() => {
     vi.mocked(chromium.launch).mockReset();
+    vi.mocked(logger.info).mockReset();
+    vi.mocked(logger.warn).mockReset();
   });
 
   it("parses metadata from the rendered page's HTML", async () => {
@@ -97,5 +104,41 @@ describe("fetchMetadataViaPlaywright", () => {
     });
     expect(cont).toHaveBeenCalled();
     expect(abort).not.toHaveBeenCalled();
+  });
+
+  it("logs success with the userId when a title is found and a context is provided", async () => {
+    const { browser } = makeBrowser({
+      contentHtml: `<meta property="og:title" content="Développeur Backend" />`,
+    });
+    vi.mocked(chromium.launch).mockResolvedValue(browser as never);
+
+    await fetchMetadataViaPlaywright("https://example.com/job", { userId: "user-1" });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      "scraper.playwright_ok",
+      expect.objectContaining({ url: "https://example.com/job", userId: "user-1" })
+    );
+  });
+
+  it("logs failure with the userId when navigation throws and a context is provided", async () => {
+    const { browser } = makeBrowser({ gotoError: new Error("timeout") });
+    vi.mocked(chromium.launch).mockResolvedValue(browser as never);
+
+    await fetchMetadataViaPlaywright("https://example.com/job", { userId: "user-1" });
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      "scraper.playwright_error",
+      expect.objectContaining({ url: "https://example.com/job", userId: "user-1" })
+    );
+  });
+
+  it("omits userId from logs for anonymous callers (no context)", async () => {
+    const { browser } = makeBrowser({ contentHtml: "<title>ok</title>" });
+    vi.mocked(chromium.launch).mockResolvedValue(browser as never);
+
+    await fetchMetadataViaPlaywright("https://example.com/job");
+
+    const [, fields] = vi.mocked(logger.info).mock.calls[0];
+    expect(fields).not.toHaveProperty("userId");
   });
 });

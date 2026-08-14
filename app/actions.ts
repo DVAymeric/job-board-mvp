@@ -87,9 +87,18 @@ export async function checkJobUrl(
   }
 }
 
-export async function fetchJobMetadata(
-  rawUrl: string
-): Promise<ActionResult<ScrapedJobMetadata>> {
+/**
+ * Ne prend volontairement pas de `userId` en paramètre : cette fonction est
+ * appelée depuis un Server Action public (utilisable anonymement, avant
+ * connexion, depuis la landing page), donc un appelant ne doit jamais
+ * pouvoir dicter l'identité attribuée dans les logs de scraping. Les
+ * appelants internes déjà authentifiés (ex. checkRepost) appellent
+ * resolveScrapedMetadata directement avec leur propre contexte vérifié.
+ */
+async function resolveScrapedMetadata(
+  rawUrl: string,
+  context?: { userId?: string }
+): Promise<ScrapedJobMetadata> {
   const parsed = checkJobUrlSchema.safeParse(rawUrl);
   const empty: ScrapedJobMetadata = {
     title: null,
@@ -97,9 +106,15 @@ export async function fetchJobMetadata(
     descriptionText: null,
   };
   if (!parsed.success) {
-    return { ok: true, data: empty };
+    return empty;
   }
-  return { ok: true, data: await scrapeJobMetadata(parsed.data) };
+  return scrapeJobMetadata(parsed.data, context);
+}
+
+export async function fetchJobMetadata(
+  rawUrl: string
+): Promise<ActionResult<ScrapedJobMetadata>> {
+  return { ok: true, data: await resolveScrapedMetadata(rawUrl) };
 }
 
 const LOGO_FETCH_TIMEOUT_MS = 3000;
@@ -232,10 +247,7 @@ export async function checkRepost(id: string): Promise<
     return { ok: false, error: "Cette offre est déjà active" };
   }
 
-  const metadata = await fetchJobMetadata(job.url);
-  const fresh = metadata.ok
-    ? metadata.data
-    : { title: null, companyName: null, descriptionText: null };
+  const fresh = await resolveScrapedMetadata(job.url, { userId: auth.user.id });
 
   return {
     ok: true,

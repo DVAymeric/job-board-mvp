@@ -1,6 +1,10 @@
 import { safeFetch } from "@/lib/safe-fetch";
 import { extractJobMetadataFromHtml } from "@/lib/scraper/html-parser";
-import { EMPTY_SCRAPED_METADATA, type ScrapedJobMetadata } from "@/lib/scraper/types";
+import {
+  EMPTY_SCRAPED_METADATA,
+  type ScrapeContext,
+  type ScrapedJobMetadata,
+} from "@/lib/scraper/types";
 import { logger } from "@/lib/logger";
 
 const FETCH_TIMEOUT_MS = 5000;
@@ -18,7 +22,10 @@ const REQUEST_HEADERS = {
 // rate limiting, mur d'auth) plutôt que par une absence de page/contenu.
 const ANTI_BOT_STATUS_CODES = new Set([401, 403, 429, 503]);
 
-export async function fetchMetadataViaHttp(url: string): Promise<ScrapedJobMetadata> {
+export async function fetchMetadataViaHttp(
+  url: string,
+  context?: ScrapeContext
+): Promise<ScrapedJobMetadata> {
   try {
     const response = await safeFetch(url, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -30,6 +37,7 @@ export async function fetchMetadataViaHttp(url: string): Promise<ScrapedJobMetad
           url,
           status: response.status,
           likelyAntiBotBlock: ANTI_BOT_STATUS_CODES.has(response.status),
+          ...(context?.userId ? { userId: context.userId } : {}),
         });
       }
       return EMPTY_SCRAPED_METADATA;
@@ -37,7 +45,11 @@ export async function fetchMetadataViaHttp(url: string): Promise<ScrapedJobMetad
     const html = await response.text();
     const metadata = extractJobMetadataFromHtml(html);
     if (!metadata.title) {
-      logger.info("scraper.no_title_found", { url, status: response.status });
+      logger.info("scraper.no_title_found", {
+        url,
+        status: response.status,
+        ...(context?.userId ? { userId: context.userId } : {}),
+      });
     }
     return metadata;
   } catch {
