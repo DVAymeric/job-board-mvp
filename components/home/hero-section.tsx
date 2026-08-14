@@ -25,7 +25,7 @@ export function HeroSection({ children }: HeroSectionProps) {
       <div className="relative z-10 flex w-full max-w-[640px] flex-col items-start gap-6 text-left">
         <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 font-mono text-xs uppercase tracking-widest text-palette-poudre">
           <span className="size-1.5 rounded-full bg-palette-mousse" />
-          Local · zéro config · zéro cloud
+          100% gratuit · Sans configuration · Prêt en 2 minutes
         </span>
         <h1 className="font-heading text-xl text-white">
           Ne repostulez plus{" "}
@@ -38,7 +38,7 @@ export function HeroSection({ children }: HeroSectionProps) {
         </p>
         {children}
         <p className="font-mono text-xs text-white/50">
-          0 dépendance cloud · SQLite local · Sans compte
+          Compte gratuit · Vos données vous appartiennent · Aucune carte requise
         </p>
       </div>
     </section>

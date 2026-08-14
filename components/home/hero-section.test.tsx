@@ -9,7 +9,7 @@ describe("HeroSection", () => {
         <div>slot content</div>
       </HeroSection>
     );
-    expect(screen.getByText(/zéro config/i)).toBeInTheDocument();
+    expect(screen.getByText(/100% gratuit/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 1 })
     ).toHaveTextContent(/repostulez/i);
@@ -104,13 +104,16 @@ describe("HeroSection", () => {
   });
 
   it("renders the trust line at the bottom of the hero content", () => {
+    // JOB-123 : le produit est maintenant hébergé avec compte (JOB-78) —
+    // le wording met l'accent sur la gratuité et la propriété des données
+    // plutôt que sur "zéro cloud"/"sans compte", qui ne sont plus vrais.
     render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
-    expect(screen.getByText(/SQLite local/i)).toBeInTheDocument();
-    expect(screen.getByText(/0 dépendance cloud/i)).toBeInTheDocument();
-    expect(screen.getByText(/Sans compte/i)).toBeInTheDocument();
+    expect(screen.getByText(/Compte gratuit/i)).toBeInTheDocument();
+    expect(screen.getByText(/données vous appartiennent/i)).toBeInTheDocument();
+    expect(screen.getByText(/Aucune carte requise/i)).toBeInTheDocument();
   });
 });
