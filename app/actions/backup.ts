@@ -12,6 +12,13 @@ import {
 } from "@/lib/backup";
 import { actionError, type ActionResult, logActionError } from "./_shared";
 
+/**
+ * Génère un export CSV de toutes les candidatures de l'utilisateur courant.
+ *
+ * @returns `{ csv }` — contenu CSV complet, à télécharger côté client.
+ * @errors `UNAUTHENTICATED`, `FORBIDDEN` (palier non entitled — cf.
+ * lib/plan.ts, JOB-80 ; toujours autorisé aujourd'hui), `INTERNAL_ERROR`.
+ */
 export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
@@ -35,6 +42,14 @@ export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
   }
 }
 
+/**
+ * Génère une sauvegarde JSON complète (candidatures, contacts, tags,
+ * historique de statut) de l'utilisateur courant, ré-importable via
+ * `importBackupJson`.
+ *
+ * @returns `{ json }` — contenu JSON complet, à télécharger côté client.
+ * @errors `UNAUTHENTICATED`, `INTERNAL_ERROR`.
+ */
 export async function exportBackupJson(): Promise<ActionResult<{ json: string }>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
@@ -63,6 +78,17 @@ export async function exportBackupJson(): Promise<ActionResult<{ json: string }>
   }
 }
 
+/**
+ * Restaure une sauvegarde JSON (produite par `exportBackupJson`),
+ * **remplaçant intégralement** les candidatures et tags actuels de
+ * l'utilisateur (aucune fusion) dans une transaction unique.
+ *
+ * @param rawJson Contenu JSON brut du fichier de sauvegarde, max
+ * `MAX_BACKUP_FILE_SIZE_BYTES` (lib/backup.ts).
+ * @returns `{ importedJobs }` — nombre de candidatures restaurées.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (fichier trop volumineux,
+ * JSON illisible, ou structure invalide), `INTERNAL_ERROR`.
+ */
 export async function importBackupJson(
   rawJson: string
 ): Promise<ActionResult<{ importedJobs: number }>> {

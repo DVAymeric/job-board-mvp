@@ -12,6 +12,16 @@ import {
   logActionError,
 } from "./_shared";
 
+/**
+ * Ajoute un tag à une candidature — crée le tag s'il n'existe pas encore
+ * pour cet utilisateur (upsert par nom), l'associe s'il existe déjà.
+ *
+ * @param jobId Identifiant de la candidature.
+ * @param tagName Nom du tag (trim, max 40 caractères).
+ * @returns Le tag (créé ou existant) désormais associé à la candidature.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `NOT_FOUND` (offre
+ * introuvable pour cet utilisateur), `INTERNAL_ERROR`.
+ */
 export async function addTagToJob(
   jobId: string,
   tagName: string
@@ -59,6 +69,15 @@ export async function addTagToJob(
   }
 }
 
+/**
+ * Retire l'association d'un tag à une candidature (le tag lui-même n'est
+ * pas supprimé, seulement son lien avec cette offre).
+ *
+ * @param jobId Identifiant de la candidature.
+ * @param tagId Identifiant du tag à retirer.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `NOT_FOUND` (offre
+ * introuvable pour cet utilisateur), `INTERNAL_ERROR`.
+ */
 export async function removeTagFromJob(
   jobId: string,
   tagId: string

@@ -23,6 +23,16 @@ const registerSchema = z.object({
   name: z.string().trim().optional(),
 });
 
+/**
+ * Crée un compte utilisateur (email + mot de passe haché). N'établit pas de
+ * session — voir `registerAction` pour l'inscription + connexion combinées.
+ *
+ * @param input.email Email (normalisé en minuscules).
+ * @param input.password Mot de passe en clair, min 8 caractères.
+ * @param input.name Nom optionnel.
+ * @errors `VALIDATION_ERROR`, `CONFLICT` (email déjà utilisé),
+ * `INTERNAL_ERROR`.
+ */
 export async function registerUser(input: {
   email: string;
   password: string;
@@ -65,6 +75,16 @@ export async function registerUser(input: {
   }
 }
 
+/**
+ * Authentifie via `next-auth` Credentials et redirige vers `callbackUrl`
+ * (ou `/board` par défaut) en cas de succès. Prévue pour `useActionState`
+ * (form action + état de formulaire), pas le contrat `ActionResult`
+ * habituel des autres Server Actions de ce projet.
+ *
+ * @param formData Champs `email`, `password`, `callbackUrl` (optionnel).
+ * @returns `{ error: null }` en cas de succès (suivi d'une redirection côté
+ * next-auth) ; `{ error: string }` sur identifiants invalides.
+ */
 export async function loginAction(
   _prevState: AuthFormState,
   formData: FormData
@@ -87,6 +107,14 @@ export async function loginAction(
   }
 }
 
+/**
+ * Crée un compte puis authentifie immédiatement (combine `registerUser` +
+ * connexion). Prévue pour `useActionState`, comme `loginAction`.
+ *
+ * @param formData Champs `email`, `password`, `name` (optionnel).
+ * @returns `{ error: null }` en cas de succès (redirection vers `/board`) ;
+ * `{ error: string }` sur échec de création ou de connexion automatique.
+ */
 export async function registerAction(
   _prevState: AuthFormState,
   formData: FormData
@@ -118,10 +146,22 @@ export async function registerAction(
   }
 }
 
+/**
+ * Termine la session courante et redirige vers `/`. Liée à un
+ * `<form action={logoutAction}>` (components/nav.tsx) — pas d'`ActionResult`
+ * en retour, la redirection sert de signal de succès.
+ */
 export async function logoutAction(): Promise<void> {
   await signOut({ redirectTo: "/" });
 }
 
+/**
+ * Supprime définitivement le compte de l'utilisateur courant — cascade sur
+ * toutes ses candidatures/contacts/tags (schéma Prisma) — puis termine la
+ * session. Irréversible.
+ *
+ * @errors `UNAUTHENTICATED`, `INTERNAL_ERROR`.
+ */
 export async function deleteAccount(): Promise<
   { ok: true } | { ok: false; error: string; code: ActionErrorCode }
 > {

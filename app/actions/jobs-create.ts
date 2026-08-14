@@ -30,6 +30,16 @@ import {
 const CHECK_JOB_URL_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
 const CREATE_JOB_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(30, 60_000);
 
+/**
+ * Vérifie si une URL d'offre est déjà enregistrée pour l'utilisateur
+ * courant. Premier appel du flow de collage d'URL sur la home.
+ *
+ * @param rawUrl URL brute collée par l'utilisateur (sera normalisée).
+ * @returns `{ found: true, job }` si déjà connue, sinon
+ * `{ found: false, normalizedUrl }` pour poursuivre vers `fetchJobMetadata`.
+ * @errors `UNAUTHENTICATED`, `RATE_LIMITED`, `VALIDATION_ERROR` (URL
+ * invalide), `INTERNAL_ERROR`.
+ */
 export async function checkJobUrl(
   rawUrl: string
 ): Promise<
@@ -65,6 +75,19 @@ export async function checkJobUrl(
   }
 }
 
+/**
+ * Crée une candidature pour l'utilisateur courant. Second appel du flow de
+ * collage d'URL, après `checkJobUrl` (et `fetchJobMetadata`/
+ * `fetchCompanyLogo` côté client) — ou appelé directement pour le repli
+ * manuel quand le scraping échoue.
+ *
+ * @param input.url URL de l'offre (déjà normalisée par l'appelant).
+ * @param input.status Statut initial — uniquement `TO_APPLY` ou `APPLIED`.
+ * @returns `{ id }` de la candidature créée.
+ * @errors `UNAUTHENTICATED`, `RATE_LIMITED`, `VALIDATION_ERROR`,
+ * `CONFLICT` (URL déjà enregistrée pour cet utilisateur — idempotence,
+ * JOB-91), `INTERNAL_ERROR`.
+ */
 export async function createJob(input: {
   url: string;
   title?: string;
@@ -115,6 +138,16 @@ export async function createJob(input: {
   }
 }
 
+/**
+ * Compare le contenu actuellement en ligne d'une offre archivée avec celui
+ * enregistré, pour détecter une republication avec un contenu différent.
+ *
+ * @param id Identifiant de la candidature (doit être archivée).
+ * @returns Diff structuré (`changed`, `diff`, `fresh`) entre le contenu
+ * archivé et le contenu fraîchement scrapé.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT`
+ * (l'offre n'est pas archivée), `INTERNAL_ERROR`.
+ */
 export async function checkRepost(id: string): Promise<
   ActionResult<{
     changed: boolean;
@@ -164,6 +197,17 @@ export async function checkRepost(id: string): Promise<
   };
 }
 
+/**
+ * Désarchive une offre republiée en remplaçant son contenu par la version
+ * fraîchement scrapée (suite à un `checkRepost` positif), et remet son
+ * statut à `TO_APPLY`.
+ *
+ * @param input.id Identifiant de la candidature.
+ * @param input.title Nouveau titre (peut être `null`).
+ * @param input.companyName Nouvelle entreprise (peut être `null`).
+ * @param input.descriptionText Nouvelle description (peut être `null`).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function reactivateJobWithContent(input: {
   id: string;
   title: string | null;

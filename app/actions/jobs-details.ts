@@ -18,6 +18,14 @@ import {
   logActionError,
 } from "./_shared";
 
+/**
+ * Met à jour le titre et l'entreprise d'une candidature.
+ *
+ * @param id Identifiant de la candidature.
+ * @param title Nouveau titre — chaîne vide acceptée (efface le champ).
+ * @param companyName Nouvelle entreprise — chaîne vide acceptée.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
 export async function updateJobDetails(
   id: string,
   title: string,
@@ -49,6 +57,15 @@ export async function updateJobDetails(
   }
 }
 
+/**
+ * Met à jour les notes libres d'une candidature.
+ *
+ * @param id Identifiant de la candidature.
+ * @param notes Nouveau contenu — chaîne vide acceptée (efface le champ),
+ * max `NOTES_MAX_LENGTH` caractères (lib/validation.ts).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (dépassement de longueur),
+ * `INTERNAL_ERROR`.
+ */
 export async function updateJobNotes(
   id: string,
   notes: string
@@ -76,6 +93,16 @@ export async function updateJobNotes(
   }
 }
 
+/**
+ * Met à jour la rémunération d'une candidature.
+ *
+ * @param id Identifiant de la candidature.
+ * @param salaryAmount Montant entier positif, ou `null` pour effacer.
+ * @param salaryType `ANNUAL` | `DAILY_RATE`, ou `null` si `salaryAmount`
+ * est `null`.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (montant ≤ 0, type
+ * inconnu), `INTERNAL_ERROR`.
+ */
 export async function updateJobSalary(
   id: string,
   salaryAmount: number | null,
@@ -107,6 +134,17 @@ export async function updateJobSalary(
   }
 }
 
+/**
+ * Met à jour les liens vers le CV et la lettre de motivation d'une
+ * candidature. Ce sont des URLs stockées telles quelles — aucun fichier
+ * n'est jamais uploadé sur le serveur.
+ *
+ * @param id Identifiant de la candidature.
+ * @param resumeUrl URL du CV — chaîne vide acceptée (efface le champ).
+ * @param coverLetterUrl URL de la lettre — chaîne vide acceptée.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (URL malformée),
+ * `INTERNAL_ERROR`.
+ */
 export async function updateJobDocuments(
   id: string,
   resumeUrl: string,
@@ -138,6 +176,14 @@ export async function updateJobDocuments(
   }
 }
 
+/**
+ * Met à jour la date d'entretien d'une candidature.
+ *
+ * @param id Identifiant de la candidature.
+ * @param interviewDate Chaîne de date ISO parsable, ou `null` pour effacer.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (date non parsable),
+ * `INTERNAL_ERROR`.
+ */
 export async function updateJobInterviewDate(
   id: string,
   interviewDate: string | null
