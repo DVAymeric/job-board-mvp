@@ -18,6 +18,16 @@ export default function RegisterPage() {
             Se connecter
           </Link>
         </p>
+        <p className="text-xs text-muted-foreground">
+          En créant un compte, tu acceptes notre{" "}
+          <Link
+            href="/confidentialite"
+            className="text-primary underline underline-offset-2"
+          >
+            politique de confidentialité
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

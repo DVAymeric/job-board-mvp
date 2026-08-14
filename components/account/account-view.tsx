@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
@@ -24,6 +25,12 @@ export function AccountView({ email }: { email: string }) {
     <div className="flex max-w-lg flex-col gap-4">
       <h1 className="font-heading text-xl text-heading">Mon compte</h1>
       <p className="text-sm text-muted-foreground">{email}</p>
+      <Link
+        href="/confidentialite"
+        className="self-start text-sm text-primary underline underline-offset-2"
+      >
+        Politique de confidentialité
+      </Link>
 
       <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 p-3">
         <p className="text-sm font-medium text-heading">Zone dangereuse</p>
