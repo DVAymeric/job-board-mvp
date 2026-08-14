@@ -60,8 +60,8 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Unit tests
-        run: npx vitest run
+      - name: Unit tests (avec couverture, seuil 70% — JOB-106)
+        run: npm run test:coverage
 
   e2e:
     name: Tests E2E (Playwright)
