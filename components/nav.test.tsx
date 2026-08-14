@@ -103,6 +103,18 @@ describe("Nav — état de session", () => {
   });
 });
 
+describe("Nav — pas de débordement horizontal de la page (JOB-100)", () => {
+  it("lets the header scroll internally instead of forcing the whole page wider", () => {
+    // Wordmark + 5 liens + 3 boutons d'action ne tiennent pas sur 320px de
+    // large : sans ce scroll interne, c'est le <header> qui forçait un
+    // débordement horizontal de la page entière (observé en navigateur à
+    // 320px avant ce fix — scrollWidth 887 vs clientWidth 320).
+    render(<Nav session={session} />);
+    const header = screen.getByRole("banner");
+    expect(header).toHaveClass("overflow-x-auto");
+  });
+});
+
 describe("Nav — prefetch des liens protégés (JOB-131)", () => {
   it("disables prefetch on links to protected routes, to avoid a background prefetch resurrecting the session cookie right after logout", () => {
     render(<Nav session={session} />);

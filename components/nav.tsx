@@ -49,7 +49,11 @@ export function Nav({ session }: { session: Session | null }) {
   }
 
   return (
-    <header className="flex items-center gap-4 border-b border-border bg-white px-4 py-3">
+    <header className="flex items-center gap-4 overflow-x-auto border-b border-border bg-white px-4 py-3">
+      {/* overflow-x-auto (JOB-100) : le nombre d'items (wordmark + 5 liens +
+          3 boutons d'action) dépasse 320px de large avant tout contenu de
+          page — sans ceci, c'est le <header>, pas le contenu, qui forçait un
+          scroll horizontal sur toute la page à cette largeur. */}
       <span className="mr-2 flex items-center gap-2 font-heading text-base font-bold text-heading">
         <span className="size-2 rounded-full bg-primary" />
         JobTracker
