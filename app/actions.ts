@@ -9,6 +9,7 @@ import { JobStatus, STATUS } from "@/lib/constants";
 import { scrapeJobMetadata, type ScrapedJobMetadata } from "@/lib/scraper";
 import { safeFetch } from "@/lib/safe-fetch";
 import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
 import { buildJobsCsv } from "@/lib/csv-export";
 import { backupFileSchema, buildBackupFile } from "@/lib/backup";
@@ -44,6 +45,29 @@ type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 function firstIssueMessage(error: z.ZodError, fallback: string): string {
   return error.issues[0]?.message || fallback;
+}
+
+/**
+ * Logue l'erreur réelle avant qu'un `catch` ne la remplace par le message
+ * générique renvoyé à l'utilisateur (JOB-88). `userId` uniquement quand un
+ * contexte authentifié vérifié est disponible (jamais fourni par le client).
+ */
+function logActionError(
+  action: string,
+  error: unknown,
+  context?: { userId?: string },
+  level: "error" | "warn" = "error"
+) {
+  const fields = {
+    action,
+    error: error instanceof Error ? error.message : String(error),
+    ...(context?.userId ? { userId: context.userId } : {}),
+  };
+  if (level === "warn") {
+    logger.warn("action.failed", fields);
+  } else {
+    logger.error("action.failed", fields);
+  }
 }
 
 /**
@@ -99,7 +123,8 @@ export async function checkJobUrl(
       return { ok: true, data: { found: true, job } };
     }
     return { ok: true, data: { found: false, normalizedUrl: url } };
-  } catch {
+  } catch (error) {
+    logActionError("checkJobUrl", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de vérifier cette offre" };
   }
 }
@@ -147,7 +172,8 @@ async function logoUrlResolves(url: string): Promise<boolean> {
       response.ok &&
       (response.headers.get("content-type") ?? "").startsWith("image/")
     );
-  } catch {
+  } catch (error) {
+    logActionError("fetchCompanyLogo", error, undefined, "warn");
     return false;
   }
 }
@@ -229,6 +255,7 @@ export async function createJob(input: {
     ) {
       return { ok: false, error: "Cette offre a déjà été enregistrée" };
     }
+    logActionError("createJob", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'enregistrer cette offre" };
   }
 }
@@ -259,7 +286,8 @@ export async function checkRepost(id: string): Promise<
     job = await prisma.job.findUnique({
       where: jobOwnerWhere(parsed.data.id, auth.user.id),
     });
-  } catch {
+  } catch (error) {
+    logActionError("checkRepost", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de vérifier cette offre" };
   }
   if (!job) {
@@ -314,7 +342,8 @@ export async function reactivateJobWithContent(input: {
     revalidatePath("/board");
     revalidatePath("/archives");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("reactivateJobWithContent", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de réactiver l'offre" };
   }
 }
@@ -343,7 +372,8 @@ export async function updateJobStatus(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateJobStatus", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de mettre à jour le statut" };
   }
 }
@@ -368,7 +398,8 @@ export async function markFollowUpToday(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("markFollowUpToday", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de mettre à jour la relance" };
   }
 }
@@ -398,7 +429,8 @@ export async function updateJobDetails(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateJobDetails", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de mettre à jour l'offre" };
   }
 }
@@ -424,7 +456,8 @@ export async function updateJobNotes(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateJobNotes", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'enregistrer les notes" };
   }
 }
@@ -454,7 +487,8 @@ export async function updateJobSalary(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateJobSalary", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'enregistrer le salaire" };
   }
 }
@@ -484,7 +518,8 @@ export async function updateJobDocuments(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateJobDocuments", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'enregistrer les documents" };
   }
 }
@@ -514,7 +549,8 @@ export async function updateJobInterviewDate(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateJobInterviewDate", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'enregistrer la date d'entretien" };
   }
 }
@@ -535,7 +571,8 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
     revalidatePath("/board");
     revalidatePath("/archives");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("deleteJob", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de supprimer l'offre" };
   }
 }
@@ -559,7 +596,8 @@ export async function archiveJob(id: string): Promise<ActionResult<null>> {
     revalidatePath("/board");
     revalidatePath("/archives");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("archiveJob", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'archiver l'offre" };
   }
 }
@@ -583,7 +621,8 @@ export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
     revalidatePath("/board");
     revalidatePath("/archives");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("unarchiveJob", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de désarchiver l'offre" };
   }
 }
@@ -615,7 +654,8 @@ export async function reorderJobs(
     );
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("reorderJobs", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de réordonner les candidatures" };
   }
 }
@@ -661,7 +701,8 @@ export async function addTagToJob(
       ok: true,
       data: { tag: { id: tag.id, userId: tag.userId, name: tag.name } },
     };
-  } catch {
+  } catch (error) {
+    logActionError("addTagToJob", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'ajouter ce tag" };
   }
 }
@@ -695,7 +736,8 @@ export async function removeTagFromJob(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("removeTagFromJob", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de retirer ce tag" };
   }
 }
@@ -743,7 +785,8 @@ export async function addContact(
     });
     revalidatePath("/board");
     return { ok: true, data: { contact } };
-  } catch {
+  } catch (error) {
+    logActionError("addContact", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible d'ajouter ce contact" };
   }
 }
@@ -773,7 +816,8 @@ export async function updateContact(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("updateContact", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de modifier ce contact" };
   }
 }
@@ -797,7 +841,8 @@ export async function deleteContact(
     });
     revalidatePath("/board");
     return { ok: true, data: null };
-  } catch {
+  } catch (error) {
+    logActionError("deleteContact", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de supprimer ce contact" };
   }
 }
@@ -813,7 +858,8 @@ export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
       orderBy: { createdAt: "asc" },
     });
     return { ok: true, data: { csv: buildJobsCsv(jobs) } };
-  } catch {
+  } catch (error) {
+    logActionError("exportJobsCsv", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de générer l'export CSV" };
   }
 }
@@ -840,7 +886,8 @@ export async function exportBackupJson(): Promise<ActionResult<{ json: string }>
     ]);
     const backup = buildBackupFile(jobs, tags);
     return { ok: true, data: { json: JSON.stringify(backup, null, 2) } };
-  } catch {
+  } catch (error) {
+    logActionError("exportBackupJson", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de générer la sauvegarde" };
   }
 }
@@ -854,7 +901,8 @@ export async function importBackupJson(
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(rawJson);
-  } catch {
+  } catch (error) {
+    logActionError("importBackupJson.parse", error, { userId: auth.user.id });
     return { ok: false, error: "Fichier JSON illisible" };
   }
 
@@ -930,7 +978,8 @@ export async function importBackupJson(
     revalidatePath("/archives");
     revalidatePath("/analytics");
     return { ok: true, data: { importedJobs: backup.jobs.length } };
-  } catch {
+  } catch (error) {
+    logActionError("importBackupJson", error, { userId: auth.user.id });
     return { ok: false, error: "Impossible de restaurer la sauvegarde" };
   }
 }
