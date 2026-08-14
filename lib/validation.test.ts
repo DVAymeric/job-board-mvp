@@ -385,6 +385,51 @@ describe("updateContactSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts an omitted linkedinUrl", () => {
+    const result = updateContactSchema.safeParse({
+      contactId: "contact-1",
+      name: "Jane Doe",
+      role: "OTHER",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a missing contactId", () => {
+    const result = updateContactSchema.safeParse({
+      name: "Jane Doe",
+      role: "MANAGER",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing name", () => {
+    const result = updateContactSchema.safeParse({
+      contactId: "contact-1",
+      name: "  ",
+      role: "MANAGER",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects an invalid role", () => {
+    const result = updateContactSchema.safeParse({
+      contactId: "contact-1",
+      name: "Jane Doe",
+      role: "CEO",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a malformed linkedinUrl", () => {
+    const result = updateContactSchema.safeParse({
+      contactId: "contact-1",
+      name: "Jane Doe",
+      role: "MANAGER",
+      linkedinUrl: "not a url",
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("deleteContactSchema", () => {
