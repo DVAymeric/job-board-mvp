@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import type { JobWithRelations } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import {
   Select,
@@ -16,11 +18,12 @@ import { CompanyAvatar } from "@/components/board/company-avatar";
 import { STATUS_CONFIG, JobStatus } from "@/lib/constants";
 import { matchesJobQuery } from "@/lib/job-filters";
 import { deleteJob, unarchiveJob } from "@/app/actions";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type SortOption = "recent" | "title";
 
-function ArchivedJobRow({
+function ArchivedJobCard({
   job,
   onUnarchived,
   onDeleted,
@@ -54,37 +57,59 @@ function ArchivedJobRow({
     job.title || job.companyName || job.url.replace(/^https?:\/\//, "");
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3">
-      <CompanyAvatar job={job} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-heading text-sm text-heading">{displayName}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {STATUS_CONFIG[job.status as JobStatus]?.label ?? job.status} — archivée le{" "}
-          {new Date(job.updatedAt).toLocaleDateString("fr-FR")}
+    <Card
+      className={cn(
+        "border-l-4 opacity-80 saturate-[0.6] grayscale-[0.15] transition-[opacity,filter] duration-150 ease-out hover:opacity-100 hover:saturate-100 hover:grayscale-0 focus-within:opacity-100 focus-within:saturate-100 focus-within:grayscale-0 motion-reduce:transition-none",
+        STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName
+      )}
+    >
+      <CardContent className="space-y-2">
+        <div className="flex items-start gap-2">
+          <CompanyAvatar job={job} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-heading text-sm leading-snug text-heading">
+              {displayName}
+            </p>
+            {job.title && job.companyName && (
+              <p className="truncate text-xs text-muted-foreground">
+                {job.companyName}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge className={STATUS_CONFIG[job.status as JobStatus]?.badgeClassName}>
+            {STATUS_CONFIG[job.status as JobStatus]?.label ?? job.status}
+          </Badge>
+        </div>
+        <p className="font-mono text-xs text-muted-foreground">
+          Archivée le {new Date(job.updatedAt).toLocaleDateString("fr-FR")}
         </p>
-      </div>
-      <Button variant="outline" size="sm" onClick={handleUnarchive}>
-        Désarchiver
-      </Button>
-      <ConfirmDeleteModal
-        trigger={
-          <Button variant="ghost" size="sm" className="text-destructive">
-            Supprimer définitivement
+        <div className="flex items-center gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={handleUnarchive}>
+            Désarchiver
           </Button>
-        }
-        title="Supprimer cette candidature ?"
-        description={
-          <>
-            Cette action efface définitivement{" "}
-            {job.title && job.companyName
-              ? `${job.title} chez ${job.companyName}`
-              : displayName}{" "}
-            et ne peut pas être annulée.
-          </>
-        }
-        onConfirm={handlePermanentDelete}
-      />
-    </div>
+          <ConfirmDeleteModal
+            trigger={
+              <Button variant="ghost" size="sm" className="text-destructive">
+                Supprimer définitivement
+              </Button>
+            }
+            title="Supprimer cette candidature ?"
+            description={
+              <>
+                Cette action efface définitivement{" "}
+                {job.title && job.companyName
+                  ? `${job.title} chez ${job.companyName}`
+                  : displayName}{" "}
+                et ne peut pas être annulée.
+              </>
+            }
+            onConfirm={handlePermanentDelete}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -146,9 +171,9 @@ export function ArchivesView({
             : "Aucune candidature ne correspond"}
         </p>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visibleJobs.map((job) => (
-            <ArchivedJobRow
+            <ArchivedJobCard
               key={job.id}
               job={job}
               onUnarchived={(id) => setJobs((prev) => prev.filter((j) => j.id !== id))}
