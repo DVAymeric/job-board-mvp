@@ -46,3 +46,51 @@ jobs:
 
       - name: Unit tests
         run: npx vitest run
+
+  e2e:
+    name: Tests E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: jobtracker
+          POSTGRES_PASSWORD: jobtracker
+          POSTGRES_DB: jobtracker
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U jobtracker"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: "postgresql://jobtracker:jobtracker@localhost:5432/jobtracker"
+      # Secret de signature JWT jetable, propre à ce run de CI — aucune
+      # donnée réelle n'est en jeu (Postgres du job est lui aussi éphémère).
+      AUTH_SECRET: "ci-e2e-ephemeral-signing-secret-not-for-production-use"
+      # `next start` tourne en NODE_ENV=production sans plateforme connue
+      # (pas de VERCEL=1) : Auth.js n'y fait pas confiance à l'origine
+      # localhost par défaut sans cet opt-in explicite.
+      AUTH_TRUST_HOST: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run E2E tests
+        run: npm run test:e2e
