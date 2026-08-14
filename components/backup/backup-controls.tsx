@@ -16,7 +16,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { exportBackupJson, importBackupJson } from "@/app/actions";
+import { MAX_BACKUP_FILE_SIZE_BYTES } from "@/lib/backup";
 import { toast } from "sonner";
+
+const MAX_BACKUP_FILE_SIZE_MB = MAX_BACKUP_FILE_SIZE_BYTES / (1024 * 1024);
 
 const REPLACE_CONFIRM_PHRASE = "REMPLACER";
 
@@ -54,6 +57,12 @@ export function BackupControls() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (file.size > MAX_BACKUP_FILE_SIZE_BYTES) {
+      toast.error(
+        `Fichier trop volumineux (${MAX_BACKUP_FILE_SIZE_MB} Mo max)`
+      );
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       setPendingImport({ fileName: file.name, content: String(reader.result ?? "") });

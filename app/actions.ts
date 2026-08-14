@@ -12,7 +12,11 @@ import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
 import { buildJobsCsv } from "@/lib/csv-export";
-import { backupFileSchema, buildBackupFile } from "@/lib/backup";
+import {
+  backupFileSchema,
+  buildBackupFile,
+  MAX_BACKUP_FILE_SIZE_BYTES,
+} from "@/lib/backup";
 import {
   buildBrandfetchLogoUrl,
   buildClearbitLogoUrl,
@@ -897,6 +901,13 @@ export async function importBackupJson(
 ): Promise<ActionResult<{ importedJobs: number }>> {
   const auth = await requireUser();
   if (!auth.ok) return auth;
+
+  if (rawJson.length > MAX_BACKUP_FILE_SIZE_BYTES) {
+    return {
+      ok: false,
+      error: `Fichier trop volumineux (${MAX_BACKUP_FILE_SIZE_BYTES / (1024 * 1024)} Mo max)`,
+    };
+  }
 
   let parsedJson: unknown;
   try {
