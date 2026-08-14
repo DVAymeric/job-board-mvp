@@ -2,6 +2,20 @@ import type { Job } from "@prisma/client";
 
 export const FOLLOW_UP_DAYS = 7;
 
+/**
+ * Garde-fous sur les requêtes findMany non bornées (JOB-86). Pas de vraie
+ * pagination : /board est un Kanban drag-and-drop (paginer casserait le
+ * glisser-déposer entre colonnes) et /archives a une recherche côté client
+ * sur la liste déjà chargée (paginer réduirait la recherche à la page
+ * visible — la déplacer côté serveur serait un changement plus large, hors
+ * périmètre ici). Ces seuils protègent seulement contre une croissance
+ * pathologique (import massif, bug) : un usage personnel normal ne les
+ * approche jamais. /analytics reste volontairement non borné ici — traité
+ * séparément en passant ses agrégations côté DB (JOB-92).
+ */
+export const BOARD_JOBS_SAFETY_LIMIT = 500;
+export const ARCHIVED_JOBS_SAFETY_LIMIT = 1000;
+
 export const STATUS = {
   TO_APPLY: "TO_APPLY",
   APPLIED: "APPLIED",
