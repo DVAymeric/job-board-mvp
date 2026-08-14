@@ -43,7 +43,11 @@ describe("registerUser", () => {
       email: "not-an-email",
       password: "correct horse battery staple",
     });
-    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(result).toEqual({
+      ok: false,
+      error: expect.any(String),
+      code: "VALIDATION_ERROR",
+    });
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
@@ -52,7 +56,11 @@ describe("registerUser", () => {
       email: "jane@example.com",
       password: "short",
     });
-    expect(result).toEqual({ ok: false, error: expect.any(String) });
+    expect(result).toEqual({
+      ok: false,
+      error: expect.any(String),
+      code: "VALIDATION_ERROR",
+    });
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
 
@@ -74,6 +82,7 @@ describe("registerUser", () => {
     expect(result).toEqual({
       ok: false,
       error: "Un compte existe déjà avec cet email",
+      code: "CONFLICT",
     });
     expect(prisma.user.create).not.toHaveBeenCalled();
   });
@@ -120,6 +129,7 @@ describe("deleteAccount", () => {
     vi.mocked(requireUser).mockResolvedValue({
       ok: false,
       error: "Vous devez être connecté pour effectuer cette action.",
+      code: "UNAUTHENTICATED",
     });
 
     const result = await deleteAccount();
@@ -127,6 +137,7 @@ describe("deleteAccount", () => {
     expect(result).toEqual({
       ok: false,
       error: "Vous devez être connecté pour effectuer cette action.",
+      code: "UNAUTHENTICATED",
     });
     expect(prisma.user.delete).not.toHaveBeenCalled();
     expect(signOut).not.toHaveBeenCalled();
@@ -158,6 +169,7 @@ describe("deleteAccount", () => {
     expect(result).toEqual({
       ok: false,
       error: "Impossible de supprimer le compte",
+      code: "INTERNAL_ERROR",
     });
     expect(signOut).not.toHaveBeenCalled();
   });

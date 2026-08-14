@@ -50,6 +50,7 @@ describe("rate limiting (JOB-81)", () => {
       expect(lastResult!.ok).toBe(false);
       if (!lastResult!.ok) {
         expect(lastResult!.error).toMatch(/trop de requêtes/i);
+        expect(lastResult!.code).toBe("RATE_LIMITED");
       }
     });
 
@@ -89,6 +90,7 @@ describe("rate limiting (JOB-81)", () => {
       expect(lastResult!.ok).toBe(false);
       if (!lastResult!.ok) {
         expect(lastResult!.error).toMatch(/trop de requêtes/i);
+        expect(lastResult!.code).toBe("RATE_LIMITED");
       }
     });
   });

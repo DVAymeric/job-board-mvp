@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import type { ActionErrorCode } from "@/lib/types";
 
 export type CurrentUser = { id: string; email: string; name: string | null };
 
@@ -16,11 +17,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 export async function requireUser(): Promise<
-  { ok: true; user: CurrentUser } | { ok: false; error: string }
+  | { ok: true; user: CurrentUser }
+  | { ok: false; error: string; code: ActionErrorCode }
 > {
   const user = await getCurrentUser();
   if (!user) {
-    return { ok: false, error: UNAUTHENTICATED_ERROR };
+    return { ok: false, error: UNAUTHENTICATED_ERROR, code: "UNAUTHENTICATED" };
   }
   return { ok: true, user };
 }

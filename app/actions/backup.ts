@@ -9,7 +9,7 @@ import {
   buildBackupFile,
   MAX_BACKUP_FILE_SIZE_BYTES,
 } from "@/lib/backup";
-import { type ActionResult, logActionError } from "./_shared";
+import { actionError, type ActionResult, logActionError } from "./_shared";
 
 export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
   const auth = await requireUser();
@@ -24,7 +24,7 @@ export async function exportJobsCsv(): Promise<ActionResult<{ csv: string }>> {
     return { ok: true, data: { csv: buildJobsCsv(jobs) } };
   } catch (error) {
     logActionError("exportJobsCsv", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de générer l'export CSV" };
+    return actionError("INTERNAL_ERROR", "Impossible de générer l'export CSV");
   }
 }
 
@@ -52,7 +52,7 @@ export async function exportBackupJson(): Promise<ActionResult<{ json: string }>
     return { ok: true, data: { json: JSON.stringify(backup, null, 2) } };
   } catch (error) {
     logActionError("exportBackupJson", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de générer la sauvegarde" };
+    return actionError("INTERNAL_ERROR", "Impossible de générer la sauvegarde");
   }
 }
 
@@ -63,10 +63,10 @@ export async function importBackupJson(
   if (!auth.ok) return auth;
 
   if (rawJson.length > MAX_BACKUP_FILE_SIZE_BYTES) {
-    return {
-      ok: false,
-      error: `Fichier trop volumineux (${MAX_BACKUP_FILE_SIZE_BYTES / (1024 * 1024)} Mo max)`,
-    };
+    return actionError(
+      "VALIDATION_ERROR",
+      `Fichier trop volumineux (${MAX_BACKUP_FILE_SIZE_BYTES / (1024 * 1024)} Mo max)`
+    );
   }
 
   let parsedJson: unknown;
@@ -74,15 +74,12 @@ export async function importBackupJson(
     parsedJson = JSON.parse(rawJson);
   } catch (error) {
     logActionError("importBackupJson.parse", error, { userId: auth.user.id });
-    return { ok: false, error: "Fichier JSON illisible" };
+    return actionError("VALIDATION_ERROR", "Fichier JSON illisible");
   }
 
   const parsed = backupFileSchema.safeParse(parsedJson);
   if (!parsed.success) {
-    return {
-      ok: false,
-      error: "Structure du fichier de sauvegarde invalide",
-    };
+    return actionError("VALIDATION_ERROR", "Structure du fichier de sauvegarde invalide");
   }
   const backup = parsed.data;
 
@@ -151,6 +148,6 @@ export async function importBackupJson(
     return { ok: true, data: { importedJobs: backup.jobs.length } };
   } catch (error) {
     logActionError("importBackupJson", error, { userId: auth.user.id });
-    return { ok: false, error: "Impossible de restaurer la sauvegarde" };
+    return actionError("INTERNAL_ERROR", "Impossible de restaurer la sauvegarde");
   }
 }
