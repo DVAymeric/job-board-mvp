@@ -16,6 +16,21 @@ export default async function AnalyticsPage() {
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
+  // Agrégation en mémoire, volontairement : spike JOB-92 conclu sans
+  // refactor. Le funnel (computeStatusFunnel) doit dédupliquer par job les
+  // statuts atteints (un job peut repasser deux fois par un même statut,
+  // sans le recompter) — ça exige `COUNT(DISTINCT jobId)` par statut, que
+  // l'API typée de Prisma (`groupBy`) ne sait pas exprimer. La heatmap et le
+  // mois le plus actif regroupent par jour/mois, une troncature de date que
+  // Prisma ne fait pas nativement non plus. Les deux nécessiteraient du SQL
+  // brut pour gagner quoi que ce soit — et comme funnel/heatmap/mois ont de
+  // toute façon besoin du détail ligne par ligne, cette requête (déjà scopée
+  // par userId, déjà un select minimal, déjà plafonnée par le garde-fou
+  // findMany à venir si besoin) resterait incontournable : y ajouter des
+  // groupBy Prisma en plus n'économiserait aucun aller-retour, seulement de
+  // la complexité. À l'échelle d'un tracker personnel (des centaines de
+  // lignes par utilisateur, pas des millions), le coût réel de ce calcul en
+  // JS est négligeable.
   const jobs = await prisma.job.findMany({
     where: { userId },
     select: {
