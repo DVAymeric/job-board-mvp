@@ -10,6 +10,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-dev-artifacts:
+    name: Vérifier l'absence d'artefacts dev versionnés
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Aucun fichier de DB SQLite ou de log de dev versionné (JOB-60)
+        run: |
+          matches=$(git ls-files | grep -E '\.(db|db-journal|sqlite|sqlite3)$|(^|/)(npm|yarn|pnpm)-(debug|error)\.log' || true)
+          if [ -n "$matches" ]; then
+            echo "::error::Artefacts de dev versionnés détectés (voir JOB-60) :"
+            echo "$matches"
+            exit 1
+          fi
+          echo "OK : aucun artefact de dev versionné."
+
   test:
     name: Lint, typecheck & tests
     runs-on: ubuntu-latest
