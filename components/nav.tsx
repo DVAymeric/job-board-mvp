@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleUser, FileDown, Loader2, LogOut } from "lucide-react";
 import type { Session } from "next-auth";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { BackupControls } from "@/components/backup/backup-controls";
 import { exportJobsCsv } from "@/app/actions";
 import { logoutAction } from "@/app/auth-actions";
@@ -82,21 +82,6 @@ export function Nav({ session }: { session: Session | null }) {
             {link.label}
           </Link>
         ))}
-        {session?.user && (
-          <Link
-            href="/account"
-            prefetch={false}
-            className={cn(
-              "flex items-center gap-1.5 border-b-2 border-transparent py-1 text-sm font-medium transition-colors hover:text-heading",
-              pathname === "/account"
-                ? "border-primary text-heading"
-                : "text-muted-foreground"
-            )}
-          >
-            <CircleUser className="size-4" />
-            Mon compte
-          </Link>
-        )}
       </nav>
       {showExportImport && (
         <>
@@ -106,6 +91,19 @@ export function Nav({ session }: { session: Session | null }) {
           </Button>
           <BackupControls />
         </>
+      )}
+      {session?.user && (
+        <Link
+          href="/account"
+          prefetch={false}
+          aria-label="Mon compte"
+          className={cn(
+            buttonVariants({ variant: "ghost", size: "icon-sm" }),
+            pathname === "/account" && "text-primary"
+          )}
+        >
+          <CircleUser />
+        </Link>
       )}
       {session?.user && (
         <form action={logoutAction}>
