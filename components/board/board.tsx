@@ -274,6 +274,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
                   .filter((j) => j.status === status)
                   .sort((a, b) => a.order - b.order)}
                 onOpenJob={setSelectedJobId}
+                onDeletedJob={handleDeleted}
                 focusedJobId={focusedJobId}
               />
             ))}

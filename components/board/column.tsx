@@ -11,11 +11,13 @@ export function Column({
   status,
   jobs,
   onOpenJob,
+  onDeletedJob,
   focusedJobId,
 }: {
   status: JobStatus;
   jobs: JobWithRelations[];
   onOpenJob: (id: string) => void;
+  onDeletedJob?: (id: string) => void;
   focusedJobId?: string | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -58,6 +60,7 @@ export function Column({
               key={job.id}
               job={job}
               onOpen={onOpenJob}
+              onDeleted={onDeletedJob}
               focused={job.id === focusedJobId}
             />
           ))}

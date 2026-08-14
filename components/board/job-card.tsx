@@ -3,17 +3,23 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Job } from "@prisma/client";
+import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { CompanyAvatar } from "@/components/board/company-avatar";
 import {
   FOLLOW_UP_BADGE_CLASSNAME,
   needsFollowUp,
+  STATUS,
   STATUS_CONFIG,
   JobStatus,
 } from "@/lib/constants";
 import type { JobWithRelations } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { deleteJob } from "@/app/actions";
+import { toast } from "sonner";
 
 function getDisplayTitle(job: Job): string {
   if (job.title) return job.title;
@@ -28,10 +34,12 @@ function getDisplayTitle(job: Job): string {
 export function JobCard({
   job,
   onOpen,
+  onDeleted,
   focused = false,
 }: {
   job: JobWithRelations;
   onOpen: (id: string) => void;
+  onDeleted?: (id: string) => void;
   focused?: boolean;
 }) {
   const {
@@ -48,6 +56,19 @@ export function JobCard({
     transition,
   };
 
+  const displayName = getDisplayTitle(job);
+
+  async function handleDelete(): Promise<boolean> {
+    const result = await deleteJob(job.id);
+    if (!result.ok) {
+      toast.error(result.error);
+      return false;
+    }
+    onDeleted?.(job.id);
+    toast.success("Candidature supprimée");
+    return true;
+  }
+
   return (
     <Card
       ref={setNodeRef}
@@ -57,8 +78,14 @@ export function JobCard({
       aria-current={focused || undefined}
       onClick={() => onOpen(job.id)}
       className={cn(
-        "cursor-grab touch-none select-none border-l-4 active:cursor-grabbing",
+        "cursor-grab touch-none select-none border-l-4 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:cursor-grabbing motion-reduce:transition-none",
+        "hover:-translate-y-0.5 hover:shadow-md",
         STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName,
+        // Liseré plus marqué pour Entretien ; traitement assourdi pour Refusé
+        // (JOB-95) — étend accentBorderLeftClassName plutôt que d'introduire
+        // un nouveau composant.
+        job.status === STATUS.INTERVIEW && "border-l-8",
+        job.status === STATUS.REJECTED && "opacity-75 saturate-50 hover:opacity-100 hover:saturate-100",
         isDragging && "z-10 opacity-60",
         focused && "ring-2 ring-ring ring-offset-2 ring-offset-background"
       )}
@@ -66,13 +93,54 @@ export function JobCard({
       <CardContent className="space-y-2">
         <div className="flex items-start gap-2">
           <CompanyAvatar job={job} />
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-heading text-sm leading-snug text-heading">
-              {getDisplayTitle(job)}
+              {displayName}
             </p>
             {job.title && job.companyName && (
               <p className="text-xs text-muted-foreground">{job.companyName}</p>
             )}
+          </div>
+          {/* Actions rapides (JOB-96) : masquées par défaut, révélées au
+              survol de la carte ou au focus clavier (Tab), sans passer par
+              JobDialog. Le clic est intercepté (stopPropagation) pour ne pas
+              aussi déclencher l'ouverture de la carte. */}
+          <div
+            className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover/card:opacity-100 focus-within:opacity-100"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Modifier"
+              onClick={() => onOpen(job.id)}
+            >
+              <Pencil />
+            </Button>
+            <ConfirmDeleteModal
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Supprimer définitivement"
+                  className="text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 />
+                </Button>
+              }
+              title="Supprimer cette candidature ?"
+              description={
+                <>
+                  Cette action efface définitivement{" "}
+                  {job.title && job.companyName
+                    ? `${job.title} chez ${job.companyName}`
+                    : displayName}{" "}
+                  et ne peut pas être annulée.
+                </>
+              }
+              onConfirm={handleDelete}
+            />
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
