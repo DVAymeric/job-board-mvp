@@ -81,6 +81,17 @@ describe("scrapeJobMetadata", () => {
     );
   });
 
+  it("returns the empty result when both strategies find nothing, preserving the manual-fallback behavior (JOB-108)", async () => {
+    vi.mocked(fetchMetadataViaHttp).mockResolvedValue(EMPTY);
+    vi.mocked(fetchMetadataViaPlaywright).mockResolvedValue(EMPTY);
+
+    const result = await scrapeJobMetadata("https://example.com/job");
+
+    expect(fetchMetadataViaHttp).toHaveBeenCalled();
+    expect(fetchMetadataViaPlaywright).toHaveBeenCalled();
+    expect(result).toEqual(EMPTY);
+  });
+
   describe("SCRAPER_PLAYWRIGHT_ENABLED kill switch (JOB-65)", () => {
     const original = process.env.SCRAPER_PLAYWRIGHT_ENABLED;
 
