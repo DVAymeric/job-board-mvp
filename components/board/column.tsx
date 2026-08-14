@@ -41,6 +41,7 @@ export function Column({
       </div>
       <div
         ref={setNodeRef}
+        data-testid={`column-${status}`}
         className={cn(
           "flex flex-1 flex-col gap-2 rounded-lg border border-dashed border-border p-2 transition-colors",
           isOver && cn(accent.accentBorderClassName, "bg-muted/50")
