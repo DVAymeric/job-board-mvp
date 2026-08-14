@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
+import { auth } from "@/auth";
 import { Nav } from "@/components/nav";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
@@ -31,7 +32,8 @@ export const viewport: Viewport = {
   themeColor: "#4f1271",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await auth();
   return (
     <html
       lang="fr"
@@ -41,7 +43,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <ServiceWorkerRegistration />
-          <Nav />
+          <Nav session={session} />
           <div className="flex flex-1 flex-col">{children}</div>
           <Toaster />
         </ThemeProvider>

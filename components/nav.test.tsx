@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { Session } from "next-auth";
 import { Nav } from "@/components/nav";
 import { exportJobsCsv } from "@/app/actions";
 
@@ -15,9 +16,18 @@ vi.mock("@/app/actions", () => ({
   importBackupJson: vi.fn(),
 }));
 
+vi.mock("@/app/auth-actions", () => ({
+  logoutAction: vi.fn(),
+}));
+
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+const session: Session = {
+  user: { id: "user-1", email: "jane@example.com", name: null },
+  expires: "2099-01-01T00:00:00.000Z",
+};
 
 describe("Nav — export CSV", () => {
   beforeEach(() => {
@@ -33,7 +43,7 @@ describe("Nav — export CSV", () => {
       data: { csv: "﻿Titre,Entreprise\r\nDev,Acme" },
     });
 
-    render(<Nav />);
+    render(<Nav session={session} />);
     await user.click(screen.getByRole("button", { name: "Exporter CSV" }));
 
     expect(exportJobsCsv).toHaveBeenCalled();
@@ -49,10 +59,28 @@ describe("Nav — export CSV", () => {
       error: "Impossible de générer l'export CSV",
     });
 
-    render(<Nav />);
+    render(<Nav session={session} />);
     await user.click(screen.getByRole("button", { name: "Exporter CSV" }));
 
     expect(toast.error).toHaveBeenCalledWith("Impossible de générer l'export CSV");
     expect(global.URL.createObjectURL).not.toHaveBeenCalled();
+  });
+});
+
+describe("Nav — état de session", () => {
+  it("shows the logout button and the account link when authenticated", () => {
+    render(<Nav session={session} />);
+
+    expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Mon compte" })).toBeInTheDocument();
+  });
+
+  it("hides the logout button and the account link when anonymous", () => {
+    render(<Nav session={null} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Se déconnecter" })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Mon compte" })).not.toBeInTheDocument();
   });
 });
