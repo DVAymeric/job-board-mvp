@@ -22,10 +22,14 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
     : {
-        command: "npm run dev",
+        // En CI (JOB-71), on teste contre un serveur buildé (`next build` +
+        // `next start`) plutôt que le serveur de dev, pour se rapprocher du
+        // comportement de production. En local, `npm run dev` reste plus
+        // rapide à itérer dessus.
+        command: process.env.CI ? "npm run build && npm start" : "npm run dev",
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 60_000,
+        timeout: process.env.CI ? 180_000 : 60_000,
         env: {
           ...process.env,
           // Autorise le scraper à atteindre le serveur de fixtures HTML

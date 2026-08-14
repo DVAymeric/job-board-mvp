@@ -97,6 +97,12 @@ test.describe("Parcours critique du board (E2E, JOB-70)", () => {
     await expect(
       toApplyColumn.locator('[data-slot="card"]', { hasText: ORIGINAL_TITLE })
     ).toBeVisible();
+    // La carte est déjà dans le HTML rendu côté serveur, mais dnd-kit
+    // n'attache ses listeners de pointeur qu'après l'hydratation React :
+    // sans cette attente, le drag ci-dessous peut démarrer avant qu'ils ne
+    // soient posés (observé de façon intermittente contre un build de
+    // production, plus rapide à afficher que le JS n'est prêt).
+    await page.waitForLoadState("networkidle");
 
     // 3. Drag & drop vers la colonne "Postulé".
     await dragCardToColumn(page, ORIGINAL_TITLE, "column-APPLIED");
