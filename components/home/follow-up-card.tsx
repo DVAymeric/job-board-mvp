@@ -15,10 +15,10 @@ export function FollowUpCard({ summary }: FollowUpCardProps) {
       {summary.count > 0 ? (
         <span
           data-testid="follow-up-badge"
-          className="inline-flex items-center gap-1.5 self-start rounded-full bg-[#4a4063] px-2.5 py-1 font-mono text-xs text-white"
+          className="inline-flex items-center gap-1.5 self-start rounded-full bg-palette-encre px-2.5 py-1 font-mono text-xs text-white"
         >
           Sans réponse depuis{" "}
-          <strong className="text-[#f0c88a]">
+          <strong className="text-palette-miel">
             {summary.oldestDays} jour{summary.oldestDays !== 1 ? "s" : ""}
           </strong>{" "}
           · Postulé

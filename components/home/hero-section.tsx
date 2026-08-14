@@ -6,7 +6,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ children }: HeroSectionProps) {
   return (
-    <section className="relative isolate flex min-h-dvh flex-col justify-center overflow-hidden bg-[#0a0712] px-4 py-16 sm:py-24">
+    <section className="relative isolate flex min-h-dvh flex-col justify-center overflow-hidden bg-palette-abysse px-4 py-16 sm:py-24">
       <div
         aria-hidden="true"
         data-testid="hero-bg-image"
@@ -23,13 +23,13 @@ export function HeroSection({ children }: HeroSectionProps) {
         }}
       />
       <div className="relative z-10 flex w-full max-w-[640px] flex-col items-start gap-6 text-left">
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 font-mono text-xs uppercase tracking-widest text-[#bfacc8]">
-          <span className="size-1.5 rounded-full bg-[#7bab8a]" />
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 font-mono text-xs uppercase tracking-widest text-palette-poudre">
+          <span className="size-1.5 rounded-full bg-palette-mousse" />
           Local · zéro config · zéro cloud
         </span>
         <h1 className="font-heading text-xl text-white">
           Ne repostulez plus{" "}
-          <em className="text-[#c094d3] italic">deux fois</em> à la même
+          <em className="text-palette-lilas italic">deux fois</em> à la même
           offre.
         </h1>
         <p className="max-w-md text-sm text-white/70">

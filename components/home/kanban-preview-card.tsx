@@ -26,7 +26,7 @@ export function KanbanPreviewCard({ counts }: KanbanPreviewCardProps) {
               <span
                 data-testid={`kanban-bar-${status}`}
                 aria-hidden
-                className="h-2 rounded bg-[#bfacc8]"
+                className="h-2 rounded bg-palette-poudre"
                 style={{ width: `${width}%` }}
               />
               <span
