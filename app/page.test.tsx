@@ -68,7 +68,10 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
     });
   });
 
-  it("shows a pending-enrichment indicator when the job is created without a title yet", async () => {
+  it("shows no enrichment-status notification of any kind when the job is created without a title yet (PENDING)", async () => {
+    // Le panneau ne doit plus jamais afficher de texte/spinner lié à
+    // enrichmentStatus (ex-"récupération du titre en cours...") — la seule
+    // confirmation visible reste le toast "Candidature enregistrée".
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
@@ -86,9 +89,10 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
     );
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
-    expect(await screen.findByTestId("created-job-enriching")).toHaveTextContent(
-      /récupération du titre en cours/i
-    );
+    const card = await screen.findByTestId("created-job-card");
+    expect(card).not.toHaveTextContent(/récupération du titre/i);
+    expect(card).not.toHaveTextContent(/en cours/i);
+    expect(screen.queryByTestId("created-job-enriching")).not.toBeInTheDocument();
   });
 
   it("shows the resolved title directly when a title was already known at creation (e.g. bookmarklet fallback)", async () => {
@@ -111,7 +115,6 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
 
     const card = await screen.findByTestId("created-job-card");
     expect(card).toHaveTextContent("Développeur depuis LinkedIn");
-    expect(screen.queryByTestId("created-job-enriching")).not.toBeInTheDocument();
     expect(createJob).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Développeur depuis LinkedIn" })
     );

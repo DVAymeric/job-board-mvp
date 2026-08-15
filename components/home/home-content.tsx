@@ -24,12 +24,7 @@ type ViewState =
   | { kind: "checking" }
   | { kind: "error"; message: string }
   | { kind: "known"; job: Job }
-  | {
-      kind: "created";
-      title: string | null;
-      companyName: string | null;
-      enrichmentStatus: "PENDING" | "DONE";
-    };
+  | { kind: "created"; title: string | null; companyName: string | null };
 
 type RepostFresh = {
   title: string | null;
@@ -93,7 +88,6 @@ function HomeContentInner() {
       kind: "created",
       title: fallbackTitle || null,
       companyName: null,
-      enrichmentStatus: createResult.data.enrichmentStatus,
     });
   }, [url]);
 
@@ -248,20 +242,10 @@ function HomeContentInner() {
           data-testid="created-job-card"
           className="w-full max-w-lg space-y-2 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
         >
-          {view.enrichmentStatus === "PENDING" ? (
-            <p
-              data-testid="created-job-enriching"
-              className="flex items-center gap-2 text-sm font-medium"
-            >
-              <Loader2 className="size-4 animate-spin" />
-              Candidature ajoutée — récupération du titre en cours...
-            </p>
-          ) : (
-            <p className="text-sm font-medium">
-              Ajoutée : {view.title}
-              {view.companyName ? ` chez ${view.companyName}` : ""}
-            </p>
-          )}
+          <p className="text-sm font-medium">
+            Ajoutée{view.title ? ` : ${view.title}` : ""}
+            {view.companyName ? ` chez ${view.companyName}` : ""}
+          </p>
           <Link
             href="/board"
             className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
