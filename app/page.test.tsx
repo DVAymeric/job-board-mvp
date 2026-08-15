@@ -1,8 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Job } from "@prisma/client";
+import { toast } from "sonner";
 import Home from "@/components/home/home-content";
 import {
   checkJobUrl,
@@ -40,6 +41,7 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
   beforeEach(() => {
     vi.mocked(checkJobUrl).mockReset();
     vi.mocked(createJob).mockReset();
+    vi.mocked(toast.success).mockReset();
   });
 
   it("creates the job immediately after checkJobUrl, without waiting for any scraping call", async () => {
@@ -60,7 +62,6 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
     );
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
-    expect(await screen.findByTestId("created-job-card")).toBeInTheDocument();
     expect(createJob).toHaveBeenCalledWith({
       url: "https://example.com/job",
       title: undefined,
@@ -68,10 +69,10 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
     });
   });
 
-  it("shows no enrichment-status notification of any kind when the job is created without a title yet (PENDING)", async () => {
-    // Le panneau ne doit plus jamais afficher de texte/spinner lié à
-    // enrichmentStatus (ex-"récupération du titre en cours...") — la seule
-    // confirmation visible reste le toast "Candidature enregistrée".
+  it("shows no inline panel of any kind after creation — only the 'Candidature enregistrée' toast, and clears the input", async () => {
+    // Pas de panneau ("created-job-card" a été retiré) ni de notification
+    // liée à enrichmentStatus (ex-"récupération du titre en cours...") :
+    // la seule confirmation visible est le toast sonner.
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
@@ -83,19 +84,19 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
     });
 
     render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
+    const input = screen.getByPlaceholderText(/Colle l'URL/);
+    await user.type(input, "example.com/job");
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
-    const card = await screen.findByTestId("created-job-card");
-    expect(card).not.toHaveTextContent(/récupération du titre/i);
-    expect(card).not.toHaveTextContent(/en cours/i);
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Candidature enregistrée")
+    );
+    expect(input).toHaveValue("");
+    expect(screen.queryByTestId("created-job-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("created-job-enriching")).not.toBeInTheDocument();
   });
 
-  it("shows the resolved title directly when a title was already known at creation (e.g. bookmarklet fallback)", async () => {
+  it("passes the bookmarklet fallback title straight to createJob, without displaying it anywhere", async () => {
     vi.mocked(useSearchParams).mockReturnValue(
       new URLSearchParams({
         url: "https://example.com/careers/dev",
@@ -113,14 +114,14 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
 
     render(<Home />);
 
-    const card = await screen.findByTestId("created-job-card");
-    expect(card).toHaveTextContent("Développeur depuis LinkedIn");
-    expect(createJob).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Développeur depuis LinkedIn" })
+    await waitFor(() =>
+      expect(createJob).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Développeur depuis LinkedIn" })
+      )
     );
   });
 
-  it("shows an error when creation fails, without showing a created card", async () => {
+  it("shows an error when creation fails", async () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
@@ -141,7 +142,6 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
     expect(await screen.findByTestId("url-check-error")).toHaveTextContent(
       "Cette offre a déjà été enregistrée"
     );
-    expect(screen.queryByTestId("created-job-card")).not.toBeInTheDocument();
   });
 });
 
@@ -368,7 +368,7 @@ describe("Home — bookmarklet", () => {
       await screen.findByDisplayValue("https://example.com/careers/dev")
     ).toBeInTheDocument();
     expect(checkJobUrl).toHaveBeenCalledWith("https://example.com/careers/dev");
-    await screen.findByTestId("created-job-card");
+    await waitFor(() => expect(createJob).toHaveBeenCalled());
   });
 
   it("clears the query string once the bookmarklet url has been consumed", async () => {
@@ -392,7 +392,7 @@ describe("Home — bookmarklet", () => {
 
     render(<Home />);
 
-    await screen.findByTestId("created-job-card");
+    await waitFor(() => expect(createJob).toHaveBeenCalled());
     expect(replace).toHaveBeenCalledWith("/");
   });
 
@@ -423,29 +423,6 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
     const panel = await screen.findByTestId("known-job-card");
-    expect(panel.className).toContain("bg-white/10");
-    expect(panel.className).toContain("border-white/15");
-  });
-
-  it("renders the created panel with the hero's dark translucent card style", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: false, normalizedUrl: "https://example.com/job" },
-    });
-    vi.mocked(createJob).mockResolvedValue({
-      ok: true,
-      data: { id: "job-1", enrichmentStatus: "PENDING" },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    const panel = await screen.findByTestId("created-job-card");
     expect(panel.className).toContain("bg-white/10");
     expect(panel.className).toContain("border-white/15");
   });

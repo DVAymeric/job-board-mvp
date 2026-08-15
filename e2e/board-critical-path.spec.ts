@@ -88,7 +88,7 @@ test.describe("Parcours critique du board (E2E, JOB-70)", () => {
     await page.goto("/");
     await page.getByPlaceholder(URL_PLACEHOLDER).fill(`${fixtureServer.url}/static-title`);
     await page.getByPlaceholder(URL_PLACEHOLDER).press("Enter");
-    await expect(page.getByTestId("created-job-card")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Candidature enregistrée")).toBeVisible({ timeout: 5_000 });
 
     // 2. La candidature apparaît dans la colonne "À postuler" du board, le
     // titre se résolvant en tâche de fond.

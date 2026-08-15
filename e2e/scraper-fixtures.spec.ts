@@ -68,7 +68,7 @@ test.describe("Scraper contre des fixtures HTML contrôlées (E2E, JOB-69)", () 
 
     // La candidature apparaît quasi instantanément, sans attendre le
     // scraping (JOB-ASYNC-ENRICH), avant même que le titre ne soit connu.
-    await expect(page.getByTestId("created-job-card")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Candidature enregistrée")).toBeVisible({ timeout: 5_000 });
 
     // Le titre se résout ensuite en tâche de fond et apparaît sur le board.
     await page.goto("/board");
@@ -84,7 +84,7 @@ test.describe("Scraper contre des fixtures HTML contrôlées (E2E, JOB-69)", () 
     await page.getByPlaceholder(URL_PLACEHOLDER).fill(`${fixtureServer.url}/no-metadata`);
     await page.getByPlaceholder(URL_PLACEHOLDER).press("Enter");
 
-    await expect(page.getByTestId("created-job-card")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Candidature enregistrée")).toBeVisible({ timeout: 5_000 });
 
     // Pas de titre exploitable via Cheerio : le fallback Playwright est
     // aussi tenté avant d'abandonner (lib/scraper/index.ts) — le scraping
@@ -103,7 +103,7 @@ test.describe("Scraper contre des fixtures HTML contrôlées (E2E, JOB-69)", () 
     await page.getByPlaceholder(URL_PLACEHOLDER).fill(`${fixtureServer.url}/js-title`);
     await page.getByPlaceholder(URL_PLACEHOLDER).press("Enter");
 
-    await expect(page.getByTestId("created-job-card")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Candidature enregistrée")).toBeVisible({ timeout: 5_000 });
 
     test.setTimeout(60_000);
     await page.goto("/board");
@@ -119,7 +119,7 @@ test.describe("Scraper contre des fixtures HTML contrôlées (E2E, JOB-69)", () 
     await page.getByPlaceholder(URL_PLACEHOLDER).fill(`${fixtureServer.url}/forbidden`);
     await page.getByPlaceholder(URL_PLACEHOLDER).press("Enter");
 
-    await expect(page.getByTestId("created-job-card")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Candidature enregistrée")).toBeVisible({ timeout: 5_000 });
 
     test.setTimeout(60_000);
     await page.goto("/board");
@@ -135,7 +135,7 @@ test.describe("Scraper contre des fixtures HTML contrôlées (E2E, JOB-69)", () 
     await page.getByPlaceholder(URL_PLACEHOLDER).fill(`${fixtureServer.url}/hangs`);
     await page.getByPlaceholder(URL_PLACEHOLDER).press("Enter");
 
-    await expect(page.getByTestId("created-job-card")).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText("Candidature enregistrée")).toBeVisible({ timeout: 5_000 });
 
     await page.goto("/board");
     await expect(
