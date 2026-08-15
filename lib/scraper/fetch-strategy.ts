@@ -43,7 +43,7 @@ export async function fetchMetadataViaHttp(
       return EMPTY_SCRAPED_METADATA;
     }
     const html = await response.text();
-    const metadata = extractJobMetadataFromHtml(html);
+    const metadata = extractJobMetadataFromHtml(html, url);
     const logFields = {
       url,
       status: response.status,

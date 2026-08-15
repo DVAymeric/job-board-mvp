@@ -29,15 +29,18 @@ const EMPTY = { title: null, companyName: null, descriptionText: null };
 function makeBrowser({
   contentHtml = "",
   gotoError,
+  finalUrl = "https://example.com/job",
 }: {
   contentHtml?: string;
   gotoError?: Error;
+  finalUrl?: string;
 } = {}) {
   const route = vi.fn();
   const page = {
     route,
     goto: gotoError ? vi.fn().mockRejectedValue(gotoError) : vi.fn().mockResolvedValue(undefined),
     content: vi.fn().mockResolvedValue(contentHtml),
+    url: vi.fn().mockReturnValue(finalUrl),
   };
   const close = vi.fn();
   const browser = { newPage: vi.fn().mockResolvedValue(page), close };
