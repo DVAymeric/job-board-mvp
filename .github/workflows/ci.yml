@@ -31,18 +31,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks-action exécute `git log -p SHA^..SHA` pour scanner le
+          # diff de la PR : le commit parent doit être présent, ce qu'un clone
+          # superficiel (fetch-depth: 1, comportement par défaut) ne garantit
+          # pas. Historique complet : le plus sûr pour un scan de secrets,
+          # aucun risque de retomber sur ce problème. Scopé à ce job — les
+          # autres n'en ont pas besoin et n'ont pas à en payer le coût.
+          fetch-depth: 0
 
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   test:
-    name: Lint, typecheck & tests
+    name: Lint, typecheck, tests & build
     runs-on: ubuntu-latest
     env:
-      # No test in this job touches a live database (`prisma generate` only
-      # reads schema.prisma); this dummy value just matches the postgresql
-      # provider so nothing looks inconsistent in CI logs.
+      # No step in this job touches a live database (`prisma generate` only
+      # reads schema.prisma, and `next build` doesn't query the DB — every
+      # route in this app is dynamically rendered); this dummy value just
+      # matches the postgresql provider so nothing looks inconsistent in CI
+      # logs.
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
       # `prisma generate` needs directUrl set too (JOB-85 pooling split) even
       # though it never connects here.
@@ -75,6 +85,14 @@ jobs:
 
       - name: Unit tests (avec couverture, seuil 70% — JOB-106)
         run: npm run test:coverage
+
+      - name: Build
+        # `next build` directement, pas `npm run build` : ce dernier enchaîne
+        # `prisma migrate deploy`, qui a besoin d'une vraie base Postgres
+        # joignable — inutile ici, ce job ne valide que la compilation.
+        # `next build` ne fait aucune requête DB (aucune route statique
+        # générée à partir de données).
+        run: npx next build
 
       - name: Audit des dépendances (High/Critical — JOB-122)
         run: npm audit --audit-level=high
