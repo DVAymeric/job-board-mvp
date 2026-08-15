@@ -108,6 +108,19 @@ describe("splitTitleAndCompany — Welcome to the Jungle", () => {
     expect(result.companyName).toBeNull();
     expect(result.title).toBe(raw);
   });
+
+  it("anchors on the last contract keyword when the job title itself contains one (real-world case)", () => {
+    // Cas réel capturé (WayKonect) : le mot-clé "CDI" apparaît DEUX fois —
+    // une fois dans le titre du poste lui-même, une fois comme marqueur de
+    // contrat final. Doit ancrer sur la dernière occurrence pour isoler la
+    // bonne entreprise.
+    const raw = "CDI - Techlead backend Java software engineer - Lille - WayKonect - CDI à Lille";
+    const result = splitTitleAndCompany(
+      raw,
+      "https://www.welcometothejungle.com/fr/companies/waykonect-1/jobs/xyz"
+    );
+    expect(result.companyName).toBe("WayKonect");
+  });
 });
 
 describe("splitTitleAndCompany — sites inconnus (repli générique)", () => {
@@ -143,6 +156,42 @@ describe("splitTitleAndCompany — sites inconnus (repli générique)", () => {
     expect(splitTitleAndCompany(raw, "not-a-valid-url")).toEqual({
       title: "Développeur Backend",
       companyName: "Acme Corp",
+    });
+  });
+
+  it("leaves a clean job-board title untouched when no directional keyword is present (Greenhouse, real og:title)", () => {
+    // Greenhouse ne fournit pas og:site_name : sur un site sans règle
+    // dédiée et sans marqueur directionnel, le titre og:title (déjà propre)
+    // ne doit pas être altéré, et l'entreprise reste vide plutôt que
+    // devinée.
+    const raw = "Software Engineer Intern (Fall 2026) - Austin, TX";
+    expect(
+      splitTitleAndCompany(raw, "https://job-boards.greenhouse.io/cloudflare/jobs/8052785")
+    ).toEqual({
+      title: raw,
+      companyName: null,
+    });
+  });
+});
+
+describe("splitTitleAndCompany — pages anti-bot / offres expirées (ne jamais fabriquer une entreprise)", () => {
+  it("passes through an anti-bot block page title on Indeed without ever guessing a company", () => {
+    // Titre réel capturé sur une page de blocage Indeed ("Blocked") — pas
+    // de suffixe "- Indeed.com" à retirer, aucune entreprise à inventer.
+    expect(splitTitleAndCompany("Blocked", "https://fr.indeed.com/viewjob?jk=abc")).toEqual({
+      title: "Blocked",
+      companyName: null,
+    });
+  });
+
+  it("passes through a LinkedIn expired-job redirect title without ever guessing a company", () => {
+    // Titre réel capturé après redirection d'une offre LinkedIn expirée
+    // vers une page de recherche générique — ne matche aucun pattern
+    // "recrute", l'entreprise doit rester vide.
+    const raw = "188 offres d’emploi Azureva - France";
+    expect(splitTitleAndCompany(raw, "https://fr.linkedin.com/jobs/view/123")).toEqual({
+      title: raw,
+      companyName: null,
     });
   });
 });
