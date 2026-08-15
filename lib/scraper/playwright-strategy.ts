@@ -64,7 +64,10 @@ export async function fetchMetadataViaPlaywright(
       waitUntil: "domcontentloaded",
     });
     const html = await page.content();
-    const metadata = extractJobMetadataFromHtml(html);
+    // page.url() plutôt que le paramètre url : reflète l'URL après
+    // d'éventuelles redirections (le site de destination réel importe pour
+    // choisir la règle de découpage titre/entreprise).
+    const metadata = extractJobMetadataFromHtml(html, page.url());
     logger.info("scraper.playwright_ok", { ...logFields, titleFound: !!metadata.title });
     return metadata;
   } catch {
