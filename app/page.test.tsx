@@ -4,18 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Job } from "@prisma/client";
 import Home from "@/components/home/home-content";
-import {
-  checkJobUrl,
-  checkRepost,
-  createJob,
-  reactivateJobWithContent,
-} from "@/app/actions";
+import { checkJobUrl, createJob } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
   checkJobUrl: vi.fn(),
-  checkRepost: vi.fn(),
   createJob: vi.fn(),
-  reactivateJobWithContent: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -142,7 +135,7 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
   });
 });
 
-const archivedJob: Job = {
+const knownJob: Job = {
   id: "job-1",
   userId: "user-1",
   url: "https://example.com/job",
@@ -150,9 +143,8 @@ const archivedJob: Job = {
   companyName: "Acme",
   companyLogoUrl: null,
   notes: null,
-  status: "REJECTED",
+  status: "APPLIED",
   enrichmentStatus: "DONE",
-  archived: true,
   order: 0,
   lastFollowUp: null,
   salaryAmount: null,
@@ -160,182 +152,10 @@ const archivedJob: Job = {
   resumeUrl: null,
   coverLetterUrl: null,
   interviewDate: null,
-  descriptionText: "Ancienne description.",
+  descriptionText: "Description.",
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
 };
-
-const activeJob: Job = { ...archivedJob, archived: false, status: "APPLIED" };
-
-describe("Home — repost d'une offre archivée", () => {
-  beforeEach(() => {
-    vi.mocked(checkJobUrl).mockReset();
-    vi.mocked(checkRepost).mockReset();
-    vi.mocked(reactivateJobWithContent).mockReset();
-  });
-
-  it("offers to check for updates when the known job is archived", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: true, job: archivedJob },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    expect(
-      await screen.findByRole("button", { name: /Vérifier si l'offre a changé/ })
-    ).toBeInTheDocument();
-  });
-
-  it("does not offer a repost check for an active (non-archived) duplicate", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: true, job: activeJob },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-
-    await screen.findByText(/Déjà postulé le/);
-    expect(
-      screen.queryByRole("button", { name: /Vérifier si l'offre a changé/ })
-    ).not.toBeInTheDocument();
-  });
-
-  it("shows the content diff when the reposted offer changed", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: true, job: archivedJob },
-    });
-    vi.mocked(checkRepost).mockResolvedValue({
-      ok: true,
-      data: {
-        changed: true,
-        diff: [
-          { type: "removed", text: "Ancienne description." },
-          { type: "added", text: "Nouvelle description." },
-        ],
-        fresh: {
-          title: "Développeur Backend Senior",
-          companyName: "Acme",
-          descriptionText: "Nouvelle description.",
-        },
-      },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-    await user.click(
-      await screen.findByRole("button", { name: /Vérifier si l'offre a changé/ })
-    );
-
-    expect(checkRepost).toHaveBeenCalledWith("job-1");
-    expect(await screen.findByText(/Ancienne description\./)).toBeInTheDocument();
-    expect(screen.getByText(/Nouvelle description\./)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Réactiver avec le nouveau contenu/ })
-    ).toBeInTheDocument();
-  });
-
-  it("shows a no-change message when the reposted offer is identical", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: true, job: archivedJob },
-    });
-    vi.mocked(checkRepost).mockResolvedValue({
-      ok: true,
-      data: {
-        changed: false,
-        diff: [{ type: "unchanged", text: "Ancienne description." }],
-        fresh: {
-          title: "Développeur Backend",
-          companyName: "Acme",
-          descriptionText: "Ancienne description.",
-        },
-      },
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-    await user.click(
-      await screen.findByRole("button", { name: /Vérifier si l'offre a changé/ })
-    );
-
-    expect(
-      await screen.findByText(/Aucun changement de contenu détecté/)
-    ).toBeInTheDocument();
-  });
-
-  it("reactivates the job with the fresh content when confirmed", async () => {
-    const user = userEvent.setup();
-    vi.mocked(checkJobUrl).mockResolvedValue({
-      ok: true,
-      data: { found: true, job: archivedJob },
-    });
-    vi.mocked(checkRepost).mockResolvedValue({
-      ok: true,
-      data: {
-        changed: true,
-        diff: [
-          { type: "removed", text: "Ancienne description." },
-          { type: "added", text: "Nouvelle description." },
-        ],
-        fresh: {
-          title: "Développeur Backend Senior",
-          companyName: "Acme",
-          descriptionText: "Nouvelle description.",
-        },
-      },
-    });
-    vi.mocked(reactivateJobWithContent).mockResolvedValue({
-      ok: true,
-      data: null,
-    });
-
-    render(<Home />);
-    await user.type(
-      screen.getByPlaceholderText(/Colle l'URL/),
-      "example.com/job"
-    );
-    await user.click(screen.getByRole("button", { name: "Vérifier" }));
-    await user.click(
-      await screen.findByRole("button", { name: /Vérifier si l'offre a changé/ })
-    );
-    await user.click(
-      await screen.findByRole("button", {
-        name: /Réactiver avec le nouveau contenu/,
-      })
-    );
-
-    expect(reactivateJobWithContent).toHaveBeenCalledWith({
-      id: "job-1",
-      title: "Développeur Backend Senior",
-      companyName: "Acme",
-      descriptionText: "Nouvelle description.",
-    });
-  });
-});
 
 describe("Home — bookmarklet", () => {
   beforeEach(() => {
@@ -409,7 +229,7 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
-      data: { found: true, job: activeJob },
+      data: { found: true, job: knownJob },
     });
 
     render(<Home />);

@@ -8,7 +8,7 @@ export default async function BoardPage() {
   const userId = session?.user?.id ?? "";
 
   const jobs = await prisma.job.findMany({
-    where: { userId, archived: false },
+    where: { userId },
     include: {
       tags: { include: { tag: true } },
       contacts: true,

@@ -5,11 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { STATUS } from "@/lib/constants";
 import {
-  archiveJobSchema,
   deleteJobSchema,
   markFollowUpTodaySchema,
   reorderJobsSchema,
-  unarchiveJobSchema,
   updateJobStatusSchema,
 } from "@/lib/validation";
 import {
@@ -115,75 +113,10 @@ export async function deleteJob(id: string): Promise<ActionResult<null>> {
   try {
     await prisma.job.delete({ where: jobOwnerWhere(parsed.data.id, auth.user.id) });
     revalidatePath("/board");
-    revalidatePath("/archives");
     return { ok: true, data: null };
   } catch (error) {
     logActionError("deleteJob", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible de supprimer l'offre");
-  }
-}
-
-/**
- * Archive une candidature (soft delete) — disparaît du board, reste
- * consultable dans /archives.
- *
- * @param id Identifiant de la candidature.
- * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
- */
-export async function archiveJob(id: string): Promise<ActionResult<null>> {
-  const auth = await requireUser();
-  if (!auth.ok) return auth;
-
-  const parsed = archiveJobSchema.safeParse({ id });
-  if (!parsed.success) {
-    return actionError(
-      "VALIDATION_ERROR",
-      firstIssueMessage(parsed.error, "Impossible d'archiver l'offre")
-    );
-  }
-  try {
-    await prisma.job.update({
-      where: jobOwnerWhere(parsed.data.id, auth.user.id),
-      data: { archived: true },
-    });
-    revalidatePath("/board");
-    revalidatePath("/archives");
-    return { ok: true, data: null };
-  } catch (error) {
-    logActionError("archiveJob", error, { userId: auth.user.id });
-    return actionError("INTERNAL_ERROR", "Impossible d'archiver l'offre");
-  }
-}
-
-/**
- * Restaure une candidature archivée — réapparaît dans le board, avec son
- * statut inchangé.
- *
- * @param id Identifiant de la candidature.
- * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
- */
-export async function unarchiveJob(id: string): Promise<ActionResult<null>> {
-  const auth = await requireUser();
-  if (!auth.ok) return auth;
-
-  const parsed = unarchiveJobSchema.safeParse({ id });
-  if (!parsed.success) {
-    return actionError(
-      "VALIDATION_ERROR",
-      firstIssueMessage(parsed.error, "Impossible de désarchiver l'offre")
-    );
-  }
-  try {
-    await prisma.job.update({
-      where: jobOwnerWhere(parsed.data.id, auth.user.id),
-      data: { archived: false },
-    });
-    revalidatePath("/board");
-    revalidatePath("/archives");
-    return { ok: true, data: null };
-  } catch (error) {
-    logActionError("unarchiveJob", error, { userId: auth.user.id });
-    return actionError("INTERNAL_ERROR", "Impossible de désarchiver l'offre");
   }
 }
 

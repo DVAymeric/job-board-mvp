@@ -7,18 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { JobStatus, STATUS } from "@/lib/constants";
 import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
-import { type DiffLine, diffLines, hasContentChanged } from "@/lib/repost-diff";
-import {
-  checkJobUrlSchema,
-  checkRepostSchema,
-  createJobSchema,
-  reactivateJobSchema,
-} from "@/lib/validation";
+import { checkJobUrlSchema, createJobSchema } from "@/lib/validation";
 import {
   actionError,
   type ActionResult,
   firstIssueMessage,
-  jobOwnerWhere,
   logActionError,
   rateLimitError,
   resolveCompanyLogo,
@@ -231,114 +224,5 @@ export async function createJob(input: {
     }
     logActionError("createJob", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible d'enregistrer cette offre");
-  }
-}
-
-/**
- * Compare le contenu actuellement en ligne d'une offre archivée avec celui
- * enregistré, pour détecter une republication avec un contenu différent.
- *
- * @param id Identifiant de la candidature (doit être archivée).
- * @returns Diff structuré (`changed`, `diff`, `fresh`) entre le contenu
- * archivé et le contenu fraîchement scrapé.
- * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `NOT_FOUND`, `CONFLICT`
- * (l'offre n'est pas archivée), `INTERNAL_ERROR`.
- */
-export async function checkRepost(id: string): Promise<
-  ActionResult<{
-    changed: boolean;
-    diff: DiffLine[];
-    fresh: {
-      title: string | null;
-      companyName: string | null;
-      descriptionText: string | null;
-    };
-  }>
-> {
-  const auth = await requireUser();
-  if (!auth.ok) return auth;
-
-  const parsed = checkRepostSchema.safeParse({ id });
-  if (!parsed.success) {
-    return actionError(
-      "VALIDATION_ERROR",
-      firstIssueMessage(parsed.error, "Identifiant invalide")
-    );
-  }
-  let job;
-  try {
-    job = await prisma.job.findUnique({
-      where: jobOwnerWhere(parsed.data.id, auth.user.id),
-    });
-  } catch (error) {
-    logActionError("checkRepost", error, { userId: auth.user.id });
-    return actionError("INTERNAL_ERROR", "Impossible de vérifier cette offre");
-  }
-  if (!job) {
-    return actionError("NOT_FOUND", "Offre introuvable");
-  }
-  if (!job.archived) {
-    return actionError("CONFLICT", "Cette offre est déjà active");
-  }
-
-  const fresh = await resolveScrapedMetadata(job.url, { userId: auth.user.id });
-
-  return {
-    ok: true,
-    data: {
-      changed: hasContentChanged(job.descriptionText, fresh.descriptionText),
-      diff: diffLines(job.descriptionText, fresh.descriptionText),
-      fresh,
-    },
-  };
-}
-
-/**
- * Désarchive une offre republiée en remplaçant son contenu par la version
- * fraîchement scrapée (suite à un `checkRepost` positif), et remet son
- * statut à `TO_APPLY`.
- *
- * @param input.id Identifiant de la candidature.
- * @param input.title Nouveau titre (peut être `null`).
- * @param input.companyName Nouvelle entreprise (peut être `null`).
- * @param input.descriptionText Nouvelle description (peut être `null`).
- * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
- */
-export async function reactivateJobWithContent(input: {
-  id: string;
-  title: string | null;
-  companyName: string | null;
-  descriptionText: string | null;
-}): Promise<ActionResult<null>> {
-  const auth = await requireUser();
-  if (!auth.ok) return auth;
-
-  const parsed = reactivateJobSchema.safeParse(input);
-  if (!parsed.success) {
-    return actionError(
-      "VALIDATION_ERROR",
-      firstIssueMessage(parsed.error, "Impossible de réactiver l'offre")
-    );
-  }
-  const { id, title, companyName, descriptionText } = parsed.data;
-  try {
-    await prisma.job.update({
-      where: jobOwnerWhere(id, auth.user.id),
-      data: {
-        title,
-        companyName,
-        descriptionText,
-        archived: false,
-        status: STATUS.TO_APPLY,
-        lastFollowUp: null,
-        statusHistory: { create: { status: STATUS.TO_APPLY } },
-      },
-    });
-    revalidatePath("/board");
-    revalidatePath("/archives");
-    return { ok: true, data: null };
-  } catch (error) {
-    logActionError("reactivateJobWithContent", error, { userId: auth.user.id });
-    return actionError("INTERNAL_ERROR", "Impossible de réactiver l'offre");
   }
 }

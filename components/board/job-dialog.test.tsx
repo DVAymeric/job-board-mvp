@@ -5,7 +5,6 @@ import type { JobWithRelations } from "@/lib/types";
 import { JobDialog } from "@/components/board/job-dialog";
 import {
   addTagToJob,
-  archiveJob,
   deleteJob,
   removeTagFromJob,
   updateJobDetails,
@@ -18,7 +17,6 @@ import {
 vi.mock("@/app/actions", () => ({
   addContact: vi.fn(),
   addTagToJob: vi.fn(),
-  archiveJob: vi.fn(),
   deleteContact: vi.fn(),
   deleteJob: vi.fn(),
   markFollowUpToday: vi.fn(),
@@ -45,7 +43,6 @@ const baseJob: JobWithRelations = {
   notes: null,
   status: "TO_APPLY",
   enrichmentStatus: "DONE",
-  archived: false,
   order: 0,
   lastFollowUp: null,
   createdAt: new Date("2026-01-01"),
@@ -437,51 +434,6 @@ describe("JobDialog — contacts", () => {
       />
     );
     expect(screen.getByDisplayValue("Jane Doe")).toBeInTheDocument();
-  });
-});
-
-describe("JobDialog — archivage", () => {
-  beforeEach(() => {
-    vi.mocked(archiveJob).mockReset();
-  });
-
-  it("shows no confirmation dialog before any button is clicked", () => {
-    render(
-      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
-    );
-    expect(screen.queryByText(/archives/i)).not.toBeInTheDocument();
-    expect(archiveJob).not.toHaveBeenCalled();
-  });
-
-  it("requires explicit confirmation before archiving", async () => {
-    const user = userEvent.setup();
-    vi.mocked(archiveJob).mockResolvedValue({ ok: true, data: null });
-    const onDeleted = vi.fn();
-
-    render(
-      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={onDeleted} />
-    );
-
-    await user.click(screen.getByRole("button", { name: "Archiver" }));
-    expect(archiveJob).not.toHaveBeenCalled();
-    expect(screen.getByText(/archives/i)).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Confirmer l'archivage" }));
-
-    expect(archiveJob).toHaveBeenCalledWith("job-1");
-    expect(onDeleted).toHaveBeenCalledWith("job-1");
-  });
-
-  it("cancelling the archive dialog archives nothing", async () => {
-    const user = userEvent.setup();
-    render(
-      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
-    );
-
-    await user.click(screen.getByRole("button", { name: "Archiver" }));
-    await user.click(screen.getByRole("button", { name: "Annuler" }));
-
-    expect(archiveJob).not.toHaveBeenCalled();
   });
 });
 

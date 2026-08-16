@@ -17,7 +17,7 @@ export async function BentoSection() {
   const userId = session?.user?.id ?? "";
 
   const jobs = await prisma.job.findMany({
-    where: { userId, archived: false },
+    where: { userId },
     select: {
       status: true,
       lastFollowUp: true,

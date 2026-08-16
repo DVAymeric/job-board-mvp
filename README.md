@@ -1,6 +1,6 @@
 # Suivi de candidatures
 
-Suivi de candidatures d'emploi en Kanban : colle une URL d'offre, l'app détecte automatiquement si tu l'as déjà vue ou crée la candidature (titre, entreprise et logo récupérés automatiquement). Board avec drag & drop, archives, analytics (funnel de conversion, heatmap de fréquence), tags, contacts, notes, export/import CSV/JSON.
+Suivi de candidatures d'emploi en Kanban : colle une URL d'offre, l'app détecte automatiquement si tu l'as déjà vue ou crée la candidature (titre, entreprise et logo récupérés automatiquement). Board avec drag & drop, analytics (funnel de conversion, heatmap de fréquence), tags, contacts, notes, export CSV.
 
 Compte gratuit requis (email + mot de passe) — les données de chaque utilisateur sont isolées (multi-tenant).
 
@@ -20,10 +20,9 @@ Ouvrir [http://localhost:3000](http://localhost:3000) et créer un compte sur `/
 
 - `/` — colle une URL d'offre : détection automatique si déjà connue, sinon création automatique (scraping du titre/entreprise/logo), avec repli manuel si le scraping échoue.
 - `/board` — Kanban (À postuler / Postulé / Entretien / Refusé), drag & drop, recherche, tags, relances, édition/suppression.
-- `/archives` — candidatures archivées, désarchivage ou suppression définitive.
 - `/analytics` — funnel de conversion, heatmap de fréquence de candidature.
 - `/account` — suppression de compte (cascade sur toutes les données).
-- Export CSV/export-import JSON (sauvegarde complète) — accessibles depuis la barre de navigation.
+- Export CSV — accessible depuis le Board et Analytics.
 
 ## Configuration
 

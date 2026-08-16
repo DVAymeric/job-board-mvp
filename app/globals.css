@@ -9,7 +9,6 @@
   --color-foreground: var(--foreground);
   --color-heading: var(--heading);
   --color-accent-border: var(--accent-border);
-  --color-palette-eclipse: var(--palette-eclipse);
   --color-palette-minuit: var(--palette-minuit);
   --color-palette-brume: var(--palette-brume);
   --color-palette-poudre: var(--palette-poudre);
@@ -70,9 +69,7 @@
   --palette-orchidee: #783f8e;
   --palette-nuit: #4f1271;
   --palette-encre: #4a4063;
-  /* Tons les plus sombres du hero (fond flouté + overlay), pas utilisés ailleurs */
   --palette-minuit: #2e2440;
-  --palette-eclipse: #1c1728;
   /* Accents fixes du hero et des panneaux sombres translucides (jamais
      inversés par le thème — ces surfaces restent sombres quel que soit le
      thème de l'app) */
@@ -118,12 +115,6 @@
   --sidebar-accent-foreground: #4a4063;
   --sidebar-border: #dcd6e6;
   --sidebar-ring: #783f8e;
-
-  /* Rampe de statut — l'intensité de la couleur suit la progression de la candidature */
-  --status-to-apply: var(--palette-brume);
-  --status-applied: var(--palette-poudre);
-  --status-interview: var(--palette-orchidee);
-  --status-rejected: var(--palette-encre);
 }
 
 .dark {
@@ -133,7 +124,6 @@
   --palette-nuit: #4f1271;
   --palette-encre: #4a4063;
   --palette-minuit: #2e2440;
-  --palette-eclipse: #1c1728;
   --palette-abysse: #0a0712;
   --palette-lilas: #c094d3;
   --palette-mousse: #7bab8a;
@@ -175,11 +165,6 @@
   --sidebar-accent-foreground: #e4dcec;
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: #c094d3;
-
-  --status-to-apply: #948aa6;
-  --status-applied: #b79bc4;
-  --status-interview: #9a54b4;
-  --status-rejected: #6b5c80;
 }
 
 @layer base {

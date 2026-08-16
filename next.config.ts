@@ -38,15 +38,6 @@ const cspHeader = `
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  experimental: {
-    serverActions: {
-      // Next.js limite le corps des Server Actions à 1 Mo par défaut.
-      // importBackupJson accepte des sauvegardes jusqu'à 4 Mo (JOB-90,
-      // lib/backup.ts MAX_BACKUP_FILE_SIZE_BYTES) : 5 Mo laisse la marge
-      // recommandée par Next pour l'overhead de la requête.
-      bodySizeLimit: "5mb",
-    },
-  },
   async headers() {
     return [
       {

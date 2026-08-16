@@ -67,7 +67,6 @@ model Job {
   notes            String?
   status           JobStatus        @default(TO_APPLY)
   enrichmentStatus EnrichmentStatus @default(DONE)
-  archived         Boolean          @default(false)
   order            Int              @default(0)
   lastFollowUp     DateTime?
   salaryAmount     Int?

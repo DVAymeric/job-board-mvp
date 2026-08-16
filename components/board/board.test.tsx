@@ -7,8 +7,8 @@ import { reorderJobs, updateJobStatus } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
   addTagToJob: vi.fn(),
-  archiveJob: vi.fn(),
   deleteJob: vi.fn(),
+  exportJobsCsv: vi.fn(),
   markFollowUpToday: vi.fn(),
   removeTagFromJob: vi.fn(),
   reorderJobs: vi.fn(),
@@ -31,7 +31,6 @@ function job(overrides: Partial<JobWithRelations>): JobWithRelations {
     notes: null,
     status: "TO_APPLY",
     enrichmentStatus: "DONE",
-    archived: false,
     order: 0,
     lastFollowUp: null,
     createdAt: new Date("2026-01-01"),
@@ -53,6 +52,27 @@ const jobs: JobWithRelations[] = [
   job({ id: "job-1", title: "Développeur Backend", companyName: "Acme" }),
   job({ id: "job-2", title: "Chef de projet", companyName: "Beta SAS", status: "APPLIED" }),
 ];
+
+describe("Board header — titre en ligne 1, toolbar en ligne 2", () => {
+  it("renders the title on its own, separate from the search/relance/export toolbar", () => {
+    render(<Board initialJobs={jobs} />);
+
+    const heading = screen.getByRole("heading", { level: 1, name: "Board" });
+    const search = screen.getByPlaceholderText(/Rechercher/);
+    const relance = screen.getByRole("button", { name: "Candidatures à relancer" });
+    const exportButton = screen.getByRole("button", { name: "Exporter CSV" });
+
+    // La toolbar (ligne 2) suit le titre (ligne 1) dans l'ordre du DOM.
+    for (const el of [search, relance, exportButton]) {
+      expect(heading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it("shows the CSV export action directly on the Board page (moved out of the global nav)", () => {
+    render(<Board initialJobs={jobs} />);
+    expect(screen.getByRole("button", { name: "Exporter CSV" })).toBeInTheDocument();
+  });
+});
 
 describe("Board search", () => {
   it("filters cards by title/company/url as the user types", async () => {

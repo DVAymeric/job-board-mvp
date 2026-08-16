@@ -37,8 +37,6 @@ vi.mock("@/lib/auth/session", () => ({
 const {
   createJob,
   checkJobUrl,
-  checkRepost,
-  reactivateJobWithContent,
   updateJobStatus,
   markFollowUpToday,
   updateJobDetails,
@@ -47,8 +45,6 @@ const {
   updateJobDocuments,
   updateJobInterviewDate,
   deleteJob,
-  archiveJob,
-  unarchiveJob,
   reorderJobs,
   addTagToJob,
   removeTagFromJob,
@@ -193,20 +189,6 @@ describe("Server Actions — isolation multi-tenant (base réelle)", () => {
     expect(job?.lastFollowUp).toBeNull();
   });
 
-  it("archiveJob / unarchiveJob: B cannot (un)archive A's job", async () => {
-    const id = await createJobAsA("archive");
-    expect((await asB(() => archiveJob(id))).ok).toBe(false);
-
-    let job = await prisma.job.findUnique({ where: { id } });
-    expect(job?.archived).toBe(false);
-
-    await prisma.job.update({ where: { id }, data: { archived: true } });
-    expect((await asB(() => unarchiveJob(id))).ok).toBe(false);
-
-    job = await prisma.job.findUnique({ where: { id } });
-    expect(job?.archived).toBe(true);
-  });
-
   it("deleteJob: B cannot delete A's job", async () => {
     const id = await createJobAsA("delete");
     const result = await asB(() => deleteJob(id));
@@ -296,27 +278,5 @@ describe("Server Actions — isolation multi-tenant (base réelle)", () => {
 
     const contact = await prisma.contact.findUnique({ where: { id: contactId } });
     expect(contact?.name).toBe("Jane");
-  });
-
-  it("checkRepost / reactivateJobWithContent: B cannot repost-check or reactivate A's archived job", async () => {
-    const id = await createJobAsA("repost");
-    await prisma.job.update({ where: { id }, data: { archived: true } });
-
-    const checkResult = await asB(() => checkRepost(id));
-    expect(checkResult.ok).toBe(false);
-
-    const reactivateResult = await asB(() =>
-      reactivateJobWithContent({
-        id,
-        title: "HACKED",
-        companyName: null,
-        descriptionText: null,
-      })
-    );
-    expect(reactivateResult.ok).toBe(false);
-
-    const job = await prisma.job.findUnique({ where: { id } });
-    expect(job?.archived).toBe(true);
-    expect(job?.title).toBe("Job A repost");
   });
 });

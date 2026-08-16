@@ -163,9 +163,14 @@ export function JobCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge className={STATUS_CONFIG[job.status as JobStatus]?.badgeClassName}>
+          <span
+            className={cn(
+              "inline-flex h-5 items-center font-mono text-xs font-bold",
+              STATUS_CONFIG[job.status as JobStatus]?.textClassName
+            )}
+          >
             {STATUS_CONFIG[job.status as JobStatus]?.label ?? job.status}
-          </Badge>
+          </span>
           {needsFollowUp(job) && (
             <Badge className={FOLLOW_UP_BADGE_CLASSNAME}>Relancer ?</Badge>
           )}

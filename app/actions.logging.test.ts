@@ -4,7 +4,6 @@ import {
   createJob,
   deleteJob,
   fetchCompanyLogo,
-  importBackupJson,
 } from "@/app/actions";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -131,20 +130,5 @@ describe("logging structuré des Server Actions (JOB-88)", () => {
     );
     const [, fields] = vi.mocked(logger.warn).mock.calls[0];
     expect(fields).not.toHaveProperty("userId");
-  });
-
-  it("logs a parse failure distinctly from a transaction failure in importBackupJson", async () => {
-    mockAuthedAs("user-4");
-
-    const parseResult = await importBackupJson("not json");
-    expect(parseResult).toEqual({
-      ok: false,
-      error: "Fichier JSON illisible",
-      code: "VALIDATION_ERROR",
-    });
-    expect(logger.error).toHaveBeenCalledWith(
-      "action.failed",
-      expect.objectContaining({ action: "importBackupJson.parse", userId: "user-4" })
-    );
   });
 });

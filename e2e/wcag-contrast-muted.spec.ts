@@ -15,7 +15,6 @@ const PASSWORD = "correct-horse-battery-staple";
 const stamp = Date.now();
 const userEmail = `e2e-wcag-contrast-${stamp}@test.local`;
 const rejectedTitle = `Offre refusée assourdie ${stamp}`;
-const archivedTitle = `Offre archivée assourdie ${stamp}`;
 
 let userId: string;
 
@@ -32,16 +31,6 @@ test.beforeAll(async () => {
       title: rejectedTitle,
       companyName: "Refuse Corp",
       status: "REJECTED",
-    },
-  });
-  await prisma.job.create({
-    data: {
-      userId,
-      url: `https://example.com/e2e-wcag-archived-${stamp}`,
-      title: archivedTitle,
-      companyName: "Archive Corp",
-      status: "APPLIED",
-      archived: true,
     },
   });
 });
@@ -71,23 +60,6 @@ test.describe("Contraste WCAG des traitements assourdis (E2E, JOB-104)", () => {
 
     const results = await new AxeBuilder({ page })
       .include('[data-testid="column-REJECTED"]')
-      .withTags(["wcag2aa"])
-      .analyze();
-
-    const contrastViolations = results.violations.filter(
-      (v) => v.id === "color-contrast"
-    );
-    expect(contrastViolations).toEqual([]);
-  });
-
-  test("carte archivée : le texte assourdi respecte le seuil AA", async ({ page }) => {
-    await loginAs(page, userEmail);
-    await page.goto("/archives");
-    const card = page.locator('[data-slot="card"]', { hasText: archivedTitle });
-    await expect(card).toBeVisible();
-
-    const results = await new AxeBuilder({ page })
-      .include('[data-slot="card"]')
       .withTags(["wcag2aa"])
       .analyze();
 

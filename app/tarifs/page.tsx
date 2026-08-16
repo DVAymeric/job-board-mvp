@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 const FEATURES = [
   "Suivi illimité de candidatures",
   "Détection automatique et récupération du titre depuis l'URL",
-  "Board Kanban, archives, analytics",
+  "Board Kanban, analytics",
   "Tags, contacts et notes par candidature",
-  "Export CSV et sauvegarde JSON complète",
+  "Export CSV",
 ];
 
 export default function TarifsPage() {

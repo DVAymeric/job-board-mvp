@@ -60,12 +60,6 @@ test.describe("Isolation multi-tenant (E2E, JOB-72)", () => {
     await expect(page.getByText(jobATitle)).toHaveCount(0);
   });
 
-  test("B ne voit jamais l'offre de A dans les archives", async ({ page }) => {
-    await loginAs(page, userBEmail);
-    await page.goto("/archives");
-    await expect(page.getByText(jobATitle)).toHaveCount(0);
-  });
-
   test("B ne voit pas l'offre de A dans son export CSV", async ({ page }) => {
     await loginAs(page, userBEmail);
     const [download] = await Promise.all([

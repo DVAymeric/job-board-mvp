@@ -37,9 +37,9 @@ describe("proxy (JOB-131)", () => {
   );
 
   it("still runs the auth guard for GET requests to each protected prefix", async () => {
-    for (const prefix of ["/board", "/archives", "/analytics", "/account"]) {
+    for (const prefix of ["/board", "/analytics", "/account"]) {
       await proxy(makeRequest("GET", prefix), {} as never);
     }
-    expect(authHandlerCalls).toEqual(["GET", "GET", "GET", "GET"]);
+    expect(authHandlerCalls).toEqual(["GET", "GET", "GET"]);
   });
 });

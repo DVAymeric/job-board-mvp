@@ -4,8 +4,7 @@ import { CONTACT_ROLE, SALARY_TYPE, STATUS } from "@/lib/constants";
 
 // Limites de longueur explicites (JOB-90) : évitent qu'un scraping de page
 // énorme (descriptionText) ou un texte libre (notes) ne sature la base ou
-// la requête. Réutilisées par lib/backup.ts pour le JSON de sauvegarde
-// importé, qui doit accepter exactement les mêmes formes de contenu.
+// la requête.
 export const TITLE_MAX_LENGTH = 300;
 export const COMPANY_NAME_MAX_LENGTH = 200;
 export const NOTES_MAX_LENGTH = 10_000;
@@ -82,14 +81,6 @@ export const updateJobNotesSchema = z.object({
 });
 
 export const markFollowUpTodaySchema = z.object({
-  id: jobIdSchema,
-});
-
-export const archiveJobSchema = z.object({
-  id: jobIdSchema,
-});
-
-export const unarchiveJobSchema = z.object({
   id: jobIdSchema,
 });
 
@@ -177,15 +168,4 @@ export const updateJobInterviewDateSchema = z.object({
     .string()
     .refine((value) => !Number.isNaN(new Date(value).getTime()), "Date invalide")
     .nullable(),
-});
-
-export const checkRepostSchema = z.object({
-  id: jobIdSchema,
-});
-
-export const reactivateJobSchema = z.object({
-  id: jobIdSchema,
-  title: titleSchema.nullable(),
-  companyName: companyNameSchema.nullable(),
-  descriptionText: descriptionTextSchema.nullable(),
 });

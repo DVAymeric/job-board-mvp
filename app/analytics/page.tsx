@@ -4,6 +4,8 @@ import { computeStatusFunnel, computeMostActiveMonth } from "@/lib/analytics";
 import { computeStatusCounts } from "@/lib/home-stats";
 import { buildHeatmapDays } from "@/lib/heatmap";
 import { STATUS } from "@/lib/constants";
+import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { BentoGrid } from "@/components/ui/bento-grid";
 import { OverviewCard } from "@/components/analytics/overview-card";
 import { ConversionCard } from "@/components/analytics/conversion-card";
@@ -56,15 +58,13 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="mx-auto w-full max-w-[1280px] p-4">
-      <div className="mb-6 space-y-1">
-        <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          12 derniers mois
-        </p>
-        <h1 className="font-heading text-xl text-heading">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
-          Suivi du funnel de conversion et de la régularité de vos
-          candidatures.
-        </p>
+      <div className="mb-6">
+        <PageHeader
+          eyebrow="12 derniers mois"
+          title="Analytics"
+          subtitle="Suivi du funnel de conversion et de la régularité de vos candidatures."
+          toolbar={<ExportCsvButton className="ml-auto" />}
+        />
       </div>
 
       <BentoGrid>

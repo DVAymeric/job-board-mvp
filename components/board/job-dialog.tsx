@@ -10,17 +10,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -47,7 +36,6 @@ import { toast } from "sonner";
 import { XIcon } from "lucide-react";
 import {
   addTagToJob,
-  archiveJob,
   deleteJob,
   markFollowUpToday,
   removeTagFromJob,
@@ -241,17 +229,6 @@ export function JobDialog({
       return;
     }
     onUpdated({ ...job, tags: job.tags.filter((jt) => jt.tagId !== tagId) });
-  }
-
-  async function handleArchive() {
-    if (!job) return;
-    const result = await archiveJob(job.id);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    onDeleted(job.id);
-    toast.success("Candidature archivée");
   }
 
   async function handleDelete(): Promise<boolean> {
@@ -523,26 +500,6 @@ export function JobDialog({
         </div>
 
         <DialogFooter className="gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger render={<Button variant="destructive" />}>
-              Archiver
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Archiver cette candidature ?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Elle disparaîtra du board mais restera consultable dans les
-                  archives.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Annuler</AlertDialogCancel>
-                <AlertDialogAction variant="destructive" onClick={handleArchive}>
-                  Confirmer l&apos;archivage
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
           <ConfirmDeleteModal
             trigger={<Button variant="destructive">Supprimer</Button>}
             title="Supprimer cette candidature ?"

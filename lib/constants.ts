@@ -3,18 +3,14 @@ import type { Job } from "@prisma/client";
 export const FOLLOW_UP_DAYS = 7;
 
 /**
- * Garde-fous sur les requêtes findMany non bornées (JOB-86). Pas de vraie
- * pagination : /board est un Kanban drag-and-drop (paginer casserait le
- * glisser-déposer entre colonnes) et /archives a une recherche côté client
- * sur la liste déjà chargée (paginer réduirait la recherche à la page
- * visible — la déplacer côté serveur serait un changement plus large, hors
- * périmètre ici). Ces seuils protègent seulement contre une croissance
- * pathologique (import massif, bug) : un usage personnel normal ne les
- * approche jamais. /analytics reste volontairement non borné ici — traité
- * séparément en passant ses agrégations côté DB (JOB-92).
+ * Garde-fou sur la requête findMany non bornée du board (JOB-86). Pas de
+ * vraie pagination : /board est un Kanban drag-and-drop (paginer casserait
+ * le glisser-déposer entre colonnes). Ce seuil protège seulement contre une
+ * croissance pathologique (import massif, bug) : un usage personnel normal
+ * ne l'approche jamais. /analytics reste volontairement non borné ici —
+ * traité séparément en passant ses agrégations côté DB (JOB-92).
  */
 export const BOARD_JOBS_SAFETY_LIMIT = 500;
-export const ARCHIVED_JOBS_SAFETY_LIMIT = 1000;
 
 export const STATUS = {
   TO_APPLY: "TO_APPLY",
@@ -36,38 +32,40 @@ export const STATUS_CONFIG: Record<
   JobStatus,
   {
     label: string;
-    badgeClassName: string;
+    textClassName: string;
     accentBorderClassName: string;
     accentBorderLeftClassName: string;
   }
 > = {
+  // Une couleur nettement distincte par statut (gris / bleu / violet / rouge)
+  // plutôt que des variations d'un même lilas pâle — scannable au premier
+  // coup d'œil sur le board. Chaque hex clair est vérifié ≥ 4.5:1 (AA texte
+  // normal) sur fond blanc, sa variante dark: ≥ 4.5:1 sur la carte sombre
+  // (#271f33) : le label passe en texte gras coloré sans pastille de fond
+  // (JOB-101), le contraste doit donc porter sur le texte lui-même.
   TO_APPLY: {
     label: "À postuler",
-    badgeClassName:
-      "bg-[#eeedf5] text-[#54506a] dark:bg-[#332e42] dark:text-[#d3cbe0]",
-    accentBorderClassName: "border-[#c8c6d7] dark:border-[#948aa6]",
-    accentBorderLeftClassName: "border-l-[#c8c6d7] dark:border-l-[#948aa6]",
+    textClassName: "text-[#6b6680] dark:text-[#a89fc0]",
+    accentBorderClassName: "border-[#6b6680] dark:border-[#a89fc0]",
+    accentBorderLeftClassName: "border-l-[#6b6680] dark:border-l-[#a89fc0]",
   },
   APPLIED: {
     label: "Postulé",
-    badgeClassName:
-      "bg-[#f1e6f3] text-[#6b3f74] dark:bg-[#3b2c42] dark:text-[#e4c7ea]",
-    accentBorderClassName: "border-[#bfacc8] dark:border-[#b79bc4]",
-    accentBorderLeftClassName: "border-l-[#bfacc8] dark:border-l-[#b79bc4]",
+    textClassName: "text-[#3d6fb4] dark:text-[#6f9ad1]",
+    accentBorderClassName: "border-[#3d6fb4] dark:border-[#6f9ad1]",
+    accentBorderLeftClassName: "border-l-[#3d6fb4] dark:border-l-[#6f9ad1]",
   },
   INTERVIEW: {
     label: "Entretien",
-    badgeClassName:
-      "bg-[#ebdcf0] text-[#5b2569] dark:bg-[#402a4b] dark:text-[#e3b4ef]",
+    textClassName: "text-[#783f8e] dark:text-[#e3b4ef]",
     accentBorderClassName: "border-[#783f8e] dark:border-[#9a54b4]",
     accentBorderLeftClassName: "border-l-[#783f8e] dark:border-l-[#9a54b4]",
   },
   REJECTED: {
     label: "Refusé",
-    badgeClassName:
-      "bg-[#e6e2ea] text-[#4a4063] dark:bg-[#2c2734] dark:text-[#c7c0d4]",
-    accentBorderClassName: "border-[#4a4063] dark:border-[#6b5c80]",
-    accentBorderLeftClassName: "border-l-[#4a4063] dark:border-l-[#6b5c80]",
+    textClassName: "text-[#c14747] dark:text-[#d98080]",
+    accentBorderClassName: "border-[#c14747] dark:border-[#d98080]",
+    accentBorderLeftClassName: "border-l-[#c14747] dark:border-l-[#d98080]",
   },
 };
 

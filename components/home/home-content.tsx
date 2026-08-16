@@ -5,18 +5,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { Job } from "@prisma/client";
-import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/home/hero-section";
 import { UrlCheckBar } from "@/components/home/url-check-bar";
-import {
-  checkJobUrl,
-  checkRepost,
-  createJob,
-  reactivateJobWithContent,
-} from "@/app/actions";
+import { checkJobUrl, createJob } from "@/app/actions";
 import { STATUS, STATUS_CONFIG, JobStatus } from "@/lib/constants";
-import type { DiffLine } from "@/lib/repost-diff";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type ViewState =
@@ -31,26 +23,12 @@ type ViewState =
       enrichmentStatus: "PENDING" | "DONE";
     };
 
-type RepostFresh = {
-  title: string | null;
-  companyName: string | null;
-  descriptionText: string | null;
-};
-
-type RepostState =
-  | { kind: "idle" }
-  | { kind: "checking" }
-  | { kind: "error"; message: string }
-  | { kind: "result"; changed: boolean; diff: DiffLine[]; fresh: RepostFresh };
-
 function HomeContentInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const consumedBookmarklet = useRef(false);
   const [url, setUrl] = useState(() => searchParams.get("url") ?? "");
   const [view, setView] = useState<ViewState>({ kind: "idle" });
-  const [repostState, setRepostState] = useState<RepostState>({ kind: "idle" });
-  const [reactivating, setReactivating] = useState(false);
 
   // Vérification (checkJobUrl, une seule requête en base) et création
   // (createJob) sont deux Server Actions déjà distinctes côté serveur — ce
@@ -65,7 +43,6 @@ function HomeContentInner() {
       return;
     }
     setView({ kind: "checking" });
-    setRepostState({ kind: "idle" });
     const result = await checkJobUrl(trimmed);
     if (!result.ok) {
       setView({ kind: "error", message: result.error });
@@ -108,37 +85,6 @@ function HomeContentInner() {
       void runCheck(bookmarkletUrl, fallbackTitle);
     });
   }, [searchParams, router, runCheck]);
-
-  async function handleCheckRepost() {
-    if (view.kind !== "known") return;
-    setRepostState({ kind: "checking" });
-    const result = await checkRepost(view.job.id);
-    if (!result.ok) {
-      setRepostState({ kind: "error", message: result.error });
-      return;
-    }
-    setRepostState({ kind: "result", ...result.data });
-  }
-
-  async function handleReactivate() {
-    if (view.kind !== "known" || repostState.kind !== "result") return;
-    setReactivating(true);
-    const result = await reactivateJobWithContent({
-      id: view.job.id,
-      title: repostState.fresh.title,
-      companyName: repostState.fresh.companyName,
-      descriptionText: repostState.fresh.descriptionText,
-    });
-    setReactivating(false);
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-    toast.success("Candidature réactivée");
-    setUrl("");
-    setRepostState({ kind: "idle" });
-    setView({ kind: "idle" });
-  }
 
   const checking = view.kind === "checking";
 
@@ -183,63 +129,6 @@ function HomeContentInner() {
           >
             Voir et modifier dans le board
           </Link>
-
-          {view.job.archived && (
-            <div className="space-y-3 border-t border-white/15 pt-3">
-              <p className="text-sm text-white/70">
-                Cette offre est archivée. Vérifie si elle a été republiée
-                avec un contenu différent.
-              </p>
-              <Button
-                variant="outline"
-                onClick={handleCheckRepost}
-                disabled={repostState.kind === "checking"}
-                className="border-white/20 bg-white/10 text-white hover:bg-white/20"
-              >
-                {repostState.kind === "checking" && (
-                  <Loader2 className="animate-spin" />
-                )}
-                Vérifier si l&apos;offre a changé
-              </Button>
-
-              {repostState.kind === "error" && (
-                <p className="text-sm text-palette-corail">{repostState.message}</p>
-              )}
-
-              {repostState.kind === "result" && !repostState.changed && (
-                <p className="text-sm text-white/70">
-                  Aucun changement de contenu détecté depuis l&apos;archivage.
-                </p>
-              )}
-
-              {repostState.kind === "result" && repostState.changed && (
-                <ul className="space-y-0.5 rounded-md border border-white/15 bg-white/5 p-2 font-mono text-xs">
-                  {repostState.diff.map((line, index) => (
-                    <li
-                      key={index}
-                      className={cn(
-                        "whitespace-pre-wrap",
-                        line.type === "removed" &&
-                          "text-palette-corail line-through",
-                        line.type === "added" && "font-medium text-white",
-                        line.type === "unchanged" && "text-white/50"
-                      )}
-                    >
-                      {line.type === "removed" ? "− " : line.type === "added" ? "+ " : "  "}
-                      {line.text}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {repostState.kind === "result" && (
-                <Button onClick={handleReactivate} disabled={reactivating}>
-                  {reactivating && <Loader2 className="animate-spin" />}
-                  Réactiver avec le nouveau contenu
-                </Button>
-              )}
-            </div>
-          )}
         </div>
       )}
 

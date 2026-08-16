@@ -19,24 +19,16 @@ cette échelle (référence à copier telle quelle, pas à réinventer par écra
 | Rôle | Classes | Exemple |
 |---|---|---|
 | Eyebrow / kicker | `font-mono text-xs uppercase tracking-widest text-muted-foreground` | Sur-titre de la page d'accueil |
-| Titre de page | `font-heading text-xl text-heading` | `<h1>` de `/`, `/board`, `/archives`, `/analytics` |
+| Titre de page | `font-heading text-xl text-heading` | `<h1>` de `/`, `/board`, `/analytics` |
 | Wordmark (nav) | `font-heading text-base italic text-heading` | Logo texte dans `components/nav.tsx` |
 | Titre de section | `font-heading text-base text-heading` | En-tête de colonne (`column.tsx`) |
-| Titre de carte | `font-heading text-sm leading-snug text-heading` | Titre dans `JobCard`, ligne d'archive |
+| Titre de carte | `font-heading text-sm leading-snug text-heading` | Titre dans `JobCard` |
 | Label de formulaire | `text-sm font-medium` | Labels d'`Input`/`Textarea` dans `JobSheet` |
 | Corps de texte | `text-sm text-muted-foreground` | Sous-titres, descriptions, états vides |
 | Meta | `text-xs text-muted-foreground` | Info secondaire en prose (ex. nom d'entreprise sous le titre) |
 | Meta technique/numérique | `font-mono text-xs text-muted-foreground` | Dates, compteurs (mono pour l'alignement des chiffres) |
-| Valeur chiffrée mise en avant | `font-heading text-2xl text-heading` | Chiffre des mini-stats bento (`ArchiveStatsRow`, `status-detail-card.tsx`) |
-
-Audit post-Refonte Graphique (Epic 22, JOB-102) : `JobCard` (JOB-94/95/96) et
-la grille `ArchivedJobCard` (JOB-98/99) réutilisent strictement les rôles
-déjà documentés — aucun nouveau rôle introduit par ces deux écrans. Les
-boutons d'action au survol de la carte (JOB-96) sont icône + `aria-label`
-uniquement, sans libellé visible : pas de rôle de texte à documenter. Seul
-`ArchiveStatsRow` (JOB-97) a révélé un rôle déjà utilisé ailleurs
-(`status-detail-card.tsx`, Analytics) mais jamais ajouté au tableau —
-corrigé ci-dessus plutôt que réinventé.
+| Valeur chiffrée mise en avant | `font-heading text-2xl text-heading` | Chiffre des mini-stats bento (`status-detail-card.tsx`) |
+| Label de statut | `font-mono text-xs font-bold` + couleur du statut (`STATUS_CONFIG[status].textClassName`, pas de fond) | Statut dans `JobCard` |
 
 Espacements observés et à réutiliser (ne pas en inventer d'autres sans raison) :
 

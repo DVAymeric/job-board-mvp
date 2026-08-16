@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { JobWithRelations } from "@/lib/types";
 import { JobCard } from "@/components/board/job-card";
+import { STATUS_CONFIG } from "@/lib/constants";
 import { deleteJob } from "@/app/actions";
 
 vi.mock("@/app/actions", () => ({
@@ -29,7 +30,6 @@ const baseJob: JobWithRelations = {
   notes: null,
   status: "TO_APPLY",
   enrichmentStatus: "DONE",
-  archived: false,
   order: 0,
   lastFollowUp: null,
   createdAt: new Date("2026-01-01"),
@@ -251,4 +251,20 @@ describe("JobCard — actions au survol (JOB-96)", () => {
     expect(deleteJob).toHaveBeenCalledWith("job-1");
     expect(onDeleted).toHaveBeenCalledWith("job-1");
   });
+});
+
+describe("JobCard — pastille de statut voyante (couleur par statut, JOB-101)", () => {
+  it.each(["TO_APPLY", "APPLIED", "INTERVIEW", "REJECTED"] as const)(
+    "renders the %s label in bold, in its dedicated status color, without a filled pill background",
+    (status) => {
+      render(<JobCard job={{ ...baseJob, status }} onOpen={() => {}} />);
+
+      const label = screen.getByText(STATUS_CONFIG[status].label);
+      expect(label).toHaveClass("font-bold");
+      for (const className of STATUS_CONFIG[status].textClassName.split(" ")) {
+        expect(label).toHaveClass(className);
+      }
+      expect(label.className).not.toMatch(/\bbg-/);
+    }
+  );
 });

@@ -8,8 +8,6 @@ function job(overrides: Partial<ExportJob>): ExportJob {
     title: "Développeur",
     companyName: "Acme",
     status: "TO_APPLY",
-    url: "https://example.com/job",
-    archived: false,
     createdAt: new Date("2026-01-01T10:00:00Z"),
     lastFollowUp: null,
     tags: [],
@@ -23,12 +21,18 @@ describe("buildJobsCsv", () => {
     expect(csv.charCodeAt(0)).toBe(0xfeff);
   });
 
-  it("includes a clear header row", () => {
+  it("uses a semicolon separator (Excel FR) and clear French headers, ordered for a human reader", () => {
     const csv = buildJobsCsv([job({})]);
     const firstLine = csv.slice(1).split("\r\n")[0];
     expect(firstLine).toBe(
-      "Titre,Entreprise,Statut,URL,Tags,Archivée,Créée le,Dernière relance"
+      "Poste;Entreprise;Statut;Date de candidature;Dernière relance;Tags"
     );
+  });
+
+  it("does not include the raw scraping URL or other internal/technical fields", () => {
+    const csv = buildJobsCsv([job({})]);
+    const firstLine = csv.slice(1).split("\r\n")[0];
+    expect(firstLine).not.toMatch(/url/i);
   });
 
   it("renders one row per job with joined tag names", () => {
@@ -47,16 +51,23 @@ describe("buildJobsCsv", () => {
     expect(rows[1]).toContain("Remote; Senior");
   });
 
-  it("includes archived jobs, marked as such", () => {
-    const csv = buildJobsCsv([job({ archived: true })]);
+  it("formats dates as DD/MM/YYYY rather than raw ISO timestamps", () => {
+    const csv = buildJobsCsv([
+      job({
+        createdAt: new Date("2026-03-05T10:00:00Z"),
+        lastFollowUp: new Date("2026-03-12T10:00:00Z"),
+      }),
+    ]);
     const rows = csv.slice(1).split("\r\n");
-    expect(rows[1]).toContain("Oui");
+    expect(rows[1]).toContain("05/03/2026");
+    expect(rows[1]).toContain("12/03/2026");
+    expect(rows[1]).not.toContain("2026-03-05");
   });
 
-  it("quotes and escapes fields containing commas or quotes", () => {
-    const csv = buildJobsCsv([job({ title: 'Dev, "Backend"' })]);
+  it("quotes and escapes fields containing the separator, commas or quotes", () => {
+    const csv = buildJobsCsv([job({ title: 'Dev, "Backend"; Senior' })]);
     const rows = csv.slice(1).split("\r\n");
-    expect(rows[1]).toContain('"Dev, ""Backend"""');
+    expect(rows[1]).toContain('"Dev, ""Backend""; Senior"');
   });
 
   it("leaves an empty cell for a null title/companyName/lastFollowUp", () => {
@@ -64,8 +75,9 @@ describe("buildJobsCsv", () => {
       job({ title: null, companyName: null, lastFollowUp: null }),
     ]);
     const rows = csv.slice(1).split("\r\n");
-    const cells = rows[1].split(",");
+    const cells = rows[1].split(";");
     expect(cells[0]).toBe("");
     expect(cells[1]).toBe("");
+    expect(cells[4]).toBe("");
   });
 });

@@ -11,6 +11,8 @@ import {
 } from "@dnd-kit/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/page-header";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { Column } from "@/components/board/column";
 import { JobDialog } from "@/components/board/job-dialog";
 import { InterviewReminderWatcher } from "@/components/board/interview-reminder-watcher";
@@ -212,25 +214,28 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
       <EnrichmentPollWatcher
         hasPendingEnrichment={jobs.some((j) => j.enrichmentStatus === "PENDING")}
       />
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-xl text-heading">Board</h1>
-        <div className="flex flex-1 items-center justify-end gap-2">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher un titre, une entreprise, une URL..."
-            className="h-8 max-w-xs"
-          />
-          <Button
-            variant={followUpOnly ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFollowUpOnly((v) => !v)}
-            className={cn(followUpOnly && "ring-2 ring-ring/50")}
-          >
-            Candidatures à relancer
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Board"
+        toolbar={
+          <>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un titre, une entreprise, une URL..."
+              className="h-8 min-w-40 flex-1"
+            />
+            <Button
+              variant={followUpOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFollowUpOnly((v) => !v)}
+              className={cn(followUpOnly && "ring-2 ring-ring/50")}
+            >
+              Candidatures à relancer
+            </Button>
+            <ExportCsvButton />
+          </>
+        }
+      />
 
       {allTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">

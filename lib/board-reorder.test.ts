@@ -13,7 +13,6 @@ function job(id: string, status: Job["status"], order: number): Job {
     notes: null,
     status,
     enrichmentStatus: "DONE",
-    archived: false,
     order,
     lastFollowUp: null,
     salaryAmount: null,

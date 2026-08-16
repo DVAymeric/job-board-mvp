@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { exportJobsCsv } from "@/app/actions/backup";
+import { exportJobsCsv } from "@/app/actions/csv-export";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/plan";

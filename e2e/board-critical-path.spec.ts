@@ -77,7 +77,7 @@ async function dragCardToColumn(page: Page, cardTitle: string, columnTestId: str
 }
 
 test.describe("Parcours critique du board (E2E, JOB-70)", () => {
-  test("coller une URL → auto-création → drag & drop → édition → archivage → désarchivage → suppression", async ({
+  test("coller une URL → auto-création → drag & drop → édition → suppression", async ({
     page,
   }) => {
     test.setTimeout(60_000);
@@ -139,35 +139,10 @@ test.describe("Parcours critique du board (E2E, JOB-70)", () => {
       page.getByTestId("column-APPLIED").locator('[data-slot="card"]', { hasText: UPDATED_TITLE })
     ).toBeVisible();
 
-    // 5. Archivage depuis la fiche détaillée.
-    await page.getByTestId("column-APPLIED").getByText(UPDATED_TITLE).click();
-    await page.getByRole("button", { name: "Archiver" }).click();
-    await page.getByRole("button", { name: "Confirmer l'archivage" }).click();
-    await expect(page.getByText("Candidature archivée")).toBeVisible();
-    await expect(
-      page.locator('[data-slot="card"]', { hasText: UPDATED_TITLE })
-    ).toHaveCount(0);
-
-    // 6. La candidature archivée apparaît dans /archives avec son titre à jour.
-    await page.goto("/archives");
-    await expect(page.getByText(UPDATED_TITLE)).toBeVisible();
-
-    // 7. Désarchivage.
-    await page
-      .locator('[data-slot="card"]', { hasText: UPDATED_TITLE })
-      .getByRole("button", { name: "Désarchiver" })
-      .click();
-    await expect(page.getByText("Candidature désarchivée")).toBeVisible();
-    await expect(page.getByText(UPDATED_TITLE)).toHaveCount(0);
-
-    // 8. De retour sur le board.
-    await page.goto("/board");
-    const restoredCard = page.locator('[data-slot="card"]', { hasText: UPDATED_TITLE });
-    await expect(restoredCard).toBeVisible();
-
-    // 9. Suppression définitive via l'action rapide au survol de la carte.
-    await restoredCard.hover();
-    await restoredCard
+    // 5. Suppression définitive via l'action rapide au survol de la carte.
+    const card = page.locator('[data-slot="card"]', { hasText: UPDATED_TITLE });
+    await card.hover();
+    await card
       .getByRole("button", { name: "Supprimer définitivement" })
       .click();
     await page
