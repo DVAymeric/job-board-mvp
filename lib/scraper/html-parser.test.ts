@@ -123,3 +123,103 @@ describe("extractJobMetadataFromHtml — découpage titre/entreprise (fix parsin
     expect(result.title).not.toContain("Meritis");
   });
 });
+
+describe("extractJobMetadataFromHtml — JSON-LD JobPosting (priorité absolue)", () => {
+  const HELLOWORK_HTML = `
+    <html><head>
+      <title>Offre Emploi Data Scientist Alternance Lyon 6e (69) - Recrutement par APRIL | Hellowork</title>
+      <meta property="og:title" content="Offre Emploi Data Scientist Alternance Lyon 6e (69) - Recrutement par APRIL | Hellowork">
+      <meta property="og:site_name" content="www.hellowork.com">
+      <script type="application/ld+json">
+        ${JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "JobPosting",
+          title: "Data Scientist - Alternance H/F",
+          hiringOrganization: { "@type": "Organization", name: "APRIL" },
+        })}
+      </script>
+    </head></html>
+  `;
+  const HELLOWORK_URL = "https://www.hellowork.com/fr-fr/emplois/77470352.html";
+
+  const METEOJOB_HTML = `
+    <html><head>
+      <title>Annonce Emploi CDI Responsable Marketing Lyon (69003) - Fiducial Recrute en CDI | Meteojob.com</title>
+      <meta property="og:title" content="Responsable Trade Marketing (Lyon) H/F">
+      <meta property="og:site_name" content="Meteojob">
+      <script type="application/ld+json">
+        ${JSON.stringify({
+          "@context": "https://schema.org/",
+          "@type": "JobPosting",
+          title: "Responsable Trade Marketing (Lyon) H/F",
+          hiringOrganization: { "@type": "Organization", name: "Fiducial" },
+        })}
+      </script>
+    </head></html>
+  `;
+  const METEOJOB_URL = "https://www.meteojob.com/jobs/54822806";
+
+  it("uses JSON-LD hiringOrganization.name over og:site_name on HelloWork (real-world case)", () => {
+    const result = extractJobMetadataFromHtml(HELLOWORK_HTML, HELLOWORK_URL);
+    expect(result.companyName).toBe("APRIL");
+    expect(result.companyName).not.toBe("www.hellowork.com");
+  });
+
+  it("uses the clean JSON-LD title over the noisy og:title on HelloWork (real-world case)", () => {
+    const result = extractJobMetadataFromHtml(HELLOWORK_HTML, HELLOWORK_URL);
+    expect(result.title).toBe("Data Scientist - Alternance H/F");
+  });
+
+  it("uses JSON-LD hiringOrganization.name over og:site_name on Meteojob (real-world case)", () => {
+    const result = extractJobMetadataFromHtml(METEOJOB_HTML, METEOJOB_URL);
+    expect(result.companyName).toBe("Fiducial");
+    expect(result.companyName).not.toBe("Meteojob");
+  });
+
+  it("keeps using the JSON-LD title on Meteojob even though og:title was already clean", () => {
+    const result = extractJobMetadataFromHtml(METEOJOB_HTML, METEOJOB_URL);
+    expect(result.title).toBe("Responsable Trade Marketing (Lyon) H/F");
+  });
+
+  it("falls back to og:title splitting for the title when JSON-LD has no title but does have a company", () => {
+    const html = `
+      <html><head>
+        <title>Offre Emploi Chef de Projet - Recrutement par Acme | Hellowork</title>
+        <meta property="og:title" content="Offre Emploi Chef de Projet - Recrutement par Acme | Hellowork">
+        <script type="application/ld+json">
+          ${JSON.stringify({
+            "@type": "JobPosting",
+            hiringOrganization: { "@type": "Organization", name: "Acme" },
+          })}
+        </script>
+      </head></html>
+    `;
+    const result = extractJobMetadataFromHtml(html, HELLOWORK_URL);
+    expect(result.companyName).toBe("Acme");
+    expect(result.title).toBe("Offre Emploi Chef de Projet - Recrutement par Acme | Hellowork");
+  });
+});
+
+describe("extractJobMetadataFromHtml — agrégateurs sans JSON-LD (repli sur og:site_name interdit)", () => {
+  it("never uses og:site_name as the company on a known aggregator domain when JSON-LD is absent", () => {
+    const html = `
+      <html><head>
+        <title>Offre Emploi Chef de Projet - Recrutement par Acme | Hellowork</title>
+        <meta property="og:title" content="Offre Emploi Chef de Projet - Recrutement par Acme | Hellowork">
+        <meta property="og:site_name" content="www.hellowork.com">
+      </head></html>
+    `;
+    const result = extractJobMetadataFromHtml(
+      html,
+      "https://www.hellowork.com/fr-fr/emplois/99999999.html"
+    );
+    expect(result.companyName).toBeNull();
+  });
+
+  it("still uses og:site_name as the company on a non-aggregator domain when JSON-LD is absent (no regression)", () => {
+    const html = `<meta property="og:site_name" content="Acme Corp" />`;
+    expect(
+      extractJobMetadataFromHtml(html, "https://careers.example.com/job/42").companyName
+    ).toBe("Acme Corp");
+  });
+});

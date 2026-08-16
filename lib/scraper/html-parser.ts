@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
-import { splitTitleAndCompany } from "@/lib/scraper/title-company-split";
+import { extractJobPostingFromJsonLd } from "@/lib/scraper/json-ld";
+import { isAggregatorHostname, splitTitleAndCompany } from "@/lib/scraper/title-company-split";
 
 function extractMetaContent($: cheerio.CheerioAPI, property: string): string | undefined {
   const content = $(`meta[property="${property}" i], meta[name="${property}" i]`)
@@ -28,17 +29,23 @@ export function extractJobMetadataFromHtml(
   const descriptionText =
     extractMetaContent($, "og:description") ?? extractMetaContent($, "description");
 
-  if (!rawTitle) {
-    return { title: null, companyName: siteName || null, descriptionText: descriptionText || null };
-  }
+  // Standard schema.org/JobPosting (indexation Google for Jobs) : priorité
+  // absolue sur `hiringOrganization.name`, seule source fiable de
+  // l'employeur réel sur un agrégateur multi-employeurs — contrairement à
+  // og:site_name, qui y vaut toujours le nom de la plateforme (JOB-parsing).
+  const jsonLd = extractJobPostingFromJsonLd($);
 
-  // Le titre affiché est toujours la version nettoyée (bruit de marque du
-  // site retiré, entreprise jamais dupliquée dedans) — que l'entreprise
-  // vienne d'og:site_name ou du découpage du <title> lui-même.
-  const split = splitTitleAndCompany(rawTitle, url);
+  const split = rawTitle ? splitTitleAndCompany(rawTitle, url) : null;
+  // Sur un agrégateur connu (HelloWork, Meteojob, Indeed, LinkedIn, WTTJ...),
+  // og:site_name est structurellement le nom du site, jamais celui de
+  // l'entreprise qui recrute — un site carrière direct peut légitimement
+  // avoir og:site_name = nom de l'entreprise, donc la règle ne s'applique
+  // qu'aux domaines agrégateurs connus.
+  const siteNameAsCompany = isAggregatorHostname(url) ? null : siteName || null;
+
   return {
-    title: split.title || null,
-    companyName: siteName || split.companyName || null,
+    title: jsonLd?.title || split?.title || null,
+    companyName: jsonLd?.companyName || siteNameAsCompany || split?.companyName || null,
     descriptionText: descriptionText || null,
   };
 }

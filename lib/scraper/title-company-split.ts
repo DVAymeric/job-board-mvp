@@ -3,6 +3,33 @@ export type TitleCompanySplit = {
   companyName: string | null;
 };
 
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+// Sites multi-employeurs connus : y afficher `og:site_name` comme entreprise
+// donnerait toujours le nom de la plateforme, jamais celui de l'employeur
+// réel (ex. HelloWork : og:site_name = "www.hellowork.com" quelle que soit
+// l'offre) — contrairement à un site carrière direct où og:site_name peut
+// légitimement valoir le nom de l'entreprise qui recrute.
+const AGGREGATOR_HOSTNAME_FRAGMENTS = [
+  "indeed.",
+  "linkedin.",
+  "welcometothejungle.",
+  "hellowork.",
+  "meteojob.",
+];
+
+export function isAggregatorHostname(url: string): boolean {
+  const hostname = getHostname(url);
+  if (!hostname) return false;
+  return AGGREGATOR_HOSTNAME_FRAGMENTS.some((fragment) => hostname.includes(fragment));
+}
+
 // Mots-clés de type de contrat utilisés par Welcome to the Jungle en fin de
 // <title> ("... - Entreprise - CDI à Ville") — ancre fiable pour isoler
 // l'entreprise même quand le titre du poste contient lui-même des tirets.
@@ -90,12 +117,7 @@ function splitGenericTitle(raw: string): TitleCompanySplit {
  */
 export function splitTitleAndCompany(rawTitle: string, url: string): TitleCompanySplit {
   const title = rawTitle.trim();
-  let hostname = "";
-  try {
-    hostname = new URL(url).hostname.toLowerCase();
-  } catch {
-    hostname = "";
-  }
+  const hostname = getHostname(url);
 
   if (hostname.includes("indeed.")) return splitIndeedTitle(title);
   if (hostname.includes("linkedin.")) return splitLinkedInTitle(title);

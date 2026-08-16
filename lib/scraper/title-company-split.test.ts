@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitTitleAndCompany } from "@/lib/scraper/title-company-split";
+import { isAggregatorHostname, splitTitleAndCompany } from "@/lib/scraper/title-company-split";
 
 describe("splitTitleAndCompany — Indeed", () => {
   it("strips the trailing ' - Indeed.com' site suffix but never guesses a company", () => {
@@ -193,5 +193,27 @@ describe("splitTitleAndCompany — pages anti-bot / offres expirées (ne jamais 
       title: raw,
       companyName: null,
     });
+  });
+});
+
+describe("isAggregatorHostname", () => {
+  it.each([
+    "https://www.hellowork.com/fr-fr/emplois/77470352.html",
+    "https://www.meteojob.com/jobs/54822806",
+    "https://fr.indeed.com/viewjob?jk=abc",
+    "https://fr.linkedin.com/jobs/view/123",
+    "https://www.welcometothejungle.com/fr/companies/meritis/jobs/xyz",
+  ])("returns true for known aggregator URL %s", (url) => {
+    expect(isAggregatorHostname(url)).toBe(true);
+  });
+
+  it("returns false for a direct company career site", () => {
+    expect(isAggregatorHostname("https://job-boards.greenhouse.io/cloudflare/jobs/8052785")).toBe(
+      false
+    );
+  });
+
+  it("returns false for an invalid URL", () => {
+    expect(isAggregatorHostname("not-a-valid-url")).toBe(false);
   });
 });
