@@ -176,6 +176,7 @@ model Campaign {
   harvestedOffers HarvestedOffer[]
 
   @@unique([userId, slug])
+  @@unique([id, userId])
   @@index([userId])
 }
 

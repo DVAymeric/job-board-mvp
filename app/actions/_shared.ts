@@ -76,6 +76,10 @@ export function contactOwnerWhere(id: string, userId: string) {
   return { id_userId: { id, userId } };
 }
 
+export function campaignOwnerWhere(id: string, userId: string) {
+  return { id_userId: { id, userId } };
+}
+
 export function rateLimitError(retryAfterSeconds: number): string {
   return `Trop de requêtes. Réessaie dans ${retryAfterSeconds}s.`;
 }

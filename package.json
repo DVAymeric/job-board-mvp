@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.mts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "import-harvester-campaigns": "tsx scripts/import-harvester-campaigns.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -57,6 +58,7 @@
     "eslint-config-next": "16.3.0",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.12",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10"
