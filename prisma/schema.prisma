@@ -27,6 +27,9 @@ model User {
 
   jobs Job[]
   tags Tag[]
+
+  campaigns       Campaign[]
+  harvestedOffers HarvestedOffer[]
 }
 
 enum Plan {
@@ -81,6 +84,7 @@ model Job {
   contacts      Contact[]
   tags          JobTag[]
   statusHistory StatusHistory[]
+  harvestedOffer HarvestedOffer?
 
   @@unique([userId, url])
   @@unique([id, userId])
@@ -130,4 +134,113 @@ model StatusHistory {
   status JobStatus
 
   changedAt DateTime @default(now())
+}
+
+enum OfferContractType {
+  APPRENTISSAGE
+  PROFESSIONNALISATION
+  STAGE
+  AUTRE
+}
+
+enum OfferRemotePolicy {
+  ONSITE
+  HYBRID
+  REMOTE
+  UNKNOWN
+}
+
+enum OfferLifecycle {
+  ACTIVE
+  EXPIRED
+  DEAD_LINK
+}
+
+model Campaign {
+  id            String              @id @default(uuid())
+  userId        String
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug          String
+  romeCodes     String[]
+  keywords      String[]
+  contractTypes OfferContractType[]
+  schedule      String?
+  // Configuration hétérogène par connecteur (locations, targets par source) —
+  // voir le format d'origine dans job-harvester/config/campaigns.yaml. Reste
+  // en Json car la forme varie par connecteur et n'est jamais filtrée en SQL.
+  config        Json
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  connectorRuns   ConnectorRun[]
+  harvestedOffers HarvestedOffer[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+model HarvestedOffer {
+  id                    String             @id @default(uuid())
+  userId                String
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignId            String
+  campaign              Campaign           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  source                String
+  sourceOfferId         String
+  originSource          String?
+  canonicalUrl          String
+  applyUrl              String?
+  title                 String
+  companyName           String
+  companyNormalizedName String
+  companySiret          String?
+  companyWebsite        String?
+  locationLabel         String
+  city                  String
+  postalCode            String?
+  department            String?
+  lat                   Float?
+  lng                   Float?
+  contractType          OfferContractType
+  durationMonths        Int?
+  startDate             String?
+  romeCodes             String[]
+  descriptionText       String
+  descriptionHtml       String?
+  // Objet déjà whitelisté par le schéma Zod du connecteur — jamais le
+  // payload brut de l'API source (ADR-0004 job-harvester, anti-PII).
+  salary                Json?
+  remotePolicy          OfferRemotePolicy?
+  postedAt              String?
+  expiresAt             String?
+  firstSeenAt           DateTime
+  lastSeenAt            DateTime
+  lifecycle             OfferLifecycle
+  dedupKey              String
+  sourceRefs            Json
+  rawPayload            Json
+  importedJobId         String?            @unique
+  importedJob           Job?               @relation(fields: [importedJobId], references: [id])
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@unique([userId, dedupKey])
+  @@index([userId, campaignId])
+}
+
+model ConnectorRun {
+  id               String   @id @default(uuid())
+  campaignId       String
+  campaign         Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  connectorId      String
+  startedAt        DateTime
+  finishedAt       DateTime
+  rawCount         Int
+  normalizedCount  Int
+  rejectedCount    Int
+  httpStatusesSeen Int[]
+  ok               Boolean
+  errorMessage     String?
+
+  @@index([campaignId])
 }
