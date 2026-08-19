@@ -3,8 +3,8 @@
  * app/actions.isolation.integration.test.ts (JOB-107) : deux vrais
  * utilisateurs contre le Postgres local (docker-compose, JOB-82), seule
  * l'identité (requireUser) est mockée. Couvre les Server Actions de
- * campagnes (JOB-44) — sera étendu aux actions d'import d'offre au ticket 9
- * (JOB-47), qui n'existent pas encore.
+ * campagnes (JOB-44) — voir harvest.isolation.integration.test.ts (JOB-47)
+ * pour l'import d'offre.
  *
  * Run with `npm run test:integration` against a running local Postgres.
  */
