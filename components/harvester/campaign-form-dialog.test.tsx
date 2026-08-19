@@ -18,13 +18,13 @@ vi.mock("sonner", () => ({
 const existingCampaign: Campaign = {
   id: "campaign-1",
   userId: "user-1",
-  slug: "alternance-data-hdf",
+  slug: "data-analyst",
   romeCodes: ["M1403", "M1805"],
   keywords: ["data analyst"],
   contractTypes: ["APPRENTISSAGE"],
   schedule: "0 7 * * *",
   config: {
-    locations: [{ label: "Lille 59000", lat: 50.630951, lng: 3.045391, radiusKm: 30 }],
+    locations: [{ label: "Lille", lat: 50.630951, lng: 3.045391, radiusKm: 30 }],
     targets: { workday: [{ tenant: "valeo", site: "valeo_jobs", dc: "wd3" }], smartrecruiters: ["MAZARS"] },
   },
   createdAt: new Date("2026-01-01"),
@@ -52,7 +52,24 @@ describe("CampaignFormDialog — création", () => {
     expect(screen.getByText("Nouvelle campagne")).toBeInTheDocument();
   });
 
-  it("disables the submit button until a slug and at least one contract type are set", async () => {
+  it("does not ask for an identifier or ROME codes — keywords and a city are enough", () => {
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.queryByLabelText("Identifiant")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Codes ROME")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Latitude")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Longitude")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Ville")).toBeInTheDocument();
+  });
+
+  it("disables the submit button until at least one contract type is set", async () => {
     const user = userEvent.setup();
     render(
       <CampaignFormDialog
@@ -66,15 +83,12 @@ describe("CampaignFormDialog — création", () => {
 
     expect(screen.getByRole("button", { name: "Créer la campagne" })).toBeDisabled();
 
-    await user.type(screen.getByLabelText("Identifiant"), "alternance-devweb-hdf");
-    expect(screen.getByRole("button", { name: "Créer la campagne" })).toBeDisabled();
-
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
     expect(screen.getByRole("button", { name: "Créer la campagne" })).not.toBeDisabled();
   });
 
   it(
-    "submits a campaign with comma-separated fields split into arrays and calls onCreated",
+    "submits a campaign with comma-separated keywords and a city label, and calls onCreated",
     async () => {
     const user = userEvent.setup();
     vi.mocked(createCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
@@ -90,23 +104,17 @@ describe("CampaignFormDialog — création", () => {
       />
     );
 
-    await user.type(screen.getByLabelText("Identifiant"), "alternance-devweb-hdf");
-    await user.type(screen.getByLabelText("Codes ROME"), "M1802, M1805");
     await user.type(screen.getByLabelText("Mots-clés"), "développeur web, full-stack");
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
-    await user.type(screen.getByLabelText("Libellé"), "Lille 59000");
-    await user.type(screen.getByLabelText("Latitude"), "50.63");
-    await user.type(screen.getByLabelText("Longitude"), "3.05");
+    await user.type(screen.getByLabelText("Ville"), "Lille");
 
     await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
 
     expect(createCampaign).toHaveBeenCalledWith(
       expect.objectContaining({
-        slug: "alternance-devweb-hdf",
-        romeCodes: ["M1802", "M1805"],
         keywords: ["développeur web", "full-stack"],
         contractTypes: ["APPRENTISSAGE"],
-        locations: [{ label: "Lille 59000", lat: 50.63, lng: 3.05, radiusKm: 30 }],
+        locations: [{ label: "Lille", radiusKm: 30 }],
         targets: undefined,
       })
     );
@@ -121,8 +129,8 @@ describe("CampaignFormDialog — création", () => {
     const user = userEvent.setup();
     vi.mocked(createCampaign).mockResolvedValue({
       ok: false,
-      error: "Une campagne avec cet identifiant existe déjà",
-      code: "CONFLICT",
+      error: "Ville introuvable : « Villeinexistante »",
+      code: "VALIDATION_ERROR",
     });
     const onCreated = vi.fn();
 
@@ -136,11 +144,8 @@ describe("CampaignFormDialog — création", () => {
       />
     );
 
-    await user.type(screen.getByLabelText("Identifiant"), "alternance-data-hdf");
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
-    await user.type(screen.getByLabelText("Libellé"), "Lille");
-    await user.type(screen.getByLabelText("Latitude"), "50.63");
-    await user.type(screen.getByLabelText("Longitude"), "3.05");
+    await user.type(screen.getByLabelText("Ville"), "Villeinexistante");
     await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
 
     expect(onCreated).not.toHaveBeenCalled();
@@ -238,15 +243,13 @@ describe("CampaignFormDialog — édition", () => {
     );
 
     expect(screen.getByText("Modifier la campagne")).toBeInTheDocument();
-    expect(screen.getByLabelText("Identifiant")).toHaveValue("alternance-data-hdf");
-    expect(screen.getByLabelText("Codes ROME")).toHaveValue("M1403, M1805");
     expect(screen.getByRole("checkbox", { name: "Apprentissage" })).toBeChecked();
-    expect(screen.getByLabelText("Libellé")).toHaveValue("Lille 59000");
+    expect(screen.getByLabelText("Ville")).toHaveValue("Lille");
     expect(screen.getByLabelText("Tenant Workday")).toHaveValue("valeo");
     expect(screen.getByLabelText("Cibles SmartRecruiters (optionnel)")).toHaveValue("MAZARS");
   });
 
-  it("calls updateCampaign with the campaignId and calls onUpdated on success", async () => {
+  it("calls updateCampaign with the campaignId (no slug) and calls onUpdated on success", async () => {
     const user = userEvent.setup();
     vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
     const onUpdated = vi.fn();
@@ -263,7 +266,10 @@ describe("CampaignFormDialog — édition", () => {
 
     await user.click(screen.getByRole("button", { name: "Enregistrer" }));
 
-    expect(updateCampaign).toHaveBeenCalledWith(expect.objectContaining({ campaignId: "campaign-1" }));
+    expect(updateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ campaignId: "campaign-1", locations: [{ label: "Lille", radiusKm: 30 }] })
+    );
+    expect(updateCampaign).toHaveBeenCalledWith(expect.not.objectContaining({ slug: expect.anything() }));
     expect(onUpdated).toHaveBeenCalledWith(existingCampaign);
   });
 

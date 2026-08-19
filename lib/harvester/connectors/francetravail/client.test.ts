@@ -232,6 +232,43 @@ describe("fetchFranceTravailOffers", () => {
     expect(results).toHaveLength(0);
   });
 
+  it("sends the campaign keywords as the motsCles search parameter", async () => {
+    let searchUrl = "";
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      searchUrl = url;
+      return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
+    });
+    const keywordsQuery: HarvestQuery = { ...query, keywords: ["data analyst", "BI"] };
+
+    for await (const _item of fetchFranceTravailOffers(keywordsQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      // drain
+    }
+
+    expect(new URL(searchUrl).searchParams.get("motsCles")).toBe("data analyst,BI");
+  });
+
+  it("omits the motsCles parameter when the campaign has no keywords", async () => {
+    let searchUrl = "";
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      searchUrl = url;
+      return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
+    });
+
+    for await (const _item of fetchFranceTravailOffers(query, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      // drain
+    }
+
+    expect(new URL(searchUrl).searchParams.has("motsCles")).toBe(false);
+  });
+
   it("warns and omits the departement filter when the location label has no postal code (JOB-23)", async () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     const noPostalCodeQuery: HarvestQuery = { ...query, location: { ...query.location, label: "Lille" } };

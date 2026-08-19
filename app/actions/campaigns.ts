@@ -9,6 +9,8 @@ import {
   deleteCampaignSchema,
   updateCampaignSchema,
 } from "@/lib/harvester/campaign-validation";
+import { resolveLocations } from "@/lib/harvester/geocoding";
+import { slugifyKeywords } from "@/lib/harvester/campaign-slug";
 import {
   actionError,
   campaignOwnerWhere,
@@ -16,6 +18,15 @@ import {
   firstIssueMessage,
   logActionError,
 } from "./_shared";
+
+// Nombre de tentatives avant d'abandonner un slug auto-généré en collision (JOB-59 suite) —
+// collision peu probable (slug dérivé des mots-clés, scope par utilisateur) mais possible si
+// deux campagnes du même utilisateur partagent les mêmes mots-clés.
+const MAX_SLUG_ATTEMPTS = 5;
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
 
 /**
  * Liste les campagnes de collecte de l'utilisateur courant.
@@ -39,14 +50,15 @@ export async function listCampaigns(): Promise<ActionResult<{ campaigns: Campaig
 }
 
 /**
- * Crée une campagne de collecte.
+ * Crée une campagne de collecte. `slug` n'est pas un paramètre d'entrée :
+ * généré côté serveur à partir des mots-clés (slugifyKeywords), avec retry
+ * suffixé en cas de collision — l'utilisateur ne saisit qu'un nom de ville
+ * par localisation, géocodé ici (resolveLocations) pour produire lat/lng.
  *
- * @param input.slug Identifiant court, unique par utilisateur (minuscules,
- * chiffres, tirets).
  * @param input.contractTypes Au moins un type de contrat visé.
- * @param input.locations Au moins une localisation ({label, lat, lng, radiusKm}).
- * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `CONFLICT` (slug déjà pris
- * par cet utilisateur), `INTERNAL_ERROR`.
+ * @param input.locations Au moins une localisation ({label, radiusKm}).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (dont ville introuvable),
+ * `CONFLICT` (retries de slug épuisés), `INTERNAL_ERROR`.
  */
 export async function createCampaign(
   input: unknown
@@ -61,22 +73,31 @@ export async function createCampaign(
       firstIssueMessage(parsed.error, "Impossible de créer cette campagne")
     );
   }
+
+  const resolved = await resolveLocations(parsed.data.locations);
+  if (!resolved.ok) {
+    return actionError("VALIDATION_ERROR", `Ville introuvable : « ${resolved.unresolvedLabel} »`);
+  }
+
+  const { locations: _locations, targets, ...fields } = parsed.data;
+  const config = { locations: resolved.locations, ...(targets ? { targets } : {}) };
+  const baseSlug = slugifyKeywords(parsed.data.keywords);
+
   try {
-    const { locations, targets, ...fields } = parsed.data;
-    const campaign = await prisma.campaign.create({
-      data: {
-        ...fields,
-        userId: auth.user.id,
-        config: { locations, ...(targets ? { targets } : {}) },
-      },
-    });
-    revalidatePath("/harvester/campaigns");
-    return { ok: true, data: { campaign } };
+    for (let attempt = 1; ; attempt++) {
+      const slug = attempt === 1 ? baseSlug : `${baseSlug}-${attempt}`;
+      try {
+        const campaign = await prisma.campaign.create({
+          data: { ...fields, slug, userId: auth.user.id, config },
+        });
+        revalidatePath("/harvester/campaigns");
+        return { ok: true, data: { campaign } };
+      } catch (error) {
+        if (!isUniqueConstraintError(error) || attempt >= MAX_SLUG_ATTEMPTS) throw error;
+      }
+    }
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
+    if (isUniqueConstraintError(error)) {
       return actionError("CONFLICT", "Une campagne avec cet identifiant existe déjà");
     }
     logActionError("createCampaign", error, { userId: auth.user.id });
@@ -86,11 +107,13 @@ export async function createCampaign(
 
 /**
  * Met à jour une campagne existante (remplacement complet des champs
- * modifiables — pas de mise à jour partielle).
+ * modifiables — pas de mise à jour partielle). Le slug n'est pas modifiable
+ * après création (généré une seule fois par createCampaign).
  *
- * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `CONFLICT`, `INTERNAL_ERROR`
- * (y compris campagne introuvable pour cet utilisateur — P2025 Prisma, non
- * distingué d'une autre erreur d'écriture, comme updateContact).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (dont ville introuvable),
+ * `INTERNAL_ERROR` (y compris campagne introuvable pour cet utilisateur —
+ * P2025 Prisma, non distingué d'une autre erreur d'écriture, comme
+ * updateContact).
  */
 export async function updateCampaign(
   input: unknown
@@ -105,24 +128,24 @@ export async function updateCampaign(
       firstIssueMessage(parsed.error, "Impossible de modifier cette campagne")
     );
   }
+
+  const resolved = await resolveLocations(parsed.data.locations);
+  if (!resolved.ok) {
+    return actionError("VALIDATION_ERROR", `Ville introuvable : « ${resolved.unresolvedLabel} »`);
+  }
+
   try {
-    const { campaignId, locations, targets, ...fields } = parsed.data;
+    const { campaignId, locations: _locations, targets, ...fields } = parsed.data;
     const campaign = await prisma.campaign.update({
       where: campaignOwnerWhere(campaignId, auth.user.id),
       data: {
         ...fields,
-        config: { locations, ...(targets ? { targets } : {}) },
+        config: { locations: resolved.locations, ...(targets ? { targets } : {}) },
       },
     });
     revalidatePath("/harvester/campaigns");
     return { ok: true, data: { campaign } };
   } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return actionError("CONFLICT", "Une campagne avec cet identifiant existe déjà");
-    }
     logActionError("updateCampaign", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible de modifier cette campagne");
   }
