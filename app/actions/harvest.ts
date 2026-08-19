@@ -8,7 +8,11 @@ import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
 import { STATUS } from "@/lib/constants";
 import { runCampaignAcrossConnectors, type RunSummary } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
-import { triggerCampaignCollectionSchema, importHarvestedOfferSchema } from "@/lib/harvester/harvest-validation";
+import {
+  triggerCampaignCollectionSchema,
+  importHarvestedOfferSchema,
+  ignoreHarvestedOfferSchema,
+} from "@/lib/harvester/harvest-validation";
 import {
   actionError,
   campaignOwnerWhere,
@@ -138,5 +142,41 @@ export async function importHarvestedOffer(
   } catch (error) {
     logActionError("importHarvestedOffer", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible d'importer cette offre");
+  }
+}
+
+/**
+ * Retire une offre collectée de la file de revue sans l'importer —
+ * idempotent (ré-ignorer une offre déjà ignorée ne fait rien de plus).
+ *
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `NOT_FOUND` (offre
+ * introuvable pour cet utilisateur), `INTERNAL_ERROR`.
+ */
+export async function ignoreHarvestedOffer(input: unknown): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  const parsed = ignoreHarvestedOfferSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionError("VALIDATION_ERROR", firstIssueMessage(parsed.error, "Impossible d'ignorer cette offre"));
+  }
+  try {
+    const offer = await prisma.harvestedOffer.findFirst({
+      where: { id: parsed.data.offerId, userId: auth.user.id },
+    });
+    if (!offer) {
+      return actionError("NOT_FOUND", "Offre introuvable");
+    }
+    if (!offer.ignoredAt) {
+      await prisma.harvestedOffer.update({
+        where: { id: offer.id },
+        data: { ignoredAt: new Date() },
+      });
+    }
+    revalidatePath("/harvester/review");
+    return { ok: true, data: null };
+  } catch (error) {
+    logActionError("ignoreHarvestedOffer", error, { userId: auth.user.id });
+    return actionError("INTERNAL_ERROR", "Impossible d'ignorer cette offre");
   }
 }

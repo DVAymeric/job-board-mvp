@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
-import { triggerCampaignCollection, importHarvestedOffer } from "@/app/actions/harvest";
+import { triggerCampaignCollection, importHarvestedOffer, ignoreHarvestedOffer } from "@/app/actions/harvest";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { runCampaignAcrossConnectors } from "@/lib/harvester/orchestrator";
@@ -183,5 +183,51 @@ describe("importHarvestedOffer", () => {
     const result = await importHarvestedOffer({ offerId: "o1" });
 
     expect(result).toEqual({ ok: true, data: { jobId: "winning-job-1" } });
+  });
+});
+
+describe("ignoreHarvestedOffer", () => {
+  it("returns UNAUTHENTICATED when there is no session", async () => {
+    mockUnauthenticated();
+    const result = await ignoreHarvestedOffer({ offerId: "o1" });
+    expect(result).toMatchObject({ code: "UNAUTHENTICATED" });
+  });
+
+  it("returns NOT_FOUND when the offer doesn't belong to this user", async () => {
+    mockAuthedAs("ignore-user-notfound");
+    vi.mocked(prisma.harvestedOffer.findFirst).mockResolvedValue(null);
+    const result = await ignoreHarvestedOffer({ offerId: "o1" });
+    expect(result).toMatchObject({ code: "NOT_FOUND" });
+  });
+
+  it("marks the offer as ignored", async () => {
+    mockAuthedAs("ignore-user-ok");
+    vi.mocked(prisma.harvestedOffer.findFirst).mockResolvedValue({
+      id: "o1",
+      userId: "ignore-user-ok",
+      ignoredAt: null,
+    } as never);
+
+    const result = await ignoreHarvestedOffer({ offerId: "o1" });
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.harvestedOffer.update).toHaveBeenCalledWith({
+      where: { id: "o1" },
+      data: { ignoredAt: expect.any(Date) },
+    });
+  });
+
+  it("is idempotent: does not call update again when the offer is already ignored", async () => {
+    mockAuthedAs("ignore-user-idempotent");
+    vi.mocked(prisma.harvestedOffer.findFirst).mockResolvedValue({
+      id: "o1",
+      userId: "ignore-user-idempotent",
+      ignoredAt: new Date("2026-01-01"),
+    } as never);
+
+    const result = await ignoreHarvestedOffer({ offerId: "o1" });
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.harvestedOffer.update).not.toHaveBeenCalled();
   });
 });

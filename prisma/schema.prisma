@@ -222,11 +222,16 @@ model HarvestedOffer {
   rawPayload            Json
   importedJobId         String?            @unique
   importedJob           Job?               @relation(fields: [importedJobId], references: [id])
+  // Rejetée explicitement par l'utilisateur depuis la file de revue (JOB-51)
+  // — distinct de importedJobId : une offre ignorée n'est pas importée, mais
+  // ne doit plus réapparaître dans la file en attente.
+  ignoredAt             DateTime?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
   @@unique([userId, dedupKey])
   @@index([userId, campaignId])
+  @@index([userId, importedJobId, ignoredAt])
 }
 
 model ConnectorRun {

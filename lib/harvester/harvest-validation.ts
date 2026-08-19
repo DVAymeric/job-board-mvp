@@ -9,3 +9,7 @@ export const triggerCampaignCollectionSchema = z.object({
 export const importHarvestedOfferSchema = z.object({
   offerId: idSchema,
 });
+
+export const ignoreHarvestedOfferSchema = z.object({
+  offerId: idSchema,
+});

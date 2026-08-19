@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
+import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
 import { CampaignsManager } from "@/components/harvester/campaigns-manager";
 
 export default async function HarvesterCampaignsPage() {
@@ -19,6 +20,7 @@ export default async function HarvesterCampaignsPage() {
         title="Campagnes"
         subtitle="Mots-clés, zones géographiques et types de contrat visés par chaque collecte."
       />
+      <HarvesterTabs />
       <CampaignsManager initialCampaigns={campaigns} />
     </div>
   );
