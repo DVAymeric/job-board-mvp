@@ -38,4 +38,9 @@ export class InMemorySlidingWindowRateLimiter implements RateLimiter {
     this.hits.set(key, recent);
     return { allowed: true };
   }
+
+  /** Vide tous les compteurs — usage tests uniquement (isoler les instances singleton entre cas). */
+  reset(): void {
+    this.hits.clear();
+  }
 }

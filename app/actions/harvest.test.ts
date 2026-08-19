@@ -1,9 +1,16 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
-import { triggerCampaignCollection, importHarvestedOffer, ignoreHarvestedOffer } from "@/app/actions/harvest";
+import {
+  triggerCampaignCollection,
+  importHarvestedOffer,
+  ignoreHarvestedOffer,
+  getConnectorsHealth,
+  __resetConnectorsHealthRateLimitsForTests,
+} from "@/app/actions/harvest";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { runCampaignAcrossConnectors } from "@/lib/harvester/orchestrator";
+import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -23,6 +30,13 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/harvester/orchestrator", () => ({
   runCampaignAcrossConnectors: vi.fn(),
+}));
+
+vi.mock("@/lib/harvester/connectors", () => ({
+  ALL_CONNECTORS: [
+    { id: "fake-a", healthCheck: vi.fn() },
+    { id: "fake-b", healthCheck: vi.fn() },
+  ],
 }));
 
 function mockAuthedAs(userId: string) {
@@ -229,5 +243,113 @@ describe("ignoreHarvestedOffer", () => {
 
     expect(result).toEqual({ ok: true, data: null });
     expect(prisma.harvestedOffer.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("getConnectorsHealth", () => {
+  beforeEach(() => {
+    for (const connector of ALL_CONNECTORS) {
+      vi.mocked(connector.healthCheck).mockReset();
+    }
+    __resetConnectorsHealthRateLimitsForTests();
+  });
+
+  it("returns UNAUTHENTICATED when there is no session", async () => {
+    mockUnauthenticated();
+    const result = await getConnectorsHealth();
+    expect(result).toMatchObject({ code: "UNAUTHENTICATED" });
+  });
+
+  it("calls healthCheck on every registered connector and returns one entry each", async () => {
+    mockAuthedAs("health-user");
+    vi.mocked(ALL_CONNECTORS[0]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-a",
+      ok: true,
+      latencyMs: 12,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+    vi.mocked(ALL_CONNECTORS[1]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-b",
+      ok: false,
+      latencyMs: 30,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+      message: "HTTP 500",
+    });
+
+    const result = await getConnectorsHealth();
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.health).toEqual([
+      { connectorId: "fake-a", ok: true, latencyMs: 12, checkedAt: "2026-08-19T00:00:00.000Z" },
+      { connectorId: "fake-b", ok: false, latencyMs: 30, checkedAt: "2026-08-19T00:00:00.000Z", message: "HTTP 500" },
+    ]);
+    expect(ALL_CONNECTORS[0]!.healthCheck).toHaveBeenCalledTimes(1);
+    expect(ALL_CONNECTORS[1]!.healthCheck).toHaveBeenCalledTimes(1);
+  });
+
+  it("reports ok:false for a connector whose healthCheck throws, without failing the others", async () => {
+    mockAuthedAs("health-user-throw");
+    vi.mocked(ALL_CONNECTORS[0]!.healthCheck).mockRejectedValue(new Error("boom"));
+    vi.mocked(ALL_CONNECTORS[1]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-b",
+      ok: true,
+      latencyMs: 5,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+
+    const result = await getConnectorsHealth();
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.health[0]).toMatchObject({ connectorId: "fake-a", ok: false, message: "boom" });
+    expect(result.data.health[1]).toMatchObject({ connectorId: "fake-b", ok: true });
+  });
+
+  it("returns RATE_LIMITED after too many checks within the window", async () => {
+    mockAuthedAs("health-user-ratelimit");
+    vi.mocked(ALL_CONNECTORS[0]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-a",
+      ok: true,
+      latencyMs: 1,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+    vi.mocked(ALL_CONNECTORS[1]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-b",
+      ok: true,
+      latencyMs: 1,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+
+    let lastResult;
+    for (let i = 0; i < 11; i++) {
+      lastResult = await getConnectorsHealth();
+    }
+    expect(lastResult).toMatchObject({ code: "RATE_LIMITED" });
+  });
+
+  it("returns RATE_LIMITED once the aggregate cap across all users is reached, even though each is under their own per-user limit", async () => {
+    vi.mocked(ALL_CONNECTORS[0]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-a",
+      ok: true,
+      latencyMs: 1,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+    vi.mocked(ALL_CONNECTORS[1]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-b",
+      ok: true,
+      latencyMs: 1,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+
+    // Chaque utilisateur distinct reste sous son propre plafond (1 appel chacun, très en
+    // dessous des 10/60s par utilisateur) — seul le total agrégé dépasse le plafond global,
+    // qui protège les identifiants tiers partagés (env vars) contre un abus multi-comptes.
+    let lastResult;
+    for (let i = 0; i < 21; i++) {
+      mockAuthedAs(`health-user-aggregate-${i}`);
+      lastResult = await getConnectorsHealth();
+    }
+    expect(lastResult).toMatchObject({ code: "RATE_LIMITED" });
   });
 });

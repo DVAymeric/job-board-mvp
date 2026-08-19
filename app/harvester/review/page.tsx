@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/page-header";
 import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
 import { ReviewQueueManager } from "@/components/harvester/review-queue-manager";
-import { ConnectorHealthList } from "@/components/harvester/connector-health-list";
+import { ConnectorHealthPanel } from "@/components/harvester/connector-health-panel";
 
 const PAGE_SIZE = 25;
 
@@ -40,7 +40,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
         subtitle="Offres collectées non encore traitées — importez-les vers le board ou ignorez-les."
       />
       <HarvesterTabs />
-      <ConnectorHealthList runs={connectorRuns} />
+      <ConnectorHealthPanel runs={connectorRuns} />
       <ReviewQueueManager initialOffers={offers} nextCursor={nextCursor} />
     </div>
   );
