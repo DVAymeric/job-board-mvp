@@ -9,6 +9,7 @@ import { STATUS } from "@/lib/constants";
 import { runCampaignAcrossConnectors, type RunSummary } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
 import { harvestEnv } from "@/lib/harvester/harvest-env";
+import { healthCheckWithTimeout, type ConnectorHealth } from "@/lib/harvester/timed-health-check";
 import {
   triggerCampaignCollectionSchema,
   importHarvestedOfferSchema,
@@ -29,6 +30,16 @@ import {
 // se faire bannir (JOB-46, item différé de la revue de sécurité jusqu'à l'existence de cette
 // action).
 const TRIGGER_COLLECTION_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(5, 60_000);
+
+// Chaque appel frappe les 9 API tierces des connecteurs enregistrés — même logique de
+// protection anti-abus que TRIGGER_COLLECTION_RATE_LIMIT, plafond un peu plus haut car un
+// simple ping healthCheck() est bien moins coûteux qu'une collecte complète (JOB-59).
+const CONNECTORS_HEALTH_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(10, 60_000);
+
+// Borne le temps d'attente d'un connecteur individuel : `healthCheck()` ne prend pas
+// d'AbortSignal, donc un connecteur en panne réseau (pas de reset TCP) pourrait bloquer
+// indéfiniment sans ce filet (JOB-59).
+const CONNECTOR_HEALTH_CHECK_TIMEOUT_MS = 8000;
 
 /**
  * Déclenche une collecte manuelle pour une campagne : exécute tous les
@@ -171,5 +182,47 @@ export async function ignoreHarvestedOffer(input: unknown): Promise<ActionResult
   } catch (error) {
     logActionError("ignoreHarvestedOffer", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible d'ignorer cette offre");
+  }
+}
+
+/**
+ * Interroge en direct le `healthCheck()` de chaque connecteur enregistré
+ * (ALL_CONNECTORS) — détecte une clé API expirée ou une source en panne de
+ * façon proactive, sans attendre le prochain run raté (JOB-59). Le volet
+ * "dernier run connu" est déjà couvert côté page (`prisma.connectorRun`,
+ * non dupliqué ici).
+ *
+ * @errors `UNAUTHENTICATED`, `RATE_LIMITED`, `INTERNAL_ERROR`.
+ */
+export async function getConnectorsHealth(): Promise<ActionResult<{ health: ConnectorHealth[] }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  const limit = CONNECTORS_HEALTH_RATE_LIMIT.check(auth.user.id);
+  if (!limit.allowed) {
+    return actionError("RATE_LIMITED", rateLimitError(limit.retryAfterSeconds));
+  }
+
+  try {
+    const settled = await Promise.allSettled(
+      ALL_CONNECTORS.map((connector) =>
+        healthCheckWithTimeout(connector.id, () => connector.healthCheck(), CONNECTOR_HEALTH_CHECK_TIMEOUT_MS)
+      )
+    );
+    const health = settled.map((result, index) =>
+      result.status === "fulfilled"
+        ? result.value
+        : {
+            connectorId: ALL_CONNECTORS[index]!.id,
+            ok: false,
+            latencyMs: 0,
+            checkedAt: new Date().toISOString(),
+            message: result.reason instanceof Error ? result.reason.message : String(result.reason),
+          }
+    );
+    return { ok: true, data: { health } };
+  } catch (error) {
+    logActionError("getConnectorsHealth", error, { userId: auth.user.id });
+    return actionError("INTERNAL_ERROR", "Impossible de vérifier le statut des connecteurs");
   }
 }
