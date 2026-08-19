@@ -63,4 +63,15 @@ describe("InMemorySlidingWindowRateLimiter", () => {
     // Only the t=6s hit remains in the 10s window, so this one is allowed.
     expect(limiter.check("user-1")).toEqual({ allowed: true });
   });
+
+  it("clears all buckets on reset, allowing previously-blocked keys through again", () => {
+    const limiter = new InMemorySlidingWindowRateLimiter(1, 60_000);
+
+    expect(limiter.check("user-1")).toEqual({ allowed: true });
+    expect(limiter.check("user-1").allowed).toBe(false);
+
+    limiter.reset();
+
+    expect(limiter.check("user-1")).toEqual({ allowed: true });
+  });
 });

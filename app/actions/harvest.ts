@@ -31,10 +31,24 @@ import {
 // action).
 const TRIGGER_COLLECTION_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(5, 60_000);
 
-// Chaque appel frappe les 9 API tierces des connecteurs enregistrés — même logique de
+// Chaque appel frappe l'API tierce de chaque connecteur enregistré (ALL_CONNECTORS) — même logique de
 // protection anti-abus que TRIGGER_COLLECTION_RATE_LIMIT, plafond un peu plus haut car un
 // simple ping healthCheck() est bien moins coûteux qu'une collecte complète (JOB-59).
 const CONNECTORS_HEALTH_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(10, 60_000);
+
+// Plafond global (une seule clé, tous utilisateurs confondus) en complément du plafond par
+// utilisateur ci-dessus : les identifiants tiers des connecteurs (FRANCE_TRAVAIL_CLIENT_ID,
+// LBA_API_KEY, ...) sont des variables d'environnement partagées par toute l'app, pas des
+// credentials par utilisateur — N comptes restant chacun sous leur propre plafond peuvent quand
+// même, ensemble, épuiser un quota tiers ou déclencher un bannissement (relevé en revue de code
+// sur JOB-59).
+const CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT_KEY = "global";
+const CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(20, 60_000);
+
+export function __resetConnectorsHealthRateLimitsForTests() {
+  CONNECTORS_HEALTH_RATE_LIMIT.reset();
+  CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT.reset();
+}
 
 // Borne le temps d'attente d'un connecteur individuel : `healthCheck()` ne prend pas
 // d'AbortSignal, donc un connecteur en panne réseau (pas de reset TCP) pourrait bloquer
@@ -201,6 +215,10 @@ export async function getConnectorsHealth(): Promise<ActionResult<{ health: Conn
   const limit = CONNECTORS_HEALTH_RATE_LIMIT.check(auth.user.id);
   if (!limit.allowed) {
     return actionError("RATE_LIMITED", rateLimitError(limit.retryAfterSeconds));
+  }
+  const globalLimit = CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT.check(CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT_KEY);
+  if (!globalLimit.allowed) {
+    return actionError("RATE_LIMITED", rateLimitError(globalLimit.retryAfterSeconds));
   }
 
   try {

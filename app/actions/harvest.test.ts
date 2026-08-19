@@ -5,6 +5,7 @@ import {
   importHarvestedOffer,
   ignoreHarvestedOffer,
   getConnectorsHealth,
+  __resetConnectorsHealthRateLimitsForTests,
 } from "@/app/actions/harvest";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -250,6 +251,7 @@ describe("getConnectorsHealth", () => {
     for (const connector of ALL_CONNECTORS) {
       vi.mocked(connector.healthCheck).mockReset();
     }
+    __resetConnectorsHealthRateLimitsForTests();
   });
 
   it("returns UNAUTHENTICATED when there is no session", async () => {
@@ -321,6 +323,31 @@ describe("getConnectorsHealth", () => {
 
     let lastResult;
     for (let i = 0; i < 11; i++) {
+      lastResult = await getConnectorsHealth();
+    }
+    expect(lastResult).toMatchObject({ code: "RATE_LIMITED" });
+  });
+
+  it("returns RATE_LIMITED once the aggregate cap across all users is reached, even though each is under their own per-user limit", async () => {
+    vi.mocked(ALL_CONNECTORS[0]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-a",
+      ok: true,
+      latencyMs: 1,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+    vi.mocked(ALL_CONNECTORS[1]!.healthCheck).mockResolvedValue({
+      connectorId: "fake-b",
+      ok: true,
+      latencyMs: 1,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+    });
+
+    // Chaque utilisateur distinct reste sous son propre plafond (1 appel chacun, très en
+    // dessous des 10/60s par utilisateur) — seul le total agrégé dépasse le plafond global,
+    // qui protège les identifiants tiers partagés (env vars) contre un abus multi-comptes.
+    let lastResult;
+    for (let i = 0; i < 21; i++) {
+      mockAuthedAs(`health-user-aggregate-${i}`);
       lastResult = await getConnectorsHealth();
     }
     expect(lastResult).toMatchObject({ code: "RATE_LIMITED" });
