@@ -6,7 +6,15 @@ import { HarvestTargetsSchema } from "@/lib/harvester/harvest-query";
 // schéma valide l'entrée des Server Actions CRUD (format déjà Prisma,
 // majuscules), à ne pas confondre avec ContractTypeSchema (minuscules,
 // format YAML source — voir lib/harvester/campaign-config.ts).
-const CAMPAIGN_CONTRACT_TYPES = ["APPRENTISSAGE", "PROFESSIONNALISATION", "STAGE", "AUTRE"] as const;
+export const CAMPAIGN_CONTRACT_TYPES = ["APPRENTISSAGE", "PROFESSIONNALISATION", "STAGE", "AUTRE"] as const;
+export type CampaignContractType = (typeof CAMPAIGN_CONTRACT_TYPES)[number];
+
+export const CAMPAIGN_CONTRACT_TYPE_LABELS: Record<CampaignContractType, string> = {
+  APPRENTISSAGE: "Apprentissage",
+  PROFESSIONNALISATION: "Professionnalisation",
+  STAGE: "Stage",
+  AUTRE: "Autre",
+};
 
 const campaignIdSchema = z.string().trim().min(1, "Identifiant invalide");
 
