@@ -4,11 +4,16 @@ import userEvent from "@testing-library/user-event";
 import type { Campaign } from "@prisma/client";
 import { CampaignsManager } from "@/components/harvester/campaigns-manager";
 import { createCampaign, deleteCampaign } from "@/app/actions/campaigns";
+import { triggerCampaignCollection } from "@/app/actions/harvest";
 
 vi.mock("@/app/actions/campaigns", () => ({
   createCampaign: vi.fn(),
   updateCampaign: vi.fn(),
   deleteCampaign: vi.fn(),
+}));
+
+vi.mock("@/app/actions/harvest", () => ({
+  triggerCampaignCollection: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -90,5 +95,20 @@ describe("CampaignsManager", () => {
     await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
 
     expect(await screen.findByText(/Aucune campagne pour le moment/)).toBeInTheDocument();
+  });
+
+  it("triggers a manual collection and shows the number of offers collected", async () => {
+    const user = userEvent.setup();
+    vi.mocked(triggerCampaignCollection).mockResolvedValue({
+      ok: true,
+      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 3, rejectedCount: 2, ok: true }] },
+    });
+    render(<CampaignsManager initialCampaigns={[campaign]} />);
+
+    await user.click(screen.getByRole("button", { name: "Lancer la collecte" }));
+
+    expect(triggerCampaignCollection).toHaveBeenCalledWith({ campaignId: "campaign-1" });
+    // The dialog never opens for a trigger click, unlike clicking the row itself.
+    expect(screen.queryByText("Modifier la campagne")).not.toBeInTheDocument();
   });
 });

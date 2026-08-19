@@ -1,15 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Loader2, Plus, Play } from "lucide-react";
 import type { Campaign } from "@prisma/client";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CampaignFormDialog } from "@/components/harvester/campaign-form-dialog";
+import { triggerCampaignCollection } from "@/app/actions/harvest";
 import { CAMPAIGN_CONTRACT_TYPE_LABELS, type CampaignContractType } from "@/lib/harvester/campaign-validation";
 
 export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campaign[] }) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [selected, setSelected] = useState<Campaign | null | "new">(null);
+  const [triggeringId, setTriggeringId] = useState<string | null>(null);
+
+  async function handleTrigger(campaignId: string) {
+    setTriggeringId(campaignId);
+    const result = await triggerCampaignCollection({ campaignId });
+    setTriggeringId(null);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    const offersCollected = result.data.runs.reduce((sum, run) => sum + run.normalizedCount, 0);
+    toast.success(
+      offersCollected > 0
+        ? `${offersCollected} offre${offersCollected > 1 ? "s" : ""} collectée${offersCollected > 1 ? "s" : ""}`
+        : "Collecte terminée, aucune nouvelle offre"
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -25,11 +44,14 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
       ) : (
         <ul className="space-y-2">
           {campaigns.map((campaign) => (
-            <li key={campaign.id}>
+            <li
+              key={campaign.id}
+              className="flex items-center justify-between gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted"
+            >
               <button
                 type="button"
                 onClick={() => setSelected(campaign)}
-                className="flex w-full flex-col gap-1 rounded-lg border border-border p-3 text-left transition-colors hover:bg-muted"
+                className="flex min-w-0 flex-1 flex-col gap-1 text-left"
               >
                 <span className="font-heading text-sm leading-snug text-heading">
                   {campaign.slug}
@@ -40,6 +62,15 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
                     .join(" · ") || "Aucun type de contrat"}
                 </span>
               </button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={triggeringId === campaign.id}
+                onClick={() => handleTrigger(campaign.id)}
+              >
+                {triggeringId === campaign.id ? <Loader2 className="animate-spin" /> : <Play className="size-3.5" />}
+                Lancer la collecte
+              </Button>
             </li>
           ))}
         </ul>

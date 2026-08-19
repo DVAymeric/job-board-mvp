@@ -8,6 +8,7 @@ import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
 import { STATUS } from "@/lib/constants";
 import { runCampaignAcrossConnectors, type RunSummary } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
+import { harvestEnv } from "@/lib/harvester/harvest-env";
 import {
   triggerCampaignCollectionSchema,
   importHarvestedOfferSchema,
@@ -28,14 +29,6 @@ import {
 // se faire bannir (JOB-46, item différé de la revue de sécurité jusqu'à l'existence de cette
 // action).
 const TRIGGER_COLLECTION_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(5, 60_000);
-
-function harvestEnv(): Record<string, string | undefined> {
-  return {
-    FRANCE_TRAVAIL_CLIENT_ID: process.env.FRANCE_TRAVAIL_CLIENT_ID,
-    FRANCE_TRAVAIL_CLIENT_SECRET: process.env.FRANCE_TRAVAIL_CLIENT_SECRET,
-    LBA_API_KEY: process.env.LBA_API_KEY,
-  };
-}
 
 /**
  * Déclenche une collecte manuelle pour une campagne : exécute tous les
