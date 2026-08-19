@@ -21,6 +21,17 @@ migrations Prisma).
 4. Variables d'environnement (`DATABASE_URL`, `DIRECT_URL`, `AUTH_SECRET`,
    etc. — voir `.env.example`) : à configurer dans Vercel par environnement
    (Preview / Production), jamais commitées.
+5. Module Harvester (JOB-52/JOB-54) : `vercel.json` déclare un cron
+   quotidien (`/api/cron/harvest`, `0 7 * * *`) — Vercel le détecte
+   automatiquement au déploiement, mais la route répond 401 tant que
+   `CRON_SECRET` n'est pas configuré côté projet Vercel (voir
+   `docs/gestion-des-secrets.md`). Ses migrations (3 nouvelles tables,
+   1 colonne ajoutée) s'appliquent avec le reste via `prisma migrate
+   deploy` à l'étape 3, sans étape manuelle supplémentaire. Les clés des
+   connecteurs (`FRANCE_TRAVAIL_CLIENT_ID`/`_SECRET`, `LBA_API_KEY`,
+   `WTTJ_ALGOLIA_APP_ID`/`_API_KEY`) sont toutes optionnelles au
+   déploiement — chaque connecteur absent reste simplement inactif,
+   aucune ne bloque le build ou le démarrage de l'app.
 
 ## Rollback d'un déploiement cassé
 

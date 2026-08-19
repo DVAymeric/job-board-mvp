@@ -1,5 +1,22 @@
 # Gestion des secrets
 
+## Addendum module Harvester (JOB-54)
+
+La revue explicite ci-dessous (JOB-118) date du 14 août 2026, avant la fusion du module
+Harvester — elle ne couvre donc pas ses secrets propres. Mêmes garanties déjà en place et
+inchangées pour eux : jamais commités (`.env.example` les liste vides), couverts par le même
+`gitleaks detect` en CI (`secret-scan`), même politique "jamais dans le code ni dans Git".
+
+| Secret | Obligatoire ? | Effet si absent |
+|---|---|---|
+| `FRANCE_TRAVAIL_CLIENT_ID` / `_SECRET` | Non | Connecteur France Travail inactif (health check `ok:false`), pas d'erreur pour les autres connecteurs. |
+| `LBA_API_KEY` | Non | Connecteur La Bonne Alternance inactif, idem. |
+| `WTTJ_ALGOLIA_APP_ID` / `_API_KEY` | Non | Connecteur Welcome to the Jungle inactif (`supports()` renvoie `false`), idem. |
+| `CRON_SECRET` | Non (mais recommandé en production) | `/api/cron/harvest` répond 401 à toute requête, y compris celles de Vercel Cron lui-même — la collecte planifiée ne se déclenche jamais tant qu'il n'est pas configuré côté Vercel. Le déclenchement manuel (`/harvester/campaigns`) reste utilisable sans lui. |
+
+Aucun de ces secrets n'est requis pour que le reste de l'app (board, analytics, compte) fonctionne
+— le module Harvester se dégrade silencieusement connecteur par connecteur, jamais l'app entière.
+
 ## Revue explicite (JOB-118)
 
 Revue effectuée le 14 août 2026 :
@@ -65,3 +82,7 @@ Jamais dans le code ni dans Git. Uniquement en variables d'environnement :
 | `BRANDFETCH_CLIENT_ID` | Dashboard Brandfetch | Fallback logo Brandfetch indisponible entre la révocation et le déploiement de la nouvelle valeur (dégradation silencieuse, pas une erreur bloquante — cf. JOB-15). |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Sentry → Project Settings → régénérer le DSN | Événements perdus entre la régénération et le déploiement de la nouvelle valeur, sans impact utilisateur (le SDK échoue silencieusement, cf. JOB-113). |
 | `SENTRY_AUTH_TOKEN` | Sentry → régénérer le token, révoquer l'ancien | Aucun impact utilisateur — n'affecte que l'upload des source maps au build suivant. |
+| `FRANCE_TRAVAIL_CLIENT_ID` / `_SECRET` | Espace développeur [francetravail.io](https://francetravail.io) → application enregistrée | Connecteur France Travail inactif entre la révocation et le déploiement de la nouvelle valeur ; aucune perte de données déjà collectées. |
+| `LBA_API_KEY` | Dashboard [api.apprentissage.beta.gouv.fr](https://api.apprentissage.beta.gouv.fr) | Connecteur La Bonne Alternance inactif entre-temps, idem. |
+| `WTTJ_ALGOLIA_APP_ID` / `_API_KEY` | Dashboard Algolia associé au compte Welcome to the Jungle | Connecteur WTTJ inactif entre-temps, idem — jamais bloquant (déjà optionnel). |
+| `CRON_SECRET` | Générer une nouvelle valeur (commande dans `.env.example`), la reporter côté Vercel (Project Settings → Environment Variables) | La collecte planifiée échoue en 401 tant que la nouvelle valeur n'est pas déployée des deux côtés (route + config Vercel Cron) ; le déclenchement manuel n'est pas affecté. |
