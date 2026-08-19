@@ -9,9 +9,10 @@ import { ConnectorHealthList } from "@/components/harvester/connector-health-lis
 import { getConnectorsHealth } from "@/app/actions/harvest";
 import type { ConnectorHealth } from "@/lib/harvester/timed-health-check";
 
-// JOB-59 : le check "live" (healthCheck() en direct sur les 9 connecteurs) n'est déclenché
-// qu'à la demande — pas au chargement de la page — pour éviter de frapper 9 API tierces à
-// chaque visite de /harvester/review (même logique manuelle que "Lancer la collecte").
+// JOB-59 : le check "live" (healthCheck() en direct sur chaque connecteur enregistré) n'est
+// déclenché qu'à la demande — pas au chargement de la page — pour éviter de frapper l'API de
+// chaque connecteur à chaque visite de /harvester/review (même logique manuelle que "Lancer la
+// collecte").
 export function ConnectorHealthPanel({ runs }: { runs: ConnectorRun[] }) {
   const [live, setLive] = useState<Record<string, ConnectorHealth> | undefined>(undefined);
   const [checking, setChecking] = useState(false);
