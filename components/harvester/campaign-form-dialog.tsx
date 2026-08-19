@@ -22,13 +22,10 @@ import {
   type CampaignContractType,
 } from "@/lib/harvester/campaign-validation";
 import { z } from "zod";
-import { LocationConfigSchema } from "@/lib/harvester/campaign-config";
 import { HarvestTargetsSchema } from "@/lib/harvester/harvest-query";
 
 interface LocationInput {
   label: string;
-  lat: string;
-  lng: string;
   radiusKm: string;
 }
 
@@ -38,11 +35,14 @@ interface WorkdayTargetInput {
   dc: string;
 }
 
-const EMPTY_LOCATION: LocationInput = { label: "", lat: "", lng: "", radiusKm: "30" };
+const EMPTY_LOCATION: LocationInput = { label: "", radiusKm: "30" };
 const EMPTY_WORKDAY_TARGET: WorkdayTargetInput = { tenant: "", site: "", dc: "" };
 
+// Le nom de ville suffit ici — lat/lng ne sont plus saisis, résolus côté serveur (géocodage,
+// JOB-59 suite). `config.locations` en base reste au format complet (avec lat/lng) : seul le
+// label et le rayon sont ré-affichables tels quels dans le formulaire.
 const CampaignConfigJsonSchema = z.object({
-  locations: z.array(LocationConfigSchema),
+  locations: z.array(z.object({ label: z.string(), radiusKm: z.number() })),
   targets: HarvestTargetsSchema.optional(),
 });
 
@@ -52,8 +52,6 @@ function locationsFromCampaign(campaign: Campaign | null): LocationInput[] {
   if (!parsed.success || parsed.data.locations.length === 0) return [EMPTY_LOCATION];
   return parsed.data.locations.map((loc) => ({
     label: loc.label,
-    lat: String(loc.lat),
-    lng: String(loc.lng),
     radiusKm: String(loc.radiusKm),
   }));
 }
@@ -93,8 +91,6 @@ export function CampaignFormDialog({
   const isNew = campaign === "new";
   const existing = isNew ? null : campaign;
 
-  const [slug, setSlug] = useState(existing?.slug ?? "");
-  const [romeCodes, setRomeCodes] = useState((existing?.romeCodes ?? []).join(", "));
   const [keywords, setKeywords] = useState((existing?.keywords ?? []).join(", "));
   const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
     (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
@@ -128,8 +124,6 @@ export function CampaignFormDialog({
       .filter((loc) => loc.label.trim())
       .map((loc) => ({
         label: loc.label.trim(),
-        lat: Number(loc.lat),
-        lng: Number(loc.lng),
         radiusKm: Number(loc.radiusKm),
       }));
     const parsedWorkdayTargets = workdayTargets
@@ -139,8 +133,6 @@ export function CampaignFormDialog({
     const hasTargets = parsedWorkdayTargets.length > 0 || smartrecruitersSlugs.length > 0;
 
     return {
-      slug: slug.trim(),
-      romeCodes: splitCommaList(romeCodes),
       keywords: splitCommaList(keywords),
       contractTypes,
       locations: parsedLocations,
@@ -198,32 +190,6 @@ export function CampaignFormDialog({
 
         <div className="flex flex-col gap-4 overflow-y-auto px-1">
           <div className="space-y-1.5">
-            <label htmlFor="campaign-slug" className="text-sm font-medium">
-              Identifiant
-            </label>
-            <Input
-              id="campaign-slug"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="alternance-data-hdf"
-              disabled={saving}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="campaign-rome-codes" className="text-sm font-medium">
-              Codes ROME
-            </label>
-            <Input
-              id="campaign-rome-codes"
-              value={romeCodes}
-              onChange={(e) => setRomeCodes(e.target.value)}
-              placeholder="M1403, M1805"
-              disabled={saving}
-            />
-          </div>
-
-          <div className="space-y-1.5">
             <label htmlFor="campaign-keywords" className="text-sm font-medium">
               Mots-clés
             </label>
@@ -259,27 +225,11 @@ export function CampaignFormDialog({
               {locations.map((loc, index) => (
                 <div key={index} className="flex flex-wrap items-center gap-1.5">
                   <Input
-                    aria-label="Libellé"
+                    aria-label="Ville"
                     value={loc.label}
                     onChange={(e) => updateLocation(index, { label: e.target.value })}
-                    placeholder="Lille 59000"
+                    placeholder="Lille"
                     className="w-32"
-                    disabled={saving}
-                  />
-                  <Input
-                    aria-label="Latitude"
-                    value={loc.lat}
-                    onChange={(e) => updateLocation(index, { lat: e.target.value })}
-                    placeholder="Latitude"
-                    className="w-24"
-                    disabled={saving}
-                  />
-                  <Input
-                    aria-label="Longitude"
-                    value={loc.lng}
-                    onChange={(e) => updateLocation(index, { lng: e.target.value })}
-                    placeholder="Longitude"
-                    className="w-24"
                     disabled={saving}
                   />
                   <Input
@@ -411,7 +361,7 @@ export function CampaignFormDialog({
           )}
           <Button
             onClick={handleSave}
-            disabled={saving || !slug.trim() || contractTypes.length === 0}
+            disabled={saving || contractTypes.length === 0}
           >
             {saving && <Loader2 className="animate-spin" />}
             {isNew ? "Créer la campagne" : "Enregistrer"}

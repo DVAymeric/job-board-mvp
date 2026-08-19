@@ -102,10 +102,16 @@ function extractDepartement(label: string): string | undefined {
   return match ? match[1]!.slice(0, 2) : undefined;
 }
 
-function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes">): URL {
+function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes" | "keywords">): URL {
   const url = new URL(SEARCH_URL);
   if (query.romeCodes.length > 0) {
     url.searchParams.set("codeROME", query.romeCodes.join(","));
+  }
+  // JOB-59 (suite) : le formulaire de campagne ne demande plus de code ROME — motsCles devient
+  // le filtre de contenu principal envoyé à l'API (codeROME reste prioritaire quand fourni,
+  // ex. import YAML legacy — voir lib/harvester/campaign-config.ts).
+  if (query.keywords.length > 0) {
+    url.searchParams.set("motsCles", query.keywords.join(","));
   }
   const departement = extractDepartement(query.location.label);
   if (departement) {
