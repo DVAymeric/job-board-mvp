@@ -6,6 +6,8 @@ import { smartrecruitersConnector } from "@/lib/harvester/connectors/smartrecrui
 import { welcometothejungleConnector } from "@/lib/harvester/connectors/welcometothejungle/connector";
 import { talentsoftConnector } from "@/lib/harvester/connectors/talentsoft/connector";
 import { digitalRecruitersConnector } from "@/lib/harvester/connectors/digitalrecruiters/connector";
+import { jsonldGenericConnector } from "@/lib/harvester/connectors/jsonld-generic/connector";
+import { sitemapCrawlerConnector } from "@/lib/harvester/connectors/sitemap-crawler/connector";
 
 export const ALL_CONNECTORS: Connector[] = [
   francetravailConnector,
@@ -15,4 +17,6 @@ export const ALL_CONNECTORS: Connector[] = [
   welcometothejungleConnector,
   talentsoftConnector,
   digitalRecruitersConnector,
+  jsonldGenericConnector,
+  sitemapCrawlerConnector,
 ];

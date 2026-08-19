@@ -67,3 +67,42 @@ changement de code non demandé.
 ## Abus de la fonctionnalité de collecte
 
 Sans objet pour l'instant (pas de déclenchement exposé) — cf. section rate limiting ci-dessus.
+
+## Tier 2 — scraping générique (`jsonld-generic`, `sitemap-crawler`, JOB-58)
+
+Contrairement aux connecteurs tier 0/1, ces deux connecteurs n'interrogent pas une API à domaine
+fixe mais des pages web arbitraires configurées par l'utilisateur par campagne
+(`query.targets.jsonldGeneric` / `query.targets.sitemapCrawler`) — surface de risque différente,
+traitée spécifiquement :
+
+* **Conformité robots.txt** : chaque URL est vérifiée via `lib/harvester/robots.ts`
+  (`isAllowedByRobots`, `robots-parser`) avant tout `fetch` — aussi bien la page cible directe
+  (`jsonld-generic`) que le sitemap lui-même et chacune des URLs qu'il liste
+  (`sitemap-crawler`). Une cible refusée par robots.txt est journalée (`logger.warn`) et ignorée,
+  jamais retentée. Vérifié par test pour les deux connecteurs (`client.test.ts` : "skips a target
+  disallowed by robots.txt" / "skips the whole target when robots.txt disallows the sitemap
+  itself" / "skips a candidate page disallowed by robots.txt").
+* **Filtrage des URLs de sitemap** : `sitemap-crawler` ne suit que les URLs correspondant à un
+  motif de page d'offre (`/\/jobs\/|\/careers\/|\/offre|\/recrutement/i`) — un sitemap complet
+  (pages "à propos", mentions légales, contact...) n'est jamais entièrement crawlé.
+* **Politesse par domaine** : `sitemap-crawler` espace ses requêtes vers un même domaine via
+  `waitForDomain` (`lib/harvester/domain-politeness.ts`), en plus du rate limiting global déjà en
+  place sur `fetchImpl`. `jsonld-generic` n'en a pas besoin : ses cibles sont des URLs uniques
+  fournies explicitement par l'utilisateur, pas une liste découverte par crawl.
+* **SSRF sur le fallback navigateur headless** : `lib/harvester/headless.ts` (`fetchRenderedHtml`,
+  utilisé quand une page ne rend son JSON-LD que côté client) vérifie chaque URL — la cible
+  initiale et toute requête déclenchée par la page pendant son rendu (`page.route`) — via
+  `isDisallowedFetchTarget` (`lib/url.ts`), le même garde-fou anti-SSRF que `lib/safe-fetch.ts`.
+  C'est une amélioration délibérée par rapport à job-harvester d'origine, qui ne comportait pas ce
+  garde-fou sur son navigateur headless — pertinente ici car, contrairement aux connecteurs
+  tier 0/1 à domaine codé en dur, les cibles tier 2 sont fournies par l'utilisateur (mêmes
+  conditions qui justifient `safe-fetch.ts` ailleurs dans le code, cf. section SSRF ci-dessus).
+* **Point de lancement Chromium unique** : `fetchRenderedHtml` réutilise `launchBrowser`, exporté
+  depuis `lib/scraper/playwright-strategy.ts` — un seul point d'instanciation Playwright partagé
+  avec le scraper existant, pas une seconde implémentation dupliquée.
+* **rawPayload anti-PII (ADR-0004)** : `normalizeJsonLdOffer` ne stocke que le résultat du
+  `.parse()` Zod (`JsonLdRawOfferSchema`), qui whiteliste les champs JSON-LD conservés — un champ
+  contact/téléphone/email injecté dans le JobPosting source n'atteint jamais `rawPayload`. Vérifié
+  par test dédié (`jsonld-generic/normalize.test.ts`, "never leaks a recruiter contact field").
+  `sitemap-crawler` réutilise le même `normalize.ts` (réexport), donc la même garantie s'applique
+  sans duplication de test.

@@ -19,7 +19,12 @@ const PLAYWRIGHT_TIMEOUT_MS = 20000;
  * e2e/scraper-fixtures.spec.ts), on garde le Chromium complet déjà
  * installé par `playwright` (node_modules/playwright, cache local).
  */
-async function launchBrowser(): Promise<Browser> {
+/**
+ * Point d'entrée unique pour lancer un Chromium headless dans ce repo (JOB-58) — réutilisé tel
+ * quel par lib/harvester/headless.ts (tier 2, scraping générique) plutôt que dupliqué avec sa
+ * propre logique de lancement, pour ne garder qu'une seule branche Vercel/local à maintenir.
+ */
+export async function launchBrowser(): Promise<Browser> {
   if (process.env.VERCEL) {
     const [{ chromium }, { default: sparticuzChromium }] = await Promise.all([
       import("playwright-core"),
