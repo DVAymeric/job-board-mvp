@@ -99,7 +99,7 @@ describe("Nav — prefetch des liens protégés (JOB-131)", () => {
   it("disables prefetch on links to protected routes", () => {
     render(<Nav session={session} />);
 
-    for (const name of ["Board", "Analytics"]) {
+    for (const name of ["Board", "Analytics", "Harvester"]) {
       expect(screen.getByRole("link", { name })).toHaveAttribute(
         "data-prefetch",
         "false"

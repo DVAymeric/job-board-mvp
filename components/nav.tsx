@@ -25,6 +25,7 @@ const LINKS = [
   { href: "/", label: "Accueil", prefetch: undefined },
   { href: "/board", label: "Board", prefetch: false },
   { href: "/analytics", label: "Analytics", prefetch: false },
+  { href: "/harvester", label: "Harvester", prefetch: false },
 ] as const;
 
 export function Nav({ session }: { session: Session | null }) {
