@@ -60,6 +60,15 @@ describe("normalizeWorkdayOffer", () => {
     expect(() => normalizeWorkdayOffer({ source: "workday", payload: { nope: true } })).toThrow();
   });
 
+  it("never leaks a field outside the whitelisted schema into rawPayload (no contact/recruiter field exposed by this endpoint)", () => {
+    const raw = loadRawOfferPayload();
+    const jobPostingInfoWithPii = { ...(raw.jobPostingInfo as Record<string, unknown>), applicantContactEmail: "jean@example.com" };
+    const offer = normalizeWorkdayOffer({ source: "workday", payload: { ...raw, jobPostingInfo: jobPostingInfoWithPii } });
+
+    expect(offer.rawPayload).not.toHaveProperty("jobPostingInfo.applicantContactEmail");
+    expect(JSON.stringify(offer.rawPayload)).not.toContain("jean@example.com");
+  });
+
   it("derives a deterministic id from source and sourceOfferId (stable across DB reconstruction)", () => {
     const offer1 = normalizeWorkdayOffer({ source: "workday", payload: loadRawOfferPayload() });
     const offer2 = normalizeWorkdayOffer({ source: "workday", payload: loadRawOfferPayload() });

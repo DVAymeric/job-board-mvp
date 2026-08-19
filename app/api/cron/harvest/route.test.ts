@@ -37,6 +37,13 @@ describe("GET /api/cron/harvest", () => {
     expect(response.status).toBe(401);
   });
 
+  it("returns 401 for the literal header 'Bearer undefined' even when CRON_SECRET is unset (JOB-56)", async () => {
+    vi.stubEnv("CRON_SECRET", undefined);
+    const response = await GET(makeRequest("Bearer undefined"));
+    expect(response.status).toBe(401);
+    expect(prisma.campaign.findMany).not.toHaveBeenCalled();
+  });
+
   it("runs every scheduled campaign and returns a summary", async () => {
     vi.mocked(prisma.campaign.findMany).mockResolvedValue([
       { id: "c1", schedule: "0 7 * * *" },

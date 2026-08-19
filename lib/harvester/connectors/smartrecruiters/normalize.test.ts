@@ -62,6 +62,15 @@ describe("normalizeSmartRecruitersOffer", () => {
     expect(() => normalizeSmartRecruitersOffer({ source: "smartrecruiters", payload: { nope: true } })).toThrow();
   });
 
+  it("never leaks a field outside the whitelisted schema into rawPayload (no contact/recruiter field exposed by this endpoint)", () => {
+    const raw = loadRawOfferPayload();
+    const detailWithPii = { ...(raw.detail as Record<string, unknown>), recruiterEmail: "jean@example.com" };
+    const offer = normalizeSmartRecruitersOffer({ source: "smartrecruiters", payload: { ...raw, detail: detailWithPii } });
+
+    expect(offer.rawPayload).not.toHaveProperty("detail.recruiterEmail");
+    expect(JSON.stringify(offer.rawPayload)).not.toContain("jean@example.com");
+  });
+
   it("derives a deterministic id from source and sourceOfferId (stable across DB reconstruction)", () => {
     const offer1 = normalizeSmartRecruitersOffer({ source: "smartrecruiters", payload: loadRawOfferPayload() });
     const offer2 = normalizeSmartRecruitersOffer({ source: "smartrecruiters", payload: loadRawOfferPayload() });

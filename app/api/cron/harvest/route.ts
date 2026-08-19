@@ -18,7 +18,8 @@ import { harvestEnv } from "@/lib/harvester/harvest-env";
 // dans docs/decision-scheduling-harvester.md.
 export async function GET(request: Request): Promise<Response> {
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 

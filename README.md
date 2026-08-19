@@ -27,7 +27,7 @@ Ouvrir [http://localhost:3000](http://localhost:3000) et créer un compte sur `/
   - `/harvester/campaigns` — création/édition/suppression de campagnes (mots-clés, codes ROME, zones géographiques, types de contrat, cibles Workday/SmartRecruiters/Talentsoft/DigitalRecruiters), déclenchement manuel de la collecte.
   - `/harvester/review` — file de revue des offres collectées : import vers le board ou rejet, filtres, actions groupées, statut des connecteurs.
   - Déclenchement planifié quotidien via Vercel Cron (`vercel.json`, `/api/cron/harvest`) en plus du déclenchement manuel — voir `docs/decision-scheduling-harvester.md`.
-  - Connecteurs : France Travail, La Bonne Alternance (tier 0, clé API requise) · Workday, SmartRecruiters, Welcome to the Jungle, Talentsoft, DigitalRecruiters (tier 1, ciblage par entreprise/domaine ou clé optionnelle).
+  - Connecteurs : France Travail, La Bonne Alternance (tier 0, clé API requise) · Workday, SmartRecruiters, Welcome to the Jungle, Talentsoft, DigitalRecruiters (tier 1, ciblage par entreprise/domaine ou clé optionnelle) · scraping générique JSON-LD et crawl de sitemap, conformes robots.txt (tier 2, URLs/domaines ciblés par campagne, aucune clé requise).
 
 ## Configuration
 
