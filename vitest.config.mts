@@ -7,6 +7,13 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
+    // Au-delà du défaut de 5000ms (JOB-53) : la suite complète avec couverture v8
+    // (instrumentation + nombreux fichiers en parallèle) fait parfois dépasser ce
+    // seuil à des tests par ailleurs corrects, sous contention CPU — observé aussi
+    // bien sur des tests pré-existants (job-dialog.test.tsx) que sur le nouveau
+    // module harvester, jamais en isolation. Un vrai bug se traduirait par un
+    // timeout systématique, pas intermittent selon la charge de la machine.
+    testTimeout: 15000,
     // Integration tests need a live Postgres (docker-compose, JOB-82) and run
     // separately via `npm run test:integration` — see vitest.integration.config.mts.
     // e2e/ uses @playwright/test's own runner (`npm run test:e2e`), not Vitest.

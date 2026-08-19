@@ -3,6 +3,7 @@ import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-he
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { FranceTravailSearchResponseSchema } from "@/lib/harvester/connectors/francetravail/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
+import { logger } from "@/lib/logger";
 
 // Domaines fixes/codés en dur (jamais dérivés d'une entrée utilisateur ou d'une page scrapée) —
 // le garde SSRF de lib/safe-fetch.ts protège contre un tout autre profil de risque (redirection
@@ -113,9 +114,9 @@ function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes">): UR
     // JOB-23 (job-harvester) : sans code postal dans le label de localisation, la recherche
     // devient nationale au lieu d'être géo-filtrée — un avertissement visible vaut mieux qu'une
     // perte silencieuse.
-    console.warn(
-      `francetravail: aucun code postal trouvé dans le label de localisation "${query.location.label}" — recherche non filtrée par département.`,
-    );
+    logger.warn("harvester.francetravail.no_postal_code_in_location", {
+      locationLabel: query.location.label,
+    });
   }
   return url;
 }
