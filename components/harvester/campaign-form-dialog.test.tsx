@@ -215,3 +215,25 @@ describe("CampaignFormDialog — édition", () => {
     expect(onDeleted).toHaveBeenCalledWith("campaign-1");
   });
 });
+
+describe("CampaignFormDialog — échelle typographique (JOB-97)", () => {
+  it("renders form labels at the revised 16px-minimum scale (text-base), not text-sm", () => {
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    const slugLabel = screen.getByText("Identifiant");
+    expect(slugLabel).toHaveClass("text-base");
+    expect(slugLabel).not.toHaveClass("text-sm");
+
+    const contractTypesLabel = screen.getByText("Types de contrat");
+    expect(contractTypesLabel).toHaveClass("text-base");
+    expect(contractTypesLabel).not.toHaveClass("text-sm");
+  });
+});

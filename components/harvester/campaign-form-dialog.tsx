@@ -198,7 +198,7 @@ export function CampaignFormDialog({
 
         <div className="flex flex-col gap-4 overflow-y-auto px-1">
           <div className="space-y-1.5">
-            <label htmlFor="campaign-slug" className="text-sm font-medium">
+            <label htmlFor="campaign-slug" className="text-base font-medium">
               Identifiant
             </label>
             <Input
@@ -211,7 +211,7 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="campaign-rome-codes" className="text-sm font-medium">
+            <label htmlFor="campaign-rome-codes" className="text-base font-medium">
               Codes ROME
             </label>
             <Input
@@ -224,7 +224,7 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="campaign-keywords" className="text-sm font-medium">
+            <label htmlFor="campaign-keywords" className="text-base font-medium">
               Mots-clés
             </label>
             <Input
@@ -237,10 +237,10 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-sm font-medium">Types de contrat</span>
+            <span className="text-base font-medium">Types de contrat</span>
             <div className="flex flex-wrap gap-3">
               {CAMPAIGN_CONTRACT_TYPES.map((type) => (
-                <label key={type} className="flex items-center gap-1.5 text-sm">
+                <label key={type} className="flex items-center gap-1.5 text-base">
                   <input
                     type="checkbox"
                     checked={contractTypes.includes(type)}
@@ -254,7 +254,7 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-sm font-medium">Localisations</span>
+            <span className="text-base font-medium">Localisations</span>
             <div className="space-y-2">
               {locations.map((loc, index) => (
                 <div key={index} className="flex flex-wrap items-center gap-1.5">
@@ -316,7 +316,7 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-sm font-medium">Cibles Workday (optionnel)</span>
+            <span className="text-base font-medium">Cibles Workday (optionnel)</span>
             <div className="space-y-2">
               {workdayTargets.map((target, index) => (
                 <div key={index} className="flex flex-wrap items-center gap-1.5">
@@ -370,7 +370,7 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="campaign-smartrecruiters" className="text-sm font-medium">
+            <label htmlFor="campaign-smartrecruiters" className="text-base font-medium">
               Cibles SmartRecruiters (optionnel)
             </label>
             <Input
@@ -383,7 +383,7 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="campaign-schedule" className="text-sm font-medium">
+            <label htmlFor="campaign-schedule" className="text-base font-medium">
               Planification (optionnel)
             </label>
             <Input
