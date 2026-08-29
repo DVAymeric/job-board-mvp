@@ -21,8 +21,10 @@ export function HarvesterTabs() {
           href={tab.href}
           prefetch={false}
           className={cn(
-            "border-b-2 border-transparent py-2 text-sm font-medium transition-colors hover:text-heading",
-            pathname === tab.href ? "border-primary text-heading" : "text-muted-foreground"
+            "flex h-11 items-center border-b-2 border-transparent px-2 text-sm font-medium transition-colors hover:text-heading",
+            pathname === tab.href
+              ? "border-primary font-bold text-heading"
+              : "text-muted-foreground"
           )}
         >
           {tab.label}
