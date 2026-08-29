@@ -1,23 +1,16 @@
 import type { HeatmapDay } from "@/lib/heatmap";
 import { cn } from "@/lib/utils";
 
-const COMPACT_WEEKS = 12;
-
-const LEVEL_VARS_5 = [
-  "",
-  "--chart-4",
-  "--chart-3",
-  "--chart-2",
-  "--chart-1",
-  "--chart-5",
-];
-
-const LEVEL_COLORS_3 = [
-  "",
-  "color-mix(in srgb, var(--palette-poudre) 40%, transparent)",
-  "color-mix(in srgb, var(--palette-orchidee) 65%, transparent)",
-  "var(--palette-orchidee)",
-];
+// Échelle verte alignée sur le mockup (JOB-126) : une seule teinte
+// (--brand-positive, déjà auditée AA en JOB-112) déclinée en opacité
+// croissante, plutôt que l'ancien dégradé violet multi-teintes --chart-*/
+// --palette-orchidee. Un seul index par niveau (pas de tableau séparé
+// 3 vs 5 côtés) : le pourcentage d'opacité augmente régulièrement jusqu'à
+// couvrir le nombre de niveaux demandé.
+const LEVEL_OPACITY: Record<3 | 5, number[]> = {
+  5: [15, 32, 50, 68, 88],
+  3: [30, 60, 90],
+};
 
 const MONTH_LABELS = [
   "Jan",
@@ -36,9 +29,10 @@ const MONTH_LABELS = [
 
 function levelStyle(level: number, levels: 3 | 5): React.CSSProperties | undefined {
   if (level <= 0) return undefined;
-  const color =
-    levels === 3 ? LEVEL_COLORS_3[level] : `var(${LEVEL_VARS_5[level]})`;
-  return { backgroundColor: color };
+  const opacity = LEVEL_OPACITY[levels][level - 1];
+  return {
+    backgroundColor: `color-mix(in srgb, var(--brand-positive) ${opacity}%, transparent)`,
+  };
 }
 
 function chunkWeeks(days: HeatmapDay[]): HeatmapDay[][] {
@@ -97,12 +91,14 @@ export function ApplicationHeatmap({
   compact?: boolean;
   levels?: 3 | 5;
 }) {
+  // La fenêtre de temps (30 jours par défaut, JOB-126) est décidée par
+  // l'appelant via buildHeatmapDays — le composant ne re-découpe plus lui-même
+  // les jours reçus, `compact` ne contrôle plus que la taille des cases et la
+  // présence de la légende/des labels de mois.
   const weeks = chunkWeeks(days);
-  const visibleWeeks = compact ? weeks.slice(-COMPACT_WEEKS) : weeks;
-  const visibleDays = visibleWeeks.flat();
-  const monthLabels = computeMonthLabels(visibleWeeks);
+  const monthLabels = computeMonthLabels(weeks);
   const cellSizeClassName = compact ? "size-[8px]" : "size-[11px]";
-  const maxCount = Math.max(0, ...visibleDays.map((d) => d.count));
+  const maxCount = Math.max(0, ...days.map((d) => d.count));
 
   return (
     <div className="space-y-2">
@@ -112,7 +108,7 @@ export function ApplicationHeatmap({
             <div
               data-testid="heatmap-month-labels"
               className="grid gap-[3px]"
-              style={{ gridTemplateColumns: `repeat(${visibleWeeks.length}, 11px)` }}
+              style={{ gridTemplateColumns: `repeat(${weeks.length}, 11px)` }}
             >
               {monthLabels.map((label, index) => (
                 <span
@@ -125,7 +121,7 @@ export function ApplicationHeatmap({
             </div>
           )}
           <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
-            {visibleDays.map((day) => {
+            {days.map((day) => {
               const label = formatCellTitle(day);
               return (
                 <div
@@ -133,7 +129,7 @@ export function ApplicationHeatmap({
                   data-heatmap-cell
                   title={label}
                   aria-label={label}
-                  className={cn("rounded-[2px] border border-border bg-white", cellSizeClassName)}
+                  className={cn("rounded-[2px] border border-border bg-muted", cellSizeClassName)}
                   style={levelStyle(day.level, levels)}
                 />
               );
@@ -148,7 +144,7 @@ export function ApplicationHeatmap({
             <div key={level} className="flex flex-col items-center gap-0.5">
               <div
                 data-legend-cell
-                className="size-[11px] rounded-[2px] border border-border bg-white"
+                className="size-[11px] rounded-[2px] border border-border bg-muted"
                 style={levelStyle(level, levels)}
               />
               <span data-legend-count className="font-mono text-[10px] leading-none">

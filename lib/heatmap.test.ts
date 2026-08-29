@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import { buildHeatmapDays } from "@/lib/heatmap";
 
 describe("buildHeatmapDays", () => {
-  it("covers roughly the last 12 rolling months, starting on a Sunday", () => {
+  it("covers the last 30 days by default (JOB-126, aligné sur le mockup)", () => {
     const today = new Date(2026, 7, 12); // 2026-08-12
     const days = buildHeatmapDays([], today);
-    // 53 full weeks back, aligned to the nearest preceding Sunday: between
-    // 371 (53*7) and 377 (53*7 + 6) days depending on today's weekday.
-    expect(days.length).toBeGreaterThanOrEqual(53 * 7);
-    expect(days.length).toBeLessThanOrEqual(53 * 7 + 6);
-    expect(new Date(days[0].date + "T00:00:00").getDay()).toBe(0);
+    expect(days.length).toBe(30);
+    expect(days[0].date).toBe("2026-07-14");
+    expect(days[days.length - 1].date).toBe("2026-08-12");
+  });
+
+  it("accepts an explicit window size in days", () => {
+    const today = new Date(2026, 7, 12);
+    const days = buildHeatmapDays([], today, 5, 7);
+    expect(days.length).toBe(7);
+    expect(days[0].date).toBe("2026-08-06");
   });
 
   it("ends on the reference date", () => {

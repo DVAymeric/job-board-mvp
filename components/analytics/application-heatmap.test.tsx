@@ -39,12 +39,21 @@ describe("ApplicationHeatmap", () => {
     expect(screen.getByText("0", { selector: "[data-legend-count]" })).toBeInTheDocument();
   });
 
-  it("renders a 5-step intensity legend using the --chart-* tokens", () => {
+  it("renders a 5-step intensity legend using the green --brand-positive scale (JOB-126)", () => {
     const days = buildHeatmapDays([], new Date(2026, 7, 12));
     const { container } = render(<ApplicationHeatmap days={days} />);
     const legendCells = container.querySelectorAll("[data-legend-cell]");
     // one empty swatch + 5 intensity levels
     expect(legendCells).toHaveLength(6);
+    // le swatch vide (niveau 0) n'a pas de couleur inline (fond neutre via className)
+    expect((legendCells[0] as HTMLElement).style.backgroundColor).toBe("");
+    // chaque niveau non-vide utilise le token de marque vert, jamais les
+    // anciens tokens violets --chart-*/--palette-orchidee
+    for (const cell of Array.from(legendCells).slice(1)) {
+      const bg = (cell as HTMLElement).style.backgroundColor;
+      expect(bg).toContain("--brand-positive");
+      expect(bg).not.toMatch(/--chart-|--palette-orchidee|--palette-poudre/);
+    }
   });
 
   it("shows the month labels row by default", () => {
@@ -54,13 +63,11 @@ describe("ApplicationHeatmap", () => {
   });
 
   describe("compact mode", () => {
-    it("renders only the last 12 weeks of cells", () => {
-      // Aug 15 2026 is a Saturday, so the window ends on a complete week
-      // and the expected count isn't skewed by a partial trailing week.
+    it("renders exactly the days it was given, without re-slicing the window (JOB-126: la fenêtre est décidée par l'appelant via buildHeatmapDays, pas par le composant)", () => {
       const days = buildHeatmapDays([], new Date(2026, 7, 15));
       const { container } = render(<ApplicationHeatmap days={days} compact />);
       const cells = container.querySelectorAll("[data-heatmap-cell]");
-      expect(cells).toHaveLength(12 * 7);
+      expect(cells).toHaveLength(days.length);
     });
 
     it("hides the legend", () => {

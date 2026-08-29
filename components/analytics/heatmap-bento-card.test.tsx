@@ -7,7 +7,7 @@ describe("HeatmapBentoCard", () => {
   it("renders the card heading once (no duplicate title from the inner heatmap)", () => {
     const days = buildHeatmapDays([], new Date(2026, 7, 12), 3);
     const { container } = render(<HeatmapBentoCard days={days} />);
-    expect(screen.getByText("Régularité sur 12 mois")).toBeInTheDocument();
+    expect(screen.getByText("Régularité sur 30 jours")).toBeInTheDocument();
     expect(screen.getAllByText(/Fréquence de candidature/)).toHaveLength(1);
     expect(container.querySelectorAll("[data-heatmap-cell]")).toHaveLength(days.length);
   });

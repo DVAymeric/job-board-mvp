@@ -12,7 +12,7 @@ export function HeatmapBentoCard({ days }: HeatmapBentoCardProps) {
       span="2x2"
       tone="default"
       label="Fréquence de candidature"
-      title="Régularité sur 12 mois"
+      title="Régularité sur 30 jours"
     >
       <ApplicationHeatmap days={days} levels={3} />
     </BentoCard>

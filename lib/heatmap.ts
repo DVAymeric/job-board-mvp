@@ -1,5 +1,7 @@
-const WEEKS = 53;
-const DAYS_IN_WEEK = 7;
+// Fenêtre par défaut alignée sur le mockup ("Régularité de vos candidatures
+// (30 derniers jours)", JOB-126) — remplace l'ancienne fenêtre fixe de 53
+// semaines (~1 an). Reste paramétrable pour ne pas figer ce choix.
+const DEFAULT_WINDOW_DAYS = 30;
 
 export type HeatmapDay = {
   date: string;
@@ -37,12 +39,12 @@ function computeLevel(count: number, max: number, levels: 3 | 5): number {
 export function buildHeatmapDays(
   jobs: { createdAt: Date }[],
   today: Date = new Date(),
-  levels: 3 | 5 = 5
+  levels: 3 | 5 = 5,
+  windowDays: number = DEFAULT_WINDOW_DAYS
 ): HeatmapDay[] {
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const start = new Date(end);
-  start.setDate(start.getDate() - (WEEKS * DAYS_IN_WEEK - 1));
-  start.setDate(start.getDate() - start.getDay());
+  start.setDate(start.getDate() - (windowDays - 1));
 
   const counts = new Map<string, number>();
   for (const job of jobs) {
