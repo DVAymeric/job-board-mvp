@@ -14,6 +14,24 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+// JOB-117 : la pagination "Page suivante" est un vrai <Link> Next.js
+// (navigation App Router, pas un fetch client), donc son état "en attente"
+// se lit via useLinkStatus (recommandé par Next.js précisément quand
+// prefetch={false}, ce qui est déjà le cas ici). On mocke ce hook pour
+// piloter l'état pending depuis les tests, sans dépendre d'une vraie
+// navigation (impossible à simuler fidèlement en jsdom).
+const { useLinkStatusMock } = vi.hoisted(() => ({
+  useLinkStatusMock: vi.fn(() => ({ pending: false })),
+}));
+
+vi.mock("next/link", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("next/link")>();
+  return {
+    ...actual,
+    useLinkStatus: useLinkStatusMock,
+  };
+});
+
 function makeOffer(overrides: Partial<HarvestedOffer> = {}): HarvestedOffer {
   return {
     id: "offer-1",
@@ -62,6 +80,8 @@ function makeOffer(overrides: Partial<HarvestedOffer> = {}): HarvestedOffer {
 beforeEach(() => {
   vi.mocked(importHarvestedOffer).mockReset();
   vi.mocked(ignoreHarvestedOffer).mockReset();
+  useLinkStatusMock.mockReset();
+  useLinkStatusMock.mockReturnValue({ pending: false });
 });
 
 describe("ReviewQueueManager", () => {
@@ -195,5 +215,68 @@ describe("ReviewQueueManager", () => {
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
     const row = screen.getByRole("row", { name: /Data Analyst/ });
     expect(row.className).toMatch(/hover:bg-muted/);
+  });
+
+  describe("loading state while navigating to the next page (JOB-117)", () => {
+    it("keeps the real offer rows and an enabled next-page button when no navigation is pending", () => {
+      useLinkStatusMock.mockReturnValue({ pending: false });
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
+
+      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Page suivante" })).not.toBeDisabled();
+    });
+
+    it("replaces the offer rows with row skeletons and disables the CTA while the next page is loading", () => {
+      useLinkStatusMock.mockReturnValue({ pending: true });
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
+
+      expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
+      // Le CTA est un <a> (base-ui Button rendu comme Link) : `disabled`
+      // n'existe pas nativement sur un lien, base-ui l'exprime via
+      // aria-disabled (toBeDisabled() de jest-dom ne couvre que les vrais
+      // éléments de formulaire, jamais les liens).
+      expect(screen.getByRole("button", { name: "Page suivante" })).toHaveAttribute(
+        "aria-disabled",
+        "true"
+      );
+    });
+
+    it("marks the offer table as busy for assistive tech while the next page is loading", () => {
+      useLinkStatusMock.mockReturnValue({ pending: true });
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
+
+      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+        "aria-busy",
+        "true"
+      );
+    });
+
+    it("renders one skeleton row per currently visible offer, to keep the same table height (no CLS)", () => {
+      useLinkStatusMock.mockReturnValue({ pending: true });
+      const offers = [makeOffer({ id: "o1" }), makeOffer({ id: "o2", title: "Dev web" })];
+      const { container } = render(
+        <ReviewQueueManager initialOffers={offers} nextCursor="offer-25" />
+      );
+
+      const skeletonRows = container.querySelectorAll('[role="row"] [data-slot="skeleton"]');
+      expect(skeletonRows.length).toBeGreaterThan(0);
+      // Les lignes squelettes sont décoratives (aria-hidden, comme
+      // Skeleton lui-même) donc absentes de l'arbre d'accessibilité — on
+      // les compte directement dans le DOM plutôt que via getAllByRole.
+      const skeletonRowElements = container.querySelectorAll(
+        '[role="row"][aria-hidden="true"]'
+      );
+      expect(skeletonRowElements).toHaveLength(offers.length);
+    });
+
+    it("does not show a busy/disabled state when there is no next page", () => {
+      useLinkStatusMock.mockReturnValue({ pending: false });
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+
+      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+        "aria-busy",
+        "false"
+      );
+    });
   });
 });
