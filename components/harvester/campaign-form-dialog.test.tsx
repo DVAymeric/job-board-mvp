@@ -173,11 +173,7 @@ describe("CampaignFormDialog — création", () => {
       />
     );
 
-    await user.type(screen.getByLabelText("Identifiant"), "alternance-data-hdf");
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
-    await user.type(screen.getByLabelText("Libellé"), "Lille");
-    await user.type(screen.getByLabelText("Latitude"), "50.63");
-    await user.type(screen.getByLabelText("Longitude"), "3.05");
 
     const submitButton = screen.getByRole("button", { name: "Créer la campagne" });
     await user.click(submitButton);
@@ -211,11 +207,7 @@ describe("CampaignFormDialog — création", () => {
       />
     );
 
-    await user.type(screen.getByLabelText("Identifiant"), "alternance-data-hdf");
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
-    await user.type(screen.getByLabelText("Libellé"), "Lille");
-    await user.type(screen.getByLabelText("Latitude"), "50.63");
-    await user.type(screen.getByLabelText("Longitude"), "3.05");
 
     const submitButton = screen.getByRole("button", { name: "Créer la campagne" });
     await user.click(submitButton);
@@ -310,9 +302,9 @@ describe("CampaignFormDialog — échelle typographique (JOB-97)", () => {
       />
     );
 
-    const slugLabel = screen.getByText("Identifiant");
-    expect(slugLabel).toHaveClass("text-base");
-    expect(slugLabel).not.toHaveClass("text-sm");
+    const keywordsLabel = screen.getByText("Mots-clés");
+    expect(keywordsLabel).toHaveClass("text-base");
+    expect(keywordsLabel).not.toHaveClass("text-sm");
 
     const contractTypesLabel = screen.getByText("Types de contrat");
     expect(contractTypesLabel).toHaveClass("text-base");
