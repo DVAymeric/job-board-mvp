@@ -111,7 +111,7 @@
   --secondary: #efe6f3;
   --secondary-foreground: #4a4063;
   --muted: #ede9f4;
-  --muted-foreground: #7b6f92;
+  --muted-foreground: #5f5476;
   --accent: #e6daec;
   --accent-foreground: #4a4063;
   --destructive: #4a4063;
@@ -121,9 +121,9 @@
   --input: var(--line);
   --ring: #5b2a9d;
   --pill-bg: #efe9fb;
-  --brand-positive: #0f9d71;
+  --brand-positive: #0b7d5a;
   --brand-positive-foreground: #ffffff;
-  --warn: #c67c1e;
+  --warn: #8a5a14;
   --danger: #b34700;
   /* Statuts de candidature (JOB-89). Mapping vers l'enum métier réel
      (lib/constants.ts STATUS) — les libellés mockup ne correspondent pas
@@ -188,15 +188,15 @@
   --popover: #271f33;
   --popover-foreground: #e4dcec;
   --primary: #a97ee8;
-  --primary-foreground: #faf6fc;
+  --primary-foreground: #170a29;
   --secondary: #362b45;
   --secondary-foreground: #e4dcec;
   --muted: #322940;
   --muted-foreground: #b4a4c3;
   --accent: #3e3150;
   --accent-foreground: #e4dcec;
-  --destructive: #7c6f91;
-  --destructive-foreground: #1d1727;
+  --destructive: #6b5f80;
+  --destructive-foreground: #f2eff7;
   --line: #362a4f;
   --border: var(--line);
   --input: var(--line);
