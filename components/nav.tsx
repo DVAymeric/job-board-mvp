@@ -144,10 +144,15 @@ function MobileMenu({
                 variant="outline"
                 onClick={close}
                 render={<Link href="/login" prefetch={false} />}
+                nativeButton={false}
               >
                 Se connecter
               </Button>
-              <Button onClick={close} render={<Link href="/register" prefetch={false} />}>
+              <Button
+                onClick={close}
+                render={<Link href="/register" prefetch={false} />}
+                nativeButton={false}
+              >
                 Rejoindre la bêta
               </Button>
             </div>
@@ -218,10 +223,14 @@ export function Nav({ session }: { session: Session | null }) {
       />
       {!session?.user && (
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="outline" render={<Link href="/login" prefetch={false} />}>
+          <Button
+            variant="outline"
+            render={<Link href="/login" prefetch={false} />}
+            nativeButton={false}
+          >
             Se connecter
           </Button>
-          <Button render={<Link href="/register" prefetch={false} />}>
+          <Button render={<Link href="/register" prefetch={false} />} nativeButton={false}>
             Rejoindre la bêta
           </Button>
         </div>

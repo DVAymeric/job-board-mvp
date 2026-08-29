@@ -23,7 +23,7 @@ export function AnalyticsEmptyState() {
         Ajoutez votre première candidature pour commencer à suivre votre
         funnel de conversion et votre régularité au fil des mois.
       </p>
-      <Button size="lg" render={<Link href="/" prefetch={false} />}>
+      <Button size="lg" render={<Link href="/" prefetch={false} />} nativeButton={false}>
         <Plus aria-hidden="true" />
         Ajouter une candidature
       </Button>

@@ -53,6 +53,23 @@ const jobs: JobWithRelations[] = [
   job({ id: "job-2", title: "Chef de projet", companyName: "Beta SAS", status: "APPLIED" }),
 ];
 
+// Doit rester le premier describe/test exécuté du fichier : Base UI
+// dé-duplique son warning console.error par message (donc par arbre de
+// composants) au niveau du module — un rendu antérieur des mêmes Button
+// dans ce fichier avalerait silencieusement l'avertissement avant que ce
+// test ne puisse l'observer.
+describe("Board — pas d'avertissement Base UI nativeButton sur les CTA (JOB-122)", () => {
+  it("ne déclenche aucun avertissement nativeButton pour les CTA « Ajouter une candidature » (top bar + état vide)", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<Board initialJobs={[]} />);
+    const nativeButtonWarning = errorSpy.mock.calls.some((call) =>
+      String(call[0]).includes("nativeButton")
+    );
+    expect(nativeButtonWarning).toBe(false);
+    errorSpy.mockRestore();
+  });
+});
+
 describe("Board header — titre en ligne 1, toolbar en ligne 2", () => {
   it("renders the title on its own, separate from the search/relance/export toolbar", () => {
     render(<Board initialJobs={jobs} />);
@@ -75,7 +92,9 @@ describe("Board header — titre en ligne 1, toolbar en ligne 2", () => {
 
   it("shows a primary CTA to add a new job application, linking to the URL-check-bar on the home page (JOB-103)", () => {
     render(<Board initialJobs={jobs} />);
-    const cta = screen.getByRole("link", { name: /ajouter une candidature/i });
+    // role="button" : rendu via Button render={<Link/>} nativeButton={false}
+    // (JOB-122), même convention que review-queue-card.tsx/campaigns-card.tsx.
+    const cta = screen.getByRole("button", { name: /ajouter une candidature/i });
     expect(cta).toHaveAttribute("href", "/");
   });
 });
@@ -142,7 +161,8 @@ describe("Board — état vide quand il n'y a aucune candidature (JOB-115)", () 
   it("puts forward a CTA to add a first job application", () => {
     render(<Board initialJobs={[]} />);
 
-    const ctas = screen.getAllByRole("link", { name: /ajouter une candidature/i });
+    // role="button" : rendu via Button render={<Link/>} nativeButton={false} (JOB-122).
+    const ctas = screen.getAllByRole("button", { name: /ajouter une candidature/i });
     expect(ctas.length).toBeGreaterThan(0);
     for (const cta of ctas) {
       expect(cta).toHaveAttribute("href", "/");

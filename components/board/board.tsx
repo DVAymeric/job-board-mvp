@@ -256,7 +256,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
               Candidatures à relancer
             </Button>
             <ExportCsvButton />
-            <Button size="sm" render={<Link href="/" prefetch={false} />}>
+            <Button size="sm" render={<Link href="/" prefetch={false} />} nativeButton={false}>
               <Plus aria-hidden="true" />
               Ajouter une candidature
             </Button>
@@ -301,7 +301,7 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
             Collez l&apos;URL d&apos;une offre depuis l&apos;accueil pour
             commencer à suivre son avancement.
           </p>
-          <Button size="lg" render={<Link href="/" prefetch={false} />}>
+          <Button size="lg" render={<Link href="/" prefetch={false} />} nativeButton={false}>
             <Plus aria-hidden="true" />
             Ajouter une candidature
           </Button>

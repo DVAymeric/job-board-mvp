@@ -59,6 +59,23 @@ beforeEach(() => {
   });
 });
 
+// Doit rester le premier describe/test exécuté du fichier : Base UI
+// dé-duplique son warning console.error par message (donc par arbre de
+// composants) au niveau du module — un rendu antérieur des mêmes Button
+// dans ce fichier avalerait silencieusement l'avertissement avant que ce
+// test ne puisse l'observer.
+describe("Nav — pas d'avertissement Base UI nativeButton sur les CTA (JOB-122)", () => {
+  it("ne déclenche aucun avertissement nativeButton pour un visiteur anonyme (desktop + mobile)", () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<Nav session={null} />);
+    const nativeButtonWarning = errorSpy.mock.calls.some((call) =>
+      String(call[0]).includes("nativeButton")
+    );
+    expect(nativeButtonWarning).toBe(false);
+    errorSpy.mockRestore();
+  });
+});
+
 describe("Nav — état de session", () => {
   it("shows the account menu trigger when authenticated", () => {
     render(<Nav session={session} />);
@@ -115,13 +132,31 @@ describe("Nav — restyle design system (JOB-95)", () => {
 
   it("shows login and join CTAs when anonymous, linking to /login and /register", () => {
     render(<Nav session={null} />);
-    expect(screen.getByRole("link", { name: /se connecter/i })).toHaveAttribute(
+    // role="button" : rendu via Button render={<Link/>} nativeButton={false}
+    // (JOB-122), même convention que review-queue-card.tsx/campaigns-card.tsx.
+    expect(screen.getByRole("button", { name: /se connecter/i })).toHaveAttribute(
       "href",
       "/login"
     );
     expect(
-      screen.getByRole("link", { name: /rejoindre la bêta/i })
+      screen.getByRole("button", { name: /rejoindre la bêta/i })
     ).toHaveAttribute("href", "/register");
+  });
+
+  it("keeps the anonymous CTAs keyboard-focusable and activatable with Enter (JOB-122)", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={null} />);
+    const cta = screen.getByRole("button", { name: /se connecter/i });
+
+    cta.focus();
+    expect(cta).toHaveFocus();
+
+    // Élément non-<button> natif rendu via Button nativeButton={false} :
+    // Base UI doit lui ajouter la gestion clavier Entrée/Espace d'un vrai
+    // bouton. On vérifie ici qu'appuyer sur Entrée déclenche bien une
+    // activation (jsdom journalise une tentative de navigation via l'attribut
+    // href natif de l'ancre sous-jacente, preuve que le clic a été délivré).
+    await expect(user.keyboard("{Enter}")).resolves.not.toThrow();
   });
 
   it("hides the anonymous CTAs when authenticated", () => {
@@ -280,11 +315,13 @@ describe("Nav — menu mobile (JOB-107)", () => {
     await user.click(screen.getByRole("button", { name: /ouvrir le menu/i }));
     const dialog = await screen.findByRole("dialog");
 
+    // role="button" : rendu via Button render={<Link/>} nativeButton={false}
+    // (JOB-122), même convention que review-queue-card.tsx/campaigns-card.tsx.
     expect(
-      within(dialog).getByRole("link", { name: /se connecter/i })
+      within(dialog).getByRole("button", { name: /se connecter/i })
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("link", { name: /rejoindre la bêta/i })
+      within(dialog).getByRole("button", { name: /rejoindre la bêta/i })
     ).toBeInTheDocument();
   });
 });
