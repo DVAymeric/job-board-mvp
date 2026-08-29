@@ -72,6 +72,12 @@ describe("Board header — titre en ligne 1, toolbar en ligne 2", () => {
     render(<Board initialJobs={jobs} />);
     expect(screen.getByRole("button", { name: "Exporter CSV" })).toBeInTheDocument();
   });
+
+  it("shows a primary CTA to add a new job application, linking to the URL-check-bar on the home page (JOB-103)", () => {
+    render(<Board initialJobs={jobs} />);
+    const cta = screen.getByRole("link", { name: /ajouter une candidature/i });
+    expect(cta).toHaveAttribute("href", "/");
+  });
 });
 
 describe("Board search", () => {

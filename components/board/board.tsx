@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Plus, Search } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -218,12 +220,18 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
         title="Board"
         toolbar={
           <>
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un titre, une entreprise, une URL..."
-              className="h-8 min-w-40 flex-1"
-            />
+            <div className="relative min-w-40 flex-1">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher un titre, une entreprise, une URL..."
+                className="w-full pl-8"
+              />
+            </div>
             <Button
               variant={followUpOnly ? "default" : "outline"}
               size="sm"
@@ -233,6 +241,10 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
               Candidatures à relancer
             </Button>
             <ExportCsvButton />
+            <Button size="sm" render={<Link href="/" prefetch={false} />}>
+              <Plus aria-hidden="true" />
+              Ajouter une candidature
+            </Button>
           </>
         }
       />
