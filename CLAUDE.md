@@ -16,19 +16,24 @@ Usage ad hoc évité : chaque rôle de texte a une classe Tailwind fixe. `app/pa
 `components/board/board.tsx` et `components/board/job-card.tsx` suivent strictement
 cette échelle (référence à copier telle quelle, pas à réinventer par écran).
 
+Principe (JOB-87, a11y) : le corps de texte principal est à 16px minimum partout. Les
+deux seules exceptions ci-dessous (eyebrow, meta technique/numérique) restent à 12px
+car strictement décoratives/secondaires — elles ne sont jamais seules porteuses d'une
+information essentielle.
+
 | Rôle | Classes | Exemple |
 |---|---|---|
-| Eyebrow / kicker | `font-mono text-xs uppercase tracking-widest text-muted-foreground` | Sur-titre de la page d'accueil |
-| Titre de page | `font-heading text-xl text-heading` | `<h1>` de `/`, `/board`, `/analytics` |
-| Wordmark (nav) | `font-heading text-base italic text-heading` | Logo texte dans `components/nav.tsx` |
-| Titre de section | `font-heading text-base text-heading` | En-tête de colonne (`column.tsx`) |
-| Titre de carte | `font-heading text-sm leading-snug text-heading` | Titre dans `JobCard` |
-| Label de formulaire | `text-sm font-medium` | Labels d'`Input`/`Textarea` dans `JobSheet` |
-| Corps de texte | `text-sm text-muted-foreground` | Sous-titres, descriptions, états vides |
-| Meta | `text-xs text-muted-foreground` | Info secondaire en prose (ex. nom d'entreprise sous le titre) |
-| Meta technique/numérique | `font-mono text-xs text-muted-foreground` | Dates, compteurs (mono pour l'alignement des chiffres) |
+| Eyebrow / kicker | `font-mono text-xs uppercase tracking-widest text-muted-foreground` — *exception : texte décoratif secondaire* | Sur-titre de la page d'accueil |
+| Titre de page | `font-heading text-2xl text-heading` | `<h1>` de `/`, `/board`, `/analytics` |
+| Wordmark (nav) | `font-heading text-lg italic text-heading` | Logo texte dans `components/nav.tsx` |
+| Titre de section | `font-heading text-lg text-heading` | En-tête de colonne (`column.tsx`) |
+| Titre de carte | `font-heading text-base leading-snug text-heading` | Titre dans `JobCard` |
+| Label de formulaire | `text-base font-medium` | Labels d'`Input`/`Textarea` dans `JobSheet` |
+| Corps de texte | `text-base text-muted-foreground` | Sous-titres, descriptions, états vides |
+| Meta | `text-sm text-muted-foreground` | Info secondaire en prose (ex. nom d'entreprise sous le titre) |
+| Meta technique/numérique | `font-mono text-xs text-muted-foreground` — *exception : dates/compteurs secondaires* | Dates, compteurs (mono pour l'alignement des chiffres) |
 | Valeur chiffrée mise en avant | `font-heading text-2xl text-heading` | Chiffre des mini-stats bento (`status-detail-card.tsx`) |
-| Label de statut | `font-mono text-xs font-bold` + couleur du statut (`STATUS_CONFIG[status].textClassName`, pas de fond) | Statut dans `JobCard` |
+| Label de statut | `font-mono text-sm font-bold` + couleur du statut (`STATUS_CONFIG[status].textClassName`, pas de fond) | Statut dans `JobCard` |
 
 Espacements observés et à réutiliser (ne pas en inventer d'autres sans raison) :
 
