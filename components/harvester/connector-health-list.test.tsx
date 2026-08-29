@@ -50,4 +50,65 @@ describe("ConnectorHealthList", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
+
+  it("does not show a live status indicator when no live data was fetched", () => {
+    render(<ConnectorHealthList runs={[makeRun()]} />);
+    expect(screen.queryByTestId("connector-live-status")).not.toBeInTheDocument();
+  });
+
+  it("shows a live status indicator next to a run when live health data is provided", () => {
+    render(
+      <ConnectorHealthList
+        runs={[makeRun()]}
+        live={{
+          francetravail: { connectorId: "francetravail", ok: true, latencyMs: 120, checkedAt: "2026-08-19T08:00:00.000Z" },
+        }}
+      />
+    );
+    const live = screen.getByTestId("connector-live-status");
+    expect(live).toHaveAttribute("data-ok", "true");
+  });
+
+  it("marks the live status as down independently of a successful last run", () => {
+    render(
+      <ConnectorHealthList
+        runs={[makeRun({ ok: true })]}
+        live={{
+          francetravail: {
+            connectorId: "francetravail",
+            ok: false,
+            latencyMs: 40,
+            checkedAt: "2026-08-19T08:00:00.000Z",
+            message: "HTTP 401",
+          },
+        }}
+      />
+    );
+    const item = screen.getByTestId("connector-health-item");
+    expect(item).toHaveAttribute("data-ok", "true");
+    const live = screen.getByTestId("connector-live-status");
+    expect(live).toHaveAttribute("data-ok", "false");
+    expect(screen.getByText("HTTP 401")).toBeInTheDocument();
+  });
+
+  it("adds an entry for a connector with live data but no prior run, without the empty state", () => {
+    render(
+      <ConnectorHealthList
+        runs={[]}
+        live={{
+          welcometothejungle: {
+            connectorId: "welcometothejungle",
+            ok: false,
+            latencyMs: 5,
+            checkedAt: "2026-08-19T08:00:00.000Z",
+            message: "WTTJ_CLIENT_ID is not set",
+          },
+        }}
+      />
+    );
+    expect(screen.queryByText(/Aucune collecte lancée/)).not.toBeInTheDocument();
+    expect(screen.getByText("Welcome to the Jungle")).toBeInTheDocument();
+    expect(screen.getByText(/Jamais lancé/)).toBeInTheDocument();
+    expect(screen.getByTestId("connector-live-status")).toHaveAttribute("data-ok", "false");
+  });
 });
