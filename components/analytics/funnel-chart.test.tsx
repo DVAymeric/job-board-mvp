@@ -36,6 +36,16 @@ describe("FunnelChart", () => {
     ).toBeInTheDocument();
   });
 
+  it("gives every bar the same violet-to-green brand gradient, matching the mockup, instead of one flat color per stage", () => {
+    const { container } = render(<FunnelChart stages={stages} />);
+    const bars = container.querySelectorAll("[data-funnel-bar]");
+    for (const bar of bars) {
+      expect(bar).toHaveStyle({
+        backgroundImage: "linear-gradient(90deg, var(--primary), var(--brand-positive))",
+      });
+    }
+  });
+
   it("sizes each bar proportionally to the largest stage's count", () => {
     const { container } = render(<FunnelChart stages={stages} />);
     const bars = container.querySelectorAll("[data-funnel-bar]");
@@ -50,5 +60,44 @@ describe("FunnelChart", () => {
     const { container } = render(<FunnelChart stages={emptyStages} />);
     const bar = container.querySelector("[data-funnel-bar]");
     expect(bar).toHaveStyle({ width: "0%" });
+  });
+
+  it("adds a plain-language sentence comparing the interview stage to the first stage, instead of a raw percentage alone", () => {
+    render(<FunnelChart stages={stages} />);
+    // 2 sur 10 (INTERVIEW.count / TO_APPLY.count) = 20%
+    expect(
+      screen.getByText("2 candidatures sur 10 ont obtenu un entretien, soit 20%.")
+    ).toBeInTheDocument();
+  });
+
+  it("uses the singular form when only one candidature reached the interview stage", () => {
+    const singleStages: FunnelStage[] = [
+      { status: "TO_APPLY", label: "À postuler", count: 4, conversionFromPrevious: null },
+      { status: "INTERVIEW", label: "Entretien", count: 1, conversionFromPrevious: 25 },
+    ];
+    render(<FunnelChart stages={singleStages} />);
+    expect(
+      screen.getByText("1 candidature sur 4 a obtenu un entretien, soit 25%.")
+    ).toBeInTheDocument();
+  });
+
+  it("shows a neutral, non-discouraging message when nothing has reached the interview stage yet", () => {
+    const noInterviewStages: FunnelStage[] = [
+      { status: "TO_APPLY", label: "À postuler", count: 5, conversionFromPrevious: null },
+      { status: "INTERVIEW", label: "Entretien", count: 0, conversionFromPrevious: 0 },
+    ];
+    render(<FunnelChart stages={noInterviewStages} />);
+    expect(
+      screen.getByText("Aucune candidature n'a encore obtenu d'entretien.")
+    ).toBeInTheDocument();
+  });
+
+  it("omits the sentence entirely when the stage list has no interview stage or no data at all", () => {
+    render(
+      <FunnelChart
+        stages={[{ status: "TO_APPLY", label: "À postuler", count: 0, conversionFromPrevious: null }]}
+      />
+    );
+    expect(screen.queryByText(/entretien/i)).not.toBeInTheDocument();
   });
 });

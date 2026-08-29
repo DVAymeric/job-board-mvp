@@ -19,6 +19,26 @@ describe("ApplicationHeatmap", () => {
     expect(cell).toBeInTheDocument();
   });
 
+  it("also exposes the exact date and count as aria-label, not just title — title alone isn't reliably announced by screen readers", () => {
+    const jobs = [{ createdAt: new Date(2026, 7, 12) }, { createdAt: new Date(2026, 7, 12) }];
+    const days = buildHeatmapDays(jobs, new Date(2026, 7, 12));
+    const { container } = render(<ApplicationHeatmap days={days} />);
+    const cell = container.querySelector(
+      '[data-heatmap-cell][title*="12 août 2026"]'
+    );
+    expect(cell).toHaveAttribute("aria-label", cell?.getAttribute("title"));
+  });
+
+  it("shows the represented candidature count next to each legend swatch, not just a color gradient (RGAA: never encode intensity by hue alone)", () => {
+    const jobs = Array.from({ length: 10 }, () => ({ createdAt: new Date(2026, 7, 12) }));
+    const days = buildHeatmapDays(jobs, new Date(2026, 7, 12));
+    render(<ApplicationHeatmap days={days} />);
+    // max = 10 candidatures on the busiest day -> level 5 legend swatch shows "10"
+    expect(screen.getByText("10", { selector: "[data-legend-count]" })).toBeInTheDocument();
+    // the empty (level 0) swatch always reads "0"
+    expect(screen.getByText("0", { selector: "[data-legend-count]" })).toBeInTheDocument();
+  });
+
   it("renders a 5-step intensity legend using the --chart-* tokens", () => {
     const days = buildHeatmapDays([], new Date(2026, 7, 12));
     const { container } = render(<ApplicationHeatmap days={days} />);

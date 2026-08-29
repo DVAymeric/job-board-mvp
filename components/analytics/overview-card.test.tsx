@@ -36,4 +36,17 @@ describe("OverviewCard", () => {
     );
     expect(screen.getByText(/^candidature suivie au total$/)).toBeInTheDocument();
   });
+
+  it("renders each status via StatusBadge (icon + color + text), never color alone (JOB-91/99)", () => {
+    const { container } = render(
+      <OverviewCard
+        total={10}
+        statusCounts={{ TO_APPLY: 4, APPLIED: 3, INTERVIEW: 2, REJECTED: 1 }}
+      />
+    );
+    const badges = container.querySelectorAll('[data-slot="badge"]');
+    expect(badges).toHaveLength(4);
+    // StatusBadge renders one decorative svg icon per status alongside its text
+    expect(container.querySelectorAll('[data-slot="badge"] svg')).toHaveLength(4);
+  });
 });

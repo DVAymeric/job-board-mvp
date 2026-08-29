@@ -1,5 +1,6 @@
 import { BentoCard } from "@/components/ui/bento-card";
-import { STATUS_ORDER, STATUS_CONFIG, type JobStatus } from "@/lib/constants";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { STATUS_ORDER, type JobStatus } from "@/lib/constants";
 
 interface OverviewCardProps {
   total: number;
@@ -18,14 +19,11 @@ export function OverviewCard({ total, statusCounts }: OverviewCardProps) {
       </div>
       <div className="mt-3.5 flex flex-wrap gap-2">
         {STATUS_ORDER.map((status) => (
-          <span
-            key={status}
-            className="rounded-full border border-white/40 bg-white/50 px-2.5 py-1 font-mono text-xs text-palette-encre"
-          >
-            <b className="font-semibold text-palette-nuit">
+          <span key={status} className="inline-flex items-center gap-1.5">
+            <StatusBadge status={status} />
+            <b className="font-mono text-xs text-palette-nuit">
               {statusCounts[status]}
-            </b>{" "}
-            {STATUS_CONFIG[status].label}
+            </b>
           </span>
         ))}
       </div>

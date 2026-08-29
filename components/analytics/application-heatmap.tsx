@@ -71,6 +71,23 @@ function formatCellTitle(day: HeatmapDay): string {
   return `${formatted} : ${day.count} ${suffix}`;
 }
 
+// Mêmes seuils que `computeLevel` dans lib/heatmap.ts (non exportée) — à
+// garder synchronisés si ces ratios changent là-bas. Sert uniquement à
+// afficher, dans la légende, le nombre de candidatures que représente
+// chaque palier de couleur (RGAA : ne jamais coder l'intensité par la seule
+// teinte — les cases individuelles restent trop petites, ≤11px, pour
+// afficher un chiffre lisible, donc c'est la légende qui porte le chiffre).
+const LEVEL_THRESHOLDS: Record<3 | 5, number[]> = {
+  5: [0.2, 0.4, 0.6, 0.8, 1],
+  3: [1 / 3, 2 / 3, 1],
+};
+
+function legendCount(level: number, levels: 3 | 5, max: number): number {
+  if (level <= 0 || max <= 0) return 0;
+  const threshold = LEVEL_THRESHOLDS[levels][level - 1];
+  return Math.max(1, Math.round(threshold * max));
+}
+
 export function ApplicationHeatmap({
   days,
   compact = false,
@@ -85,6 +102,7 @@ export function ApplicationHeatmap({
   const visibleDays = visibleWeeks.flat();
   const monthLabels = computeMonthLabels(visibleWeeks);
   const cellSizeClassName = compact ? "size-[8px]" : "size-[11px]";
+  const maxCount = Math.max(0, ...visibleDays.map((d) => d.count));
 
   return (
     <div className="space-y-2">
@@ -107,28 +125,36 @@ export function ApplicationHeatmap({
             </div>
           )}
           <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
-            {visibleDays.map((day) => (
-              <div
-                key={day.date}
-                data-heatmap-cell
-                title={formatCellTitle(day)}
-                className={cn("rounded-[2px] border border-border bg-white", cellSizeClassName)}
-                style={levelStyle(day.level, levels)}
-              />
-            ))}
+            {visibleDays.map((day) => {
+              const label = formatCellTitle(day);
+              return (
+                <div
+                  key={day.date}
+                  data-heatmap-cell
+                  title={label}
+                  aria-label={label}
+                  className={cn("rounded-[2px] border border-border bg-white", cellSizeClassName)}
+                  style={levelStyle(day.level, levels)}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
       {!compact && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>Moins</span>
           {Array.from({ length: levels + 1 }, (_, level) => level).map((level) => (
-            <div
-              key={level}
-              data-legend-cell
-              className="size-[11px] rounded-[2px] border border-border bg-white"
-              style={levelStyle(level, levels)}
-            />
+            <div key={level} className="flex flex-col items-center gap-0.5">
+              <div
+                data-legend-cell
+                className="size-[11px] rounded-[2px] border border-border bg-white"
+                style={levelStyle(level, levels)}
+              />
+              <span data-legend-count className="font-mono text-[10px] leading-none">
+                {legendCount(level, levels, maxCount)}
+              </span>
+            </div>
           ))}
           <span>Plus</span>
         </div>
