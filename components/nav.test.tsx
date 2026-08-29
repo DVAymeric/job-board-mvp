@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { forwardRef } from "react";
 import type { ReactNode } from "react";
@@ -131,10 +131,10 @@ describe("Nav — restyle design system (JOB-95)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders a disabled mobile menu trigger, hidden on desktop, as a placeholder for JOB-107", () => {
+  it("renders a mobile menu trigger hidden on desktop (functional menu covered in JOB-107 tests below)", () => {
     render(<Nav session={session} />);
     const trigger = screen.getByRole("button", { name: /ouvrir le menu/i });
-    expect(trigger).toBeDisabled();
+    expect(trigger).not.toBeDisabled();
     expect(trigger).toHaveClass("md:hidden");
   });
 });
@@ -197,6 +197,94 @@ describe("Nav — toggle thème clair/sombre (JOB-119)", () => {
     render(<Nav session={null} />);
     expect(
       screen.getByRole("button", { name: /passer en thème/i })
+    ).toBeInTheDocument();
+  });
+});
+
+describe("Nav — menu mobile (JOB-107)", () => {
+  it("is not disabled anymore and starts collapsed", () => {
+    render(<Nav session={session} />);
+    const trigger = screen.getByRole("button", { name: /ouvrir le menu/i });
+    expect(trigger).not.toBeDisabled();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(trigger).toHaveAttribute("aria-controls");
+  });
+
+  it("hides the desktop nav links from the accessibility tree until opened, and opens the drawer on click", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /ouvrir le menu/i }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+    // Base UI marque le reste de la page aria-hidden pendant que la modale est
+    // ouverte (isolation a11y correcte) — le déclencheur doit donc être requêté
+    // avec `hidden: true` pour rester trouvable dans ce test.
+    expect(
+      screen.getByRole("button", { name: /ouvrir le menu/i, hidden: true })
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("closes on Escape and returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+    const trigger = screen.getByRole("button", { name: /ouvrir le menu/i });
+
+    await user.click(trigger);
+    await screen.findByRole("dialog");
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("closes when a nav link inside the drawer is clicked", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+
+    await user.click(screen.getByRole("button", { name: /ouvrir le menu/i }));
+    const dialog = await screen.findByRole("dialog");
+
+    const boardLinks = screen.getAllByRole("link", { name: "Board" });
+    const drawerLink = boardLinks.find((link) => dialog.contains(link));
+    expect(drawerLink).toBeDefined();
+
+    await user.click(drawerLink!);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("offers the account link and logout inside the drawer when authenticated", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+
+    await user.click(screen.getByRole("button", { name: /ouvrir le menu/i }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      within(dialog).getByRole("link", { name: /mon compte/i })
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: /se déconnecter/i })
+    ).toBeInTheDocument();
+  });
+
+  it("offers the login and join CTAs inside the drawer when anonymous", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={null} />);
+
+    await user.click(screen.getByRole("button", { name: /ouvrir le menu/i }));
+    const dialog = await screen.findByRole("dialog");
+
+    expect(
+      within(dialog).getByRole("link", { name: /se connecter/i })
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("link", { name: /rejoindre la bêta/i })
     ).toBeInTheDocument();
   });
 });
