@@ -27,7 +27,7 @@ export function HeroSection({ children }: HeroSectionProps) {
           <span className="size-1.5 rounded-full bg-palette-mousse" />
           100% gratuit · Sans configuration · Prêt en 2 minutes
         </span>
-        <h1 className="font-heading text-xl text-white">
+        <h1 className="font-heading text-2xl text-white">
           Ne repostulez plus{" "}
           <em className="text-palette-lilas italic">deux fois</em> à la même
           offre.

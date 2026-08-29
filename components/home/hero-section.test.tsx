@@ -58,14 +58,14 @@ describe("HeroSection", () => {
     expect(scrim).toHaveAttribute("aria-hidden", "true");
   });
 
-  it("uses the project's page-title scale for the heading (font-heading text-xl)", () => {
+  it("uses the project's revised page-title scale for the heading (font-heading text-2xl, JOB-87)", () => {
     render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading).toHaveClass("font-heading", "text-xl");
+    expect(heading).toHaveClass("font-heading", "text-2xl");
   });
 
   it("fills at least the full viewport height", () => {

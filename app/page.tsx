@@ -1,4 +1,5 @@
 import HomeContent from "@/components/home/home-content";
+import { TrustRow } from "@/components/home/trust-row";
 import { BentoSection } from "@/components/home/bento-section";
 
 // createJob programme l'enrichissement (scraping) via after() après sa
@@ -13,12 +14,15 @@ export default function Home() {
   return (
     <div className="bg-white">
       <HomeContent />
+      <section className="mx-auto w-full max-w-6xl px-4 py-8">
+        <TrustRow />
+      </section>
       <section className="mx-auto w-full max-w-6xl px-4 py-12">
         <div className="mb-6 space-y-1">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             Fonctionnalités
           </p>
-          <h2 className="font-heading text-base text-heading">
+          <h2 className="font-heading text-lg text-heading">
             Tout votre suivi, en un board.
           </h2>
         </div>
