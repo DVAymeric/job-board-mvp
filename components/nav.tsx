@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, CircleUser, LogOut } from "lucide-react";
+import { ChevronDown, CircleUser, LogOut, Menu } from "lucide-react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,9 +38,15 @@ export function Nav({ session }: { session: Session | null }) {
           menu compte) dépasse 320px de large avant tout contenu de page —
           sans ceci, c'est le <header>, pas le contenu, qui forçait un
           scroll horizontal sur toute la page à cette largeur. */}
-      <span className="mr-2 flex items-center gap-2 font-heading text-base font-bold text-heading">
+      <span className="mr-2 flex items-center gap-2 font-heading text-lg italic text-heading">
         <span className="size-2 rounded-full bg-primary" />
         JobTracker
+        <Badge
+          variant="tag"
+          className="bg-brand-positive/10 text-brand-positive not-italic"
+        >
+          Bêta
+        </Badge>
       </span>
       <nav className="flex flex-1 items-center gap-4">
         {LINKS.map((link) => (
@@ -48,7 +55,7 @@ export function Nav({ session }: { session: Session | null }) {
             href={link.href}
             prefetch={link.prefetch}
             className={cn(
-              "border-b-2 border-transparent py-1 text-sm font-medium transition-colors hover:text-heading",
+              "flex min-h-11 items-center border-b-2 border-transparent text-base font-semibold transition-colors hover:text-heading",
               pathname === link.href
                 ? "border-primary text-heading"
                 : "text-muted-foreground"
@@ -58,6 +65,26 @@ export function Nav({ session }: { session: Session | null }) {
           </Link>
         ))}
       </nav>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden"
+        aria-label="Ouvrir le menu"
+        disabled
+        // TODO(JOB-107): ouverture du menu mobile — placeholder non fonctionnel pour l'instant.
+      >
+        <Menu />
+      </Button>
+      {!session?.user && (
+        <div className="flex items-center gap-2">
+          <Button variant="outline" render={<Link href="/login" prefetch={false} />}>
+            Se connecter
+          </Button>
+          <Button render={<Link href="/register" prefetch={false} />}>
+            Rejoindre la bêta
+          </Button>
+        </div>
+      )}
       {session?.user && (
         <DropdownMenu>
           <DropdownMenuTrigger

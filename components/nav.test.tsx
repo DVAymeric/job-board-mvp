@@ -95,6 +95,38 @@ describe("Nav — pas de débordement horizontal de la page (JOB-100)", () => {
   });
 });
 
+describe("Nav — restyle design system (JOB-95)", () => {
+  it("shows the beta chip next to the wordmark", () => {
+    render(<Nav session={session} />);
+    expect(screen.getByText("Bêta")).toBeInTheDocument();
+  });
+
+  it("shows login and join CTAs when anonymous, linking to /login and /register", () => {
+    render(<Nav session={null} />);
+    expect(screen.getByRole("link", { name: /se connecter/i })).toHaveAttribute(
+      "href",
+      "/login"
+    );
+    expect(
+      screen.getByRole("link", { name: /rejoindre la bêta/i })
+    ).toHaveAttribute("href", "/register");
+  });
+
+  it("hides the anonymous CTAs when authenticated", () => {
+    render(<Nav session={session} />);
+    expect(
+      screen.queryByRole("link", { name: /se connecter/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders a disabled mobile menu trigger, hidden on desktop, as a placeholder for JOB-107", () => {
+    render(<Nav session={session} />);
+    const trigger = screen.getByRole("button", { name: /ouvrir le menu/i });
+    expect(trigger).toBeDisabled();
+    expect(trigger).toHaveClass("md:hidden");
+  });
+});
+
 describe("Nav — prefetch des liens protégés (JOB-131)", () => {
   it("disables prefetch on links to protected routes", () => {
     render(<Nav session={session} />);
