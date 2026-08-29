@@ -52,7 +52,7 @@ test("le cache du service worker ne contient jamais que le fallback offline stat
   await page.goto("/login");
   await page.getByLabel("Email").fill(userEmail);
   await page.getByLabel("Mot de passe").fill(PASSWORD);
-  await page.getByRole("button", { name: "Se connecter" }).click();
+  await page.locator("form").getByRole("button", { name: "Se connecter" }).click();
   await page.waitForURL("**/board");
   await expect(page.getByText("Offre sensible à ne jamais mettre en cache")).toBeVisible();
 

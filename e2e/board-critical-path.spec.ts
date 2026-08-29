@@ -41,7 +41,7 @@ async function loginAs(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Mot de passe").fill(PASSWORD);
-  await page.getByRole("button", { name: "Se connecter" }).click();
+  await page.locator("form").getByRole("button", { name: "Se connecter" }).click();
   await page.waitForURL("**/board");
 }
 
