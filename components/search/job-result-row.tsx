@@ -25,7 +25,7 @@ export function JobResultRow({ result }: { result: JobResult }) {
   };
 
   return (
-    <div className="flex items-center gap-4 border-b border-border p-3 last:border-b-0">
+    <div className="flex items-center gap-4 border-b border-border p-3 transition-colors last:border-b-0 hover:bg-muted/50">
       <CompanyAvatar job={avatarJob} className="size-13 rounded-xl" />
 
       <div className="min-w-0 flex-1 space-y-1.5">

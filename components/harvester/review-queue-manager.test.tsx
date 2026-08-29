@@ -175,4 +175,10 @@ describe("ReviewQueueManager", () => {
     const sourceEl = screen.getByText("smartrecruiters");
     expect(sourceEl.className).toMatch(/bg-pill-bg/);
   });
+
+  it("signals interactivity on hover on each offer row (JOB-114)", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+    const row = screen.getByRole("row", { name: /Data Analyst/ });
+    expect(row.className).toMatch(/hover:bg-muted/);
+  });
 });

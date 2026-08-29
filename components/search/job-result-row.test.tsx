@@ -53,4 +53,10 @@ describe("JobResultRow", () => {
     expect(cta).toHaveAttribute("target", "_blank");
     expect(cta).toHaveAttribute("rel", expect.stringContaining("noopener"));
   });
+
+  it("signals interactivity on hover without relying on it alone (JOB-114)", () => {
+    render(<JobResultRow result={baseResult} />);
+    const row = screen.getByText("Chargé·e de recrutement").closest("div.flex.items-center");
+    expect(row?.className).toMatch(/hover:bg-muted/);
+  });
 });

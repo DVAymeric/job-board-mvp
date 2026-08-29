@@ -189,7 +189,7 @@ export function ReviewQueueManager({
                 <li
                   key={offer.id}
                   role="row"
-                  className="grid grid-cols-[2rem_2fr_1.5fr_1fr_1fr_1fr_auto] items-center gap-2 border-b border-border px-3 py-2 text-sm last:border-b-0"
+                  className="grid grid-cols-[2rem_2fr_1.5fr_1fr_1fr_1fr_auto] items-center gap-2 border-b border-border px-3 py-2 text-sm transition-colors last:border-b-0 hover:bg-muted/50"
                 >
                   <input
                     type="checkbox"
