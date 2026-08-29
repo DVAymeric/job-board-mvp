@@ -147,6 +147,82 @@ describe("CampaignFormDialog — création", () => {
     },
     10000
   );
+
+  it(
+    "shows the same error inline (in addition to the toast), moves focus to it, and links it to the submit button via aria-describedby",
+    async () => {
+    const user = userEvent.setup();
+    vi.mocked(createCampaign).mockResolvedValue({
+      ok: false,
+      error: "Une campagne avec cet identifiant existe déjà",
+      code: "CONFLICT",
+    });
+
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Identifiant"), "alternance-data-hdf");
+    await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
+    await user.type(screen.getByLabelText("Libellé"), "Lille");
+    await user.type(screen.getByLabelText("Latitude"), "50.63");
+    await user.type(screen.getByLabelText("Longitude"), "3.05");
+
+    const submitButton = screen.getByRole("button", { name: "Créer la campagne" });
+    await user.click(submitButton);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Une campagne avec cet identifiant existe déjà");
+    expect(submitButton).toHaveAttribute("aria-describedby", alert.id);
+    expect(alert).toHaveFocus();
+    },
+    10000
+  );
+
+  it("clears the inline error once a corrected submission succeeds", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createCampaign)
+      .mockResolvedValueOnce({
+        ok: false,
+        error: "Une campagne avec cet identifiant existe déjà",
+        code: "CONFLICT",
+      })
+      .mockResolvedValueOnce({ ok: true, data: { campaign: existingCampaign } });
+    const onCreated = vi.fn();
+
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={onCreated}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Identifiant"), "alternance-data-hdf");
+    await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
+    await user.type(screen.getByLabelText("Libellé"), "Lille");
+    await user.type(screen.getByLabelText("Latitude"), "50.63");
+    await user.type(screen.getByLabelText("Longitude"), "3.05");
+
+    const submitButton = screen.getByRole("button", { name: "Créer la campagne" });
+    await user.click(submitButton);
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.click(submitButton);
+
+    expect(onCreated).toHaveBeenCalledWith(existingCampaign);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    },
+    10000
+  );
 });
 
 describe("CampaignFormDialog — édition", () => {

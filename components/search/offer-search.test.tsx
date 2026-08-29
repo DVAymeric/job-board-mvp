@@ -111,3 +111,50 @@ describe("OfferSearch", () => {
     expect(screen.getByText(/aucune offre ne correspond/i)).toBeInTheDocument();
   });
 });
+
+describe("OfferSearch — erreur de chargement côté serveur (JOB-116)", () => {
+  it("shows a clear, non-technical inline error instead of the results list when loading failed", () => {
+    render(
+      <OfferSearch
+        offers={[]}
+        loadError="Impossible de charger vos offres pour le moment. Réessayez dans quelques instants."
+      />
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent(/impossible de charger vos offres/i);
+    expect(screen.queryByText(/aucune offre ne correspond/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the search form mounted and usable, without discarding criteria already typed", async () => {
+    const user = userEvent.setup();
+    render(
+      <OfferSearch
+        offers={[]}
+        loadError="Impossible de charger vos offres pour le moment. Réessayez dans quelques instants."
+      />
+    );
+
+    const keywordInput = screen.getByLabelText(/métier|mot-clé/i);
+    await user.type(keywordInput, "développeur");
+
+    expect(keywordInput).toHaveValue("développeur");
+    expect(screen.getByRole("alert")).toBeInTheDocument();
+  });
+
+  it("moves focus to the error message so it is announced", () => {
+    render(
+      <OfferSearch
+        offers={[]}
+        loadError="Impossible de charger vos offres pour le moment. Réessayez dans quelques instants."
+      />
+    );
+
+    expect(screen.getByRole("alert")).toHaveFocus();
+  });
+
+  it("does not show the load error banner when there is no load error", () => {
+    render(<OfferSearch offers={[]} />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});

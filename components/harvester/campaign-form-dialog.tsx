@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, Plus, X } from "lucide-react";
 import type { Campaign } from "@prisma/client";
 import { toast } from "sonner";
@@ -106,8 +106,20 @@ export function CampaignFormDialog({
   const [smartrecruiters, setSmartrecruiters] = useState(smartrecruitersFromCampaign(existing));
   const [schedule, setSchedule] = useState(existing?.schedule ?? "");
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const formErrorRef = useRef<HTMLDivElement>(null);
+  const formErrorId = "campaign-form-error";
 
   const open = campaign !== null;
+
+  // Déplace le focus vers le message d'erreur à chaque échec de soumission,
+  // pour qu'il soit annoncé immédiatement (JOB-116) — le toast Sonner reste
+  // en place en complément mais n'est pas fiable pour les lecteurs d'écran.
+  useEffect(() => {
+    if (formError) {
+      formErrorRef.current?.focus();
+    }
+  }, [formError]);
 
   function toggleContractType(type: CampaignContractType) {
     setContractTypes((prev) =>
@@ -156,12 +168,18 @@ export function CampaignFormDialog({
 
   async function handleSave() {
     setSaving(true);
+    setFormError(null);
     const payload = buildPayload();
     const result = isNew
       ? await createCampaign(payload)
       : await updateCampaign({ ...payload, campaignId: existing!.id });
     setSaving(false);
     if (!result.ok) {
+      // L'action serveur ne renvoie qu'un message global (ActionResult.error
+      // est une string, pas d'erreurs structurées par champ côté validation
+      // Zod — cf. app/actions/campaigns.ts / firstIssueMessage) : affiché
+      // tel quel en inline, pas de mapping par champ inventé.
+      setFormError(result.error);
       toast.error(result.error);
       return;
     }
@@ -396,6 +414,18 @@ export function CampaignFormDialog({
           </div>
         </div>
 
+        {formError && (
+          <div
+            id={formErrorId}
+            ref={formErrorRef}
+            role="alert"
+            tabIndex={-1}
+            className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-base text-destructive outline-none"
+          >
+            {formError}
+          </div>
+        )}
+
         <DialogFooter className="gap-2">
           {!isNew && (
             <ConfirmDeleteModal
@@ -412,6 +442,7 @@ export function CampaignFormDialog({
           <Button
             onClick={handleSave}
             disabled={saving || !slug.trim() || contractTypes.length === 0}
+            aria-describedby={formError ? formErrorId : undefined}
           >
             {saving && <Loader2 className="animate-spin" />}
             {isNew ? "Créer la campagne" : "Enregistrer"}
