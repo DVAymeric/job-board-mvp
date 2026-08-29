@@ -45,3 +45,22 @@ Espacements observés et à réutiliser (ne pas en inventer d'autres sans raison
 | Rangée compacte (badges, tags) | `gap-1.5` |
 | Pile de champs de formulaire | `space-y-1.5` |
 | Padding interne de carte/ligne | `p-3` (lignes de liste), `p-2` (cartes compactes/colonnes) |
+
+Rayons et ombres (JOB-88) — `--radius` de base passé à `0.625rem` (10px) pour que
+`rounded-lg` (boutons, inputs) tombe pile sur la cible du mockup. `rounded-xl`
+(cartes, dialogs — déjà utilisé par `card.tsx`/`dialog.tsx`) en découle à 14px,
+2px au-dessus de la cible mockup (12px) : écart mineur assumé plutôt que de
+retoucher les multiplicateurs de toute l'échelle `--radius-*` sans audit complet
+de chaque usage existant. `rounded-2xl` (18px) tombe exactement sur la cible
+« cadre d'écran / panneau large » du mockup et n'est pas encore utilisé —
+à privilégier pour tout nouveau grand conteneur plutôt que d'introduire un
+nouveau token.
+
+| Rôle | Classes |
+|---|---|
+| Rayon bouton/input | `rounded-lg` (10px) |
+| Rayon carte / dialog | `rounded-xl` (14px, existant) |
+| Rayon cadre large / modale | `rounded-2xl` (18px) |
+| Rayon pill/badge | `rounded-full` |
+| Ombre carte | `shadow-card` |
+| Ombre panneau/modale mis en avant | `shadow-panel` |
