@@ -42,13 +42,16 @@ const baseCampaignInput = {
   romeCodes: ["M1403"],
   keywords: ["data"],
   contractTypes: ["APPRENTISSAGE"] as const,
-  locations: [{ label: "Lille 59000", lat: 50.630951, lng: 3.045391, radiusKm: 30 }],
+  locations: [{ label: "Lille 59000", radiusKm: 30 }],
 };
 
-async function createCampaignAsA(slugSuffix: string) {
-  const result = await asA(() => createCampaign({ ...baseCampaignInput, slug: `iso-${slugSuffix}` }));
+// Le slug n'est plus saisi par l'appelant (JOB-59 suite) — généré côté serveur à partir des
+// mots-clés, donc pas de paramètre de suffixe ici. Retourne la campagne complète (pas que l'id) :
+// certains tests ont besoin de son slug réel, imprévisible d'avance en cas de collision.
+async function createCampaignAsA() {
+  const result = await asA(() => createCampaign(baseCampaignInput));
   if (!result.ok) throw new Error(`setup failed: ${result.error}`);
-  return result.data.campaign.id;
+  return result.data.campaign;
 }
 
 describe("Server Actions campagnes — isolation multi-tenant (base réelle)", () => {
@@ -69,41 +72,39 @@ describe("Server Actions campagnes — isolation multi-tenant (base réelle)", (
   });
 
   it("listCampaigns: B never sees A's campaigns", async () => {
-    await createCampaignAsA("list");
+    await createCampaignAsA();
     const result = await asB(() => listCampaigns());
     expect(result).toEqual({ ok: true, data: { campaigns: [] } });
   });
 
-  it("createCampaign: A and B can independently use the same slug (scoped per user, not global)", async () => {
-    const a = await asA(() => createCampaign({ ...baseCampaignInput, slug: "iso-shared-slug" }));
-    const b = await asB(() => createCampaign({ ...baseCampaignInput, slug: "iso-shared-slug" }));
+  it("createCampaign: A and B can independently use the same keywords-derived slug (scoped per user, not global)", async () => {
+    const a = await asA(() => createCampaign(baseCampaignInput));
+    const b = await asB(() => createCampaign(baseCampaignInput));
     expect(a.ok).toBe(true);
     expect(b.ok).toBe(true);
   });
 
   it("updateCampaign: B cannot edit A's campaign", async () => {
-    const campaignId = await createCampaignAsA("update");
-    const result = await asB(() =>
-      updateCampaign({ ...baseCampaignInput, campaignId, slug: "iso-update-hacked" }),
-    );
+    const created = await createCampaignAsA();
+    const result = await asB(() => updateCampaign({ ...baseCampaignInput, campaignId: created.id }));
     expect(result.ok).toBe(false);
 
-    const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
-    expect(campaign?.slug).toBe("iso-update");
+    const campaign = await prisma.campaign.findUnique({ where: { id: created.id } });
+    expect(campaign?.slug).toBe(created.slug);
   });
 
   it("deleteCampaign: B cannot delete A's campaign", async () => {
-    const campaignId = await createCampaignAsA("delete");
-    const result = await asB(() => deleteCampaign({ campaignId }));
+    const created = await createCampaignAsA();
+    const result = await asB(() => deleteCampaign({ campaignId: created.id }));
     expect(result.ok).toBe(false);
 
-    const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
+    const campaign = await prisma.campaign.findUnique({ where: { id: created.id } });
     expect(campaign).not.toBeNull();
   });
 
   it("deleteCampaign: cascades to that user's HarvestedOffer rows only, leaving the other user's untouched", async () => {
-    const campaignIdA = await createCampaignAsA("cascade-a");
-    const campaignIdB = await asB(() => createCampaign({ ...baseCampaignInput, slug: "iso-cascade-b" })).then((r) =>
+    const campaignIdA = (await createCampaignAsA()).id;
+    const campaignIdB = await asB(() => createCampaign(baseCampaignInput)).then((r) =>
       r.ok ? r.data.campaign.id : (() => { throw new Error("setup failed"); })(),
     );
 
