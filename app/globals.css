@@ -46,6 +46,16 @@
   --color-brand-positive-foreground: var(--brand-positive-foreground);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
+  --color-status-todo-bg: var(--status-todo-bg);
+  --color-status-todo-fg: var(--status-todo-fg);
+  --color-status-sent-bg: var(--status-sent-bg);
+  --color-status-sent-fg: var(--status-sent-fg);
+  --color-status-interview-bg: var(--status-interview-bg);
+  --color-status-interview-fg: var(--status-interview-fg);
+  --color-status-answer-bg: var(--status-answer-bg);
+  --color-status-answer-fg: var(--status-answer-fg);
+  --color-status-rejected-bg: var(--status-rejected-bg);
+  --color-status-rejected-fg: var(--status-rejected-fg);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -115,6 +125,28 @@
   --brand-positive-foreground: #ffffff;
   --warn: #c67c1e;
   --danger: #b34700;
+  /* Statuts de candidature (JOB-89). Mapping vers l'enum métier réel
+     (lib/constants.ts STATUS) — les libellés mockup ne correspondent pas
+     1:1 aux noms internes :
+       TO_APPLY  -> --status-todo-*      (À postuler / mockup "À préparer")
+       APPLIED   -> --status-sent-*      (Postulé / mockup "Envoyée")
+       INTERVIEW -> --status-interview-* (Entretien)
+       REJECTED  -> --status-rejected-*  (Refusé — PAS --status-answer : le
+         "answer" vert du mockup désigne une issue positive ("Poste
+         obtenu"), sémantiquement opposée à REJECTED. Le modèle de données
+         actuel n'a pas de statut "issue positive" distinct — --status-answer
+         est réservé à un futur statut de ce type, pas encore utilisé.
+     Tous les couples fg/bg vérifiés >= 4.5:1 (AA texte normal). */
+  --status-todo-bg: #efeafa;
+  --status-todo-fg: #5b2a9d;
+  --status-sent-bg: #e9f2ff;
+  --status-sent-fg: #2457b0;
+  --status-interview-bg: #fdf2e2;
+  --status-interview-fg: #96560c;
+  --status-answer-bg: #e7f7f0;
+  --status-answer-fg: #0f7a56;
+  --status-rejected-bg: #fbe4d8;
+  --status-rejected-fg: #a04000;
   --chart-1: #4f1271;
   --chart-2: #783f8e;
   --chart-3: #bfacc8;
@@ -174,6 +206,16 @@
   --brand-positive-foreground: #0a1710;
   --warn: #e0a050;
   --danger: #e0784a;
+  --status-todo-bg: #2a2040;
+  --status-todo-fg: #c9a9f0;
+  --status-sent-bg: #1c2c47;
+  --status-sent-fg: #7fb0f5;
+  --status-interview-bg: #3a2a12;
+  --status-interview-fg: #e0a050;
+  --status-answer-bg: #163326;
+  --status-answer-fg: #3fce9a;
+  --status-rejected-bg: #3a1f12;
+  --status-rejected-fg: #e0784a;
   --chart-1: #e0c6ec;
   --chart-2: #c094d3;
   --chart-3: #8c4ca3;
