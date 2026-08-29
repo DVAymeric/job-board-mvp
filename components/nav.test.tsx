@@ -5,12 +5,17 @@ import { forwardRef } from "react";
 import type { ReactNode } from "react";
 import type { Session } from "next-auth";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { vi, beforeEach } from "vitest";
 import { Nav } from "@/components/nav";
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/board"),
   useRouter: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock("next-themes", () => ({
+  useTheme: vi.fn(),
 }));
 
 vi.mock(
@@ -45,6 +50,13 @@ const session: Session = {
 
 beforeEach(() => {
   vi.mocked(usePathname).mockReturnValue("/board");
+  vi.mocked(useTheme).mockReturnValue({
+    theme: "light",
+    setTheme: vi.fn(),
+    themes: ["light", "dark"],
+    resolvedTheme: "light",
+    systemTheme: undefined,
+  });
 });
 
 describe("Nav — état de session", () => {
@@ -124,6 +136,68 @@ describe("Nav — restyle design system (JOB-95)", () => {
     const trigger = screen.getByRole("button", { name: /ouvrir le menu/i });
     expect(trigger).toBeDisabled();
     expect(trigger).toHaveClass("md:hidden");
+  });
+});
+
+describe("Nav — toggle thème clair/sombre (JOB-119)", () => {
+  it("offers switching to dark mode when the current theme is light", () => {
+    render(<Nav session={session} />);
+    expect(
+      screen.getByRole("button", { name: /passer en thème sombre/i })
+    ).toBeInTheDocument();
+  });
+
+  it("offers switching to light mode when the current theme is dark", () => {
+    vi.mocked(useTheme).mockReturnValue({
+      theme: "dark",
+      setTheme: vi.fn(),
+      themes: ["light", "dark"],
+      resolvedTheme: "dark",
+      systemTheme: undefined,
+    });
+    render(<Nav session={session} />);
+    expect(
+      screen.getByRole("button", { name: /passer en thème clair/i })
+    ).toBeInTheDocument();
+  });
+
+  it("calls setTheme('dark') when clicked from light theme", async () => {
+    const setTheme = vi.fn();
+    vi.mocked(useTheme).mockReturnValue({
+      theme: "light",
+      setTheme,
+      themes: ["light", "dark"],
+      resolvedTheme: "light",
+      systemTheme: undefined,
+    });
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+
+    await user.click(screen.getByRole("button", { name: /passer en thème sombre/i }));
+    expect(setTheme).toHaveBeenCalledWith("dark");
+  });
+
+  it("calls setTheme('light') when clicked from dark theme", async () => {
+    const setTheme = vi.fn();
+    vi.mocked(useTheme).mockReturnValue({
+      theme: "dark",
+      setTheme,
+      themes: ["light", "dark"],
+      resolvedTheme: "dark",
+      systemTheme: undefined,
+    });
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+
+    await user.click(screen.getByRole("button", { name: /passer en thème clair/i }));
+    expect(setTheme).toHaveBeenCalledWith("light");
+  });
+
+  it("is available on every route, including before authentication", () => {
+    render(<Nav session={null} />);
+    expect(
+      screen.getByRole("button", { name: /passer en thème/i })
+    ).toBeInTheDocument();
   });
 });
 

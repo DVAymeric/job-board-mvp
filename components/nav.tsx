@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, CircleUser, LogOut, Menu } from "lucide-react";
+import { useSyncExternalStore } from "react";
+import { useTheme } from "next-themes";
+import { ChevronDown, CircleUser, LogOut, Menu, Moon, Sun } from "lucide-react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,41 @@ const LINKS = [
   { href: "/analytics", label: "Analytics", prefetch: false },
   { href: "/harvester", label: "Harvester", prefetch: false },
 ] as const;
+
+const noopSubscribe = () => () => {};
+
+function useMounted() {
+  // Garde anti-flash d'hydratation (JOB-119) : next-themes ne connaît le thème
+  // persisté (localStorage) qu'après le montage côté client. useSyncExternalStore
+  // avec un getServerSnapshot distinct évite un setState dans un effet (déconseillé,
+  // cascading renders) tout en donnant `false` pendant le SSR et `true` une fois
+  // hydraté, sans risque de désynchronisation.
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  );
+}
+
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+  const mounted = useMounted();
+
+  const isDark = mounted && theme === "dark";
+  const label = isDark ? "Passer en thème clair" : "Passer en thème sombre";
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      disabled={!mounted}
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+    >
+      {isDark ? <Sun /> : <Moon />}
+    </Button>
+  );
+}
 
 export function Nav({ session }: { session: Session | null }) {
   const pathname = usePathname();
@@ -65,6 +102,7 @@ export function Nav({ session }: { session: Session | null }) {
           </Link>
         ))}
       </nav>
+      <ThemeToggle />
       <Button
         variant="ghost"
         size="icon"
