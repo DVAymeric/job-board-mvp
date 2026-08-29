@@ -87,4 +87,11 @@ describe("Tabs", () => {
     const tabA = screen.getByRole("tab", { name: "Onglet A" });
     expect(tabA.className).toMatch(/min-h-11|h-11/);
   });
+
+  it("uses the system-wide focus-visible ring (JOB-113)", () => {
+    render(<Example />);
+    const tabA = screen.getByRole("tab", { name: "Onglet A" });
+    expect(tabA.className).toMatch(/focus-visible:ring-3/);
+    expect(tabA.className).toMatch(/focus-visible:ring-ring\/50/);
+  });
 });
