@@ -6,6 +6,7 @@ import type { Job } from "@prisma/client";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { CompanyAvatar } from "@/components/board/company-avatar";
@@ -18,7 +19,7 @@ import {
   JobStatus,
 } from "@/lib/constants";
 import type { JobWithRelations } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatDateFr } from "@/lib/utils";
 import { deleteJob } from "@/app/actions";
 import { toast } from "sonner";
 
@@ -74,12 +75,13 @@ export function JobCard({
     <Card
       ref={setNodeRef}
       style={style}
+      size="sm"
       {...listeners}
       {...attributes}
       aria-current={focused || undefined}
       onClick={() => onOpen(job.id)}
       className={cn(
-        "cursor-grab touch-none select-none border-l-4 shadow-sm transition-[transform,box-shadow] duration-150 ease-out active:cursor-grabbing motion-reduce:transition-none",
+        "cursor-grab touch-none select-none border-l-4 shadow-card transition-[transform,box-shadow] duration-150 ease-out active:cursor-grabbing motion-reduce:transition-none",
         "hover:-translate-y-0.5 hover:shadow-md",
         STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName,
         // Liseré plus marqué pour Entretien ; traitement assourdi pour Refusé
@@ -108,16 +110,16 @@ export function JobCard({
                 <Skeleton shape="line" className="h-2.5 w-1/2 bg-palette-lilas/40" />
               </div>
             ) : job.enrichmentStatus === "FAILED" ? (
-              <p className="font-heading text-sm leading-snug text-muted-foreground italic">
+              <p className="font-heading text-base leading-snug text-muted-foreground italic">
                 Titre non détecté — cliquer pour renseigner manuellement
               </p>
             ) : (
               <>
-                <p className="font-heading text-sm leading-snug text-heading">
+                <p className="font-heading text-base leading-snug text-heading">
                   {displayName}
                 </p>
                 {job.title && job.companyName && (
-                  <p className="text-xs text-muted-foreground">{job.companyName}</p>
+                  <p className="text-sm text-muted-foreground">{job.companyName}</p>
                 )}
               </>
             )}
@@ -165,25 +167,18 @@ export function JobCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <span
-            className={cn(
-              "inline-flex h-5 items-center font-mono text-xs font-bold",
-              STATUS_CONFIG[job.status as JobStatus]?.textClassName
-            )}
-          >
-            {STATUS_CONFIG[job.status as JobStatus]?.label ?? job.status}
-          </span>
+          <StatusBadge status={job.status as JobStatus} />
           {needsFollowUp(job) && (
             <Badge className={FOLLOW_UP_BADGE_CLASSNAME}>Relancer ?</Badge>
           )}
           {job.tags.map((jt) => (
-            <Badge key={jt.tagId} variant="secondary">
+            <Badge key={jt.tagId} variant="tag">
               {jt.tag.name}
             </Badge>
           ))}
         </div>
         <p className="font-mono text-xs text-muted-foreground">
-          Ajouté le {new Date(job.createdAt).toLocaleDateString("fr-FR")}
+          Ajouté le {formatDateFr(job.createdAt)}
         </p>
       </CardContent>
     </Card>

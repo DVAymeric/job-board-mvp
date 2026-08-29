@@ -32,10 +32,10 @@ export function Column({
           accent.accentBorderClassName
         )}
       >
-        <h2 className="font-heading text-base text-heading">
+        <h2 className="font-heading text-lg text-heading">
           {accent.label}
         </h2>
-        <span className="font-mono text-xs text-muted-foreground">
+        <span className="rounded-full bg-pill-bg px-2 py-0.5 font-mono text-xs font-bold text-muted-foreground">
           {jobs.length}
         </span>
       </div>

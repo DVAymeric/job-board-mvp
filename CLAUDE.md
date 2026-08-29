@@ -33,7 +33,7 @@ information essentielle.
 | Meta | `text-sm text-muted-foreground` | Info secondaire en prose (ex. nom d'entreprise sous le titre) |
 | Meta technique/numérique | `font-mono text-xs text-muted-foreground` — *exception : dates/compteurs secondaires* | Dates, compteurs (mono pour l'alignement des chiffres) |
 | Valeur chiffrée mise en avant | `font-heading text-2xl text-heading` | Chiffre des mini-stats bento (`status-detail-card.tsx`) |
-| Label de statut | `font-mono text-sm font-bold` + couleur du statut (`STATUS_CONFIG[status].textClassName`, pas de fond) | Statut dans `JobCard` |
+| Label de statut | `StatusBadge` (icône + fond `bg-status-*-bg`/texte `text-status-*-fg` + libellé, jamais la couleur seule) | Statut dans `JobCard` (JOB-96) |
 
 Espacements observés et à réutiliser (ne pas en inventer d'autres sans raison) :
 

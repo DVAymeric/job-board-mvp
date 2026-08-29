@@ -69,7 +69,7 @@ describe("JobCard title/company display", () => {
     expect(screen.getByText("example.com")).toBeInTheDocument();
   });
 
-  it("shows the job's tags as secondary badges", () => {
+  it("shows the job's tags as tag-variant badges", () => {
     render(
       <JobCard
         job={{
@@ -87,7 +87,7 @@ describe("JobCard title/company display", () => {
     );
     const badge = screen.getByText("Remote");
     expect(badge).toBeInTheDocument();
-    expect(badge).toHaveAttribute("data-variant", "secondary");
+    expect(badge).toHaveAttribute("data-variant", "tag");
   });
 });
 
@@ -253,18 +253,30 @@ describe("JobCard — actions au survol (JOB-96)", () => {
   });
 });
 
-describe("JobCard — pastille de statut voyante (couleur par statut, JOB-101)", () => {
+describe("JobCard — date en toutes lettres (JOB-96)", () => {
+  it("shows the added date spelled out, never in DD/MM digit format", () => {
+    render(
+      <JobCard job={{ ...baseJob, createdAt: new Date("2026-09-02") }} onOpen={() => {}} />
+    );
+    expect(screen.getByText(/Ajouté le/)).toHaveTextContent(/2 sept\.?/i);
+    expect(screen.queryByText(/\b02\/09\/2026\b/)).not.toBeInTheDocument();
+  });
+});
+
+describe("JobCard — StatusBadge icône + couleur + texte (JOB-96)", () => {
+  // Inversion volontaire du choix antérieur "texte gras sans pastille de
+  // fond" (ex-JOB-101) : le mockup impose icône + fond plein + texte, jamais
+  // la couleur seule (a11y daltonisme, cf. StatusBadge de JOB-91).
   it.each(["TO_APPLY", "APPLIED", "INTERVIEW", "REJECTED"] as const)(
-    "renders the %s label in bold, in its dedicated status color, without a filled pill background",
+    "renders the %s label with its icon and a filled status pill background",
     (status) => {
       render(<JobCard job={{ ...baseJob, status }} onOpen={() => {}} />);
 
       const label = screen.getByText(STATUS_CONFIG[status].label);
-      expect(label).toHaveClass("font-bold");
-      for (const className of STATUS_CONFIG[status].textClassName.split(" ")) {
-        expect(label).toHaveClass(className);
-      }
-      expect(label.className).not.toMatch(/\bbg-/);
+      const badge = label.closest('[data-slot="badge"]');
+      expect(badge).not.toBeNull();
+      expect(badge!.querySelector("svg")).toBeInTheDocument();
+      expect(badge!.className).toMatch(/\bbg-status-/);
     }
   );
 });
