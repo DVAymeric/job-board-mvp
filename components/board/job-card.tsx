@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { CompanyAvatar } from "@/components/board/company-avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   FOLLOW_UP_BADGE_CLASSNAME,
   needsFollowUp,
@@ -100,10 +101,11 @@ export function JobCard({
               <div
                 data-testid="job-card-enriching"
                 aria-label="Récupération du titre en cours"
+                aria-busy="true"
                 className="space-y-1.5 py-0.5"
               >
-                <div className="h-3.5 w-3/4 animate-pulse rounded bg-palette-poudre" />
-                <div className="h-2.5 w-1/2 animate-pulse rounded bg-palette-lilas/40" />
+                <Skeleton shape="line" className="h-3.5 w-3/4 bg-palette-poudre" />
+                <Skeleton shape="line" className="h-2.5 w-1/2 bg-palette-lilas/40" />
               </div>
             ) : job.enrichmentStatus === "FAILED" ? (
               <p className="font-heading text-sm leading-snug text-muted-foreground italic">
