@@ -18,7 +18,11 @@ function ConnectorBadge({ label, active, meta, className }: ConnectorBadgeProps)
     <span
       data-slot="connector-badge"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-border bg-pill-bg px-2.5 py-1 text-sm",
+        // max-w-full + flex-wrap (JOB-111) : label + statut + meta peuvent
+        // dépasser la largeur de l'écran sous mobile (ex. "La Bonne
+        // Alternance" + meta compteur/date) — le contenu passe à la ligne
+        // dans le badge plutôt que de déborder hors de son conteneur.
+        "inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-border bg-pill-bg px-2.5 py-1 text-sm",
         className
       )}
     >

@@ -19,14 +19,19 @@ export function HarvesterTabs({ reviewQueueCount }: HarvesterTabsProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-4 border-b border-border">
+    // overflow-x-auto (JOB-111, cf. nav.tsx JOB-100) : les 3 libellés + le
+    // badge de compteur ne tiennent plus sur 360-390px. Un scroll horizontal
+    // contenu à la nav (shrink-0 + whitespace-nowrap sur chaque onglet)
+    // évite le retour à la ligne qui casserait le pattern d'onglets, plutôt
+    // que de tronquer les libellés ou de laisser déborder toute la page.
+    <nav className="flex gap-4 overflow-x-auto border-b border-border">
       {TABS.map((tab) => (
         <Link
           key={tab.href}
           href={tab.href}
           prefetch={false}
           className={cn(
-            "flex h-11 items-center gap-1.5 border-b-2 border-transparent px-2 text-sm font-medium transition-colors hover:text-heading",
+            "flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-2 text-sm font-medium transition-colors hover:text-heading",
             pathname === tab.href
               ? "border-primary font-bold text-heading"
               : "text-muted-foreground"

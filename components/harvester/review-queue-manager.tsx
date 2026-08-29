@@ -168,19 +168,24 @@ export function ReviewQueueManager({
         </p>
       ) : (
         <div role="table" aria-label="Offres collectées" className="overflow-hidden rounded-lg border border-border">
-          <div role="row" className="grid grid-cols-[2rem_2fr_1.5fr_1fr_1fr_1fr_auto] items-center gap-2 border-b border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+          {/* Sous md: (JOB-111) seule la case « tout sélectionner » reste
+              visible dans l'en-tête — les libellés de colonnes (Titre,
+              Entreprise...) n'ont plus de sens une fois les lignes empilées
+              en carte, ils réapparaissent dès que la grille à 7 colonnes
+              revient à md:. */}
+          <div role="row" className="flex items-center gap-2 border-b border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground md:grid md:grid-cols-[2rem_2fr_1.5fr_1fr_1fr_1fr_auto]">
             <input
               type="checkbox"
               checked={selectedIds.size === filteredOffers.length}
               onChange={toggleAll}
               aria-label="Sélectionner toutes les offres"
             />
-            <span>Titre</span>
-            <span>Entreprise</span>
-            <span>Ville</span>
-            <span>Source</span>
-            <span>Publiée</span>
-            <span>Actions</span>
+            <span className="hidden md:inline">Titre</span>
+            <span className="hidden md:inline">Entreprise</span>
+            <span className="hidden md:inline">Ville</span>
+            <span className="hidden md:inline">Source</span>
+            <span className="hidden md:inline">Publiée</span>
+            <span className="hidden md:inline">Actions</span>
           </div>
           <ul>
             {filteredOffers.map((offer) => {
@@ -189,36 +194,60 @@ export function ReviewQueueManager({
                 <li
                   key={offer.id}
                   role="row"
-                  className="grid grid-cols-[2rem_2fr_1.5fr_1fr_1fr_1fr_auto] items-center gap-2 border-b border-border px-3 py-2 text-sm transition-colors last:border-b-0 hover:bg-muted/50"
+                  className="flex flex-col gap-2 border-b border-border p-3 text-sm transition-colors last:border-b-0 hover:bg-muted/50 md:grid md:grid-cols-[2rem_2fr_1.5fr_1fr_1fr_1fr_auto] md:items-center md:gap-2 md:px-3 md:py-2"
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(offer.id)}
-                    onChange={() => toggleOne(offer.id)}
-                    aria-label={`Sélectionner ${offer.title}`}
-                  />
-                  <a
-                    href={offer.applyUrl ?? offer.canonicalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="truncate underline-offset-2 hover:underline"
-                  >
-                    {offer.title}
-                  </a>
-                  <span className="truncate">{offer.companyName}</span>
-                  <span className="truncate">{offer.city}</span>
-                  <span className="truncate">
-                    <Badge variant="tag">
-                      {offer.originSource ? `${offer.originSource} (${offer.source})` : offer.source}
-                    </Badge>
-                  </span>
-                  <span className="font-mono text-xs text-muted-foreground">{formatDate(offer.postedAt)}</span>
-                  <span className="flex gap-1.5">
-                    <Button size="sm" variant="accent" disabled={pending} onClick={() => handleImport(offer.id)}>
+                  {/* Case à cocher + titre groupés pour l'empilement mobile ;
+                      md:contents (JOB-111) fait disparaître ce wrapper de la
+                      grille pour que ses 2 enfants redeviennent des cellules
+                      directes de md:grid-cols-[2rem_2fr_...], comme avant. */}
+                  <div className="flex items-start gap-2 md:contents">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(offer.id)}
+                      onChange={() => toggleOne(offer.id)}
+                      aria-label={`Sélectionner ${offer.title}`}
+                      className="mt-1 shrink-0 md:mt-0"
+                    />
+                    <a
+                      href={offer.applyUrl ?? offer.canonicalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="min-w-0 flex-1 underline-offset-2 hover:underline md:truncate"
+                    >
+                      {offer.title}
+                    </a>
+                  </div>
+                  {/* Entreprise/Ville/Source/Date regroupées en ligne meta
+                      empilée sous md: ; md:contents les rend de nouveau
+                      individuelles pour les 4 colonnes de la grille desktop. */}
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 pl-6 md:contents md:pl-0">
+                    <span className="truncate">{offer.companyName}</span>
+                    <span className="truncate">{offer.city}</span>
+                    <span className="truncate">
+                      <Badge variant="tag">
+                        {offer.originSource ? `${offer.originSource} (${offer.source})` : offer.source}
+                      </Badge>
+                    </span>
+                    <span className="font-mono text-xs text-muted-foreground">{formatDate(offer.postedAt)}</span>
+                  </div>
+                  <span className="flex gap-1.5 pl-6 md:pl-0">
+                    <Button
+                      size="sm"
+                      variant="accent"
+                      disabled={pending}
+                      onClick={() => handleImport(offer.id)}
+                      className="flex-1 md:flex-none"
+                    >
                       {pending && <Loader2 className="animate-spin" />}
                       Importer
                     </Button>
-                    <Button size="sm" variant="outline" disabled={pending} onClick={() => handleIgnore(offer.id)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => handleIgnore(offer.id)}
+                      className="flex-1 md:flex-none"
+                    >
                       Ignorer
                     </Button>
                   </span>
