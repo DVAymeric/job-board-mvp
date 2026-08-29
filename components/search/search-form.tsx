@@ -52,8 +52,16 @@ export function SearchForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
-      <div className="flex min-w-40 flex-1 flex-col gap-1.5">
+    // JOB-109 : sous `md:` (768px), les 3 champs et le bouton s'empilent en
+    // pleine largeur (`flex-col`) pour rester utilisables sans zone de
+    // saisie trop étroite ni défilement horizontal ; à partir de `md:` on
+    // retrouve la disposition en ligne d'origine (`flex-row`, champs
+    // `flex-1` avec `min-w-40`).
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-end md:gap-2"
+    >
+      <div className="flex w-full flex-col gap-1.5 md:min-w-40 md:w-auto md:flex-1">
         <label htmlFor={keywordId} className="text-base font-medium">
           Métier, mot-clé
         </label>
@@ -72,7 +80,7 @@ export function SearchForm({
         </div>
       </div>
 
-      <div className="flex min-w-40 flex-1 flex-col gap-1.5">
+      <div className="flex w-full flex-col gap-1.5 md:min-w-40 md:w-auto md:flex-1">
         <label htmlFor={locationId} className="text-base font-medium">
           Ville ou code postal
         </label>
@@ -84,7 +92,7 @@ export function SearchForm({
         />
       </div>
 
-      <div className="flex min-w-40 flex-1 flex-col gap-1.5">
+      <div className="flex w-full flex-col gap-1.5 md:min-w-40 md:w-auto md:flex-1">
         <label htmlFor={contractTypeId} className="text-base font-medium">
           Type de contrat
         </label>
@@ -105,7 +113,9 @@ export function SearchForm({
         </Select>
       </div>
 
-      <Button type="submit">Rechercher</Button>
+      <Button type="submit" className="w-full md:w-auto">
+        Rechercher
+      </Button>
     </form>
   );
 }

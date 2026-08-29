@@ -56,7 +56,12 @@ describe("JobResultRow", () => {
 
   it("signals interactivity on hover without relying on it alone (JOB-114)", () => {
     render(<JobResultRow result={baseResult} />);
-    const row = screen.getByText("Chargé·e de recrutement").closest("div.flex.items-center");
+    // JOB-109 : le conteneur passe de `flex items-center` (une seule ligne)
+    // à `flex flex-col ... md:flex-row md:items-center` (empilé sous
+    // `md:`) — `items-center` n'est donc plus un token littéral toujours
+    // présent. `border-b` reste la classe stable du conteneur de ligne à
+    // toutes les tailles d'écran.
+    const row = screen.getByText("Chargé·e de recrutement").closest("div.border-b");
     expect(row?.className).toMatch(/hover:bg-muted/);
   });
 });

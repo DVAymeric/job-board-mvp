@@ -25,27 +25,35 @@ export function JobResultRow({ result }: { result: JobResult }) {
   };
 
   return (
-    <div className="flex items-center gap-4 border-b border-border p-3 transition-colors last:border-b-0 hover:bg-muted/50">
-      <CompanyAvatar job={avatarJob} className="size-13 rounded-xl" />
+    // JOB-109 : sous `md:` (768px), le logo/titre/meta/tags restent groupés
+    // dans le bloc du haut (déjà lisible sur ~360-390px : avatar `size-13`
+    // fixe + colonne de texte qui enveloppe), et le CTA « Postuler » passe
+    // en pleine largeur sous ce bloc plutôt que serré à droite. À partir de
+    // `md:` on retrouve la ligne unique d'origine (`md:flex-row`, CTA
+    // `md:w-auto` aligné à droite).
+    <div className="flex flex-col gap-3 border-b border-border p-3 transition-colors last:border-b-0 hover:bg-muted/50 md:flex-row md:items-center md:gap-4">
+      <div className="flex min-w-0 flex-1 items-start gap-4">
+        <CompanyAvatar job={avatarJob} className="size-13 shrink-0 rounded-xl" />
 
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <p className="font-heading text-base leading-snug text-heading">
-          {result.title}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {result.companyName} · {result.location} · Publiée{" "}
-          {formatDateFr(result.publishedAt)}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="tag">{result.contractType}</Badge>
-          {result.tags.map((tag) => (
-            <Badge key={tag} variant="tag">
-              {tag}
-            </Badge>
-          ))}
-          {result.beginnerFriendly && (
-            <Badge variant="tag">Débutant accepté</Badge>
-          )}
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <p className="font-heading text-base leading-snug text-heading">
+            {result.title}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {result.companyName} · {result.location} · Publiée{" "}
+            {formatDateFr(result.publishedAt)}
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="tag">{result.contractType}</Badge>
+            {result.tags.map((tag) => (
+              <Badge key={tag} variant="tag">
+                {tag}
+              </Badge>
+            ))}
+            {result.beginnerFriendly && (
+              <Badge variant="tag">Débutant accepté</Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -53,7 +61,7 @@ export function JobResultRow({ result }: { result: JobResult }) {
         href={result.applyUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className={cn(buttonVariants({ variant: "accent" }), "shrink-0")}
+        className={cn(buttonVariants({ variant: "accent" }), "w-full shrink-0 md:w-auto")}
       >
         Postuler
       </a>
