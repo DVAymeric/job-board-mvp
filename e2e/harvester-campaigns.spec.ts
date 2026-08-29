@@ -13,7 +13,6 @@ function hashPassword(password: string): string {
 const PASSWORD = "correct-horse-battery-staple";
 const stamp = Date.now();
 const userEmail = `e2e-harvester-campaigns-${stamp}@test.local`;
-const SLUG = `alternance-data-e2e-${stamp}`;
 
 let userId: string;
 
@@ -44,24 +43,26 @@ test.describe("Campagnes Harvester (E2E, JOB-50)", () => {
     await page.goto("/harvester/campaigns");
 
     await page.getByRole("button", { name: "Nouvelle campagne" }).click();
-    await page.getByLabel("Identifiant").fill(SLUG);
-    await page.getByLabel("Codes ROME").fill("M1403, M1805");
     await page.getByLabel("Mots-clés").fill("data analyst");
     await page.getByRole("checkbox", { name: "Apprentissage" }).check();
-    await page.getByLabel("Libellé").fill("Lille 59000");
-    await page.getByLabel("Latitude").fill("50.630951");
-    await page.getByLabel("Longitude").fill("3.045391");
+    await page.getByLabel("Ville").fill("Lille");
+    await page.getByLabel("Rayon (km)").fill("30");
     await page.getByRole("button", { name: "Créer la campagne" }).click();
 
     await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(page.getByText(SLUG)).toBeVisible();
 
-    const stored = await prisma.campaign.findFirst({ where: { userId, slug: SLUG } });
+    // JOB-59 (suite) : l'identifiant n'est plus saisi, il est dérivé des mots-clés côté serveur —
+    // on retrouve la campagne créée par son unique appartenance à cet utilisateur de test.
+    const stored = await prisma.campaign.findFirst({ where: { userId } });
     expect(stored).not.toBeNull();
-    expect(stored?.romeCodes).toEqual(["M1403", "M1805"]);
     expect(stored?.contractTypes).toEqual(["APPRENTISSAGE"]);
+    const config = stored?.config as { locations?: { label: string; lat: number; lng: number }[] };
+    expect(config.locations?.[0]?.label).toContain("Lille");
+    expect(config.locations?.[0]?.lat).toBeCloseTo(50.63, 0);
+    expect(config.locations?.[0]?.lng).toBeCloseTo(3.06, 0);
 
-    await page.getByText(SLUG).click();
+    await expect(page.getByText(stored!.slug)).toBeVisible();
+    await page.getByText(stored!.slug).click();
     await expect(page.getByRole("heading", { name: "Modifier la campagne" })).toBeVisible();
     await page.getByRole("checkbox", { name: "Professionnalisation" }).check();
     await page.getByRole("button", { name: "Enregistrer" }).click();
@@ -69,13 +70,14 @@ test.describe("Campagnes Harvester (E2E, JOB-50)", () => {
     await expect(page.getByRole("dialog")).toBeHidden();
     const updated = await prisma.campaign.findUnique({ where: { id: stored!.id } });
     expect(updated?.contractTypes).toEqual(["APPRENTISSAGE", "PROFESSIONNALISATION"]);
+    expect(updated?.slug).toBe(stored!.slug);
 
-    await page.getByText(SLUG).click();
+    await page.getByText(stored!.slug).click();
     await page.getByRole("button", { name: "Supprimer" }).click();
     await page.getByRole("button", { name: "Confirmer la suppression" }).click();
 
     await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(page.getByRole("button", { name: new RegExp(SLUG) })).toBeHidden();
+    await expect(page.getByRole("button", { name: new RegExp(stored!.slug) })).toBeHidden();
     await expect
       .poll(async () => prisma.campaign.findUnique({ where: { id: stored!.id } }))
       .toBeNull();

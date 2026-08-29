@@ -79,6 +79,28 @@ describe("extractJobMetadataFromHtml", () => {
   });
 });
 
+describe("extractJobMetadataFromHtml — pages de blocage anti-bot", () => {
+  it("discards a title that is just Indeed's block-page interstitial", () => {
+    const html = `<html><head><title>Blocked</title></head></html>`;
+    const result = extractJobMetadataFromHtml(html, "https://fr.indeed.com/viewjob?jk=abc");
+    expect(result.title).toBeNull();
+    expect(result.companyName).toBeNull();
+  });
+
+  it("discards a Cloudflare challenge title reached via og:title", () => {
+    const html = `<meta property="og:title" content="Just a moment..." />`;
+    const result = extractJobMetadataFromHtml(html, TEST_URL);
+    expect(result.title).toBeNull();
+  });
+
+  it("does not discard a real job title that merely resembles block-page wording", () => {
+    const html = `<html><head><title>Ingénieur sécurité réseau — accès et pare-feu</title></head></html>`;
+    expect(extractJobMetadataFromHtml(html, TEST_URL).title).toBe(
+      "Ingénieur sécurité réseau — accès et pare-feu"
+    );
+  });
+});
+
 describe("extractJobMetadataFromHtml — découpage titre/entreprise (fix parsing)", () => {
   it("splits the company out of the <title> using the site-specific rule (LinkedIn)", () => {
     const html = `<html><head><title>Euro-Information recrute pour des postes de DEVELOPPEUR FULL STACK (H/F) (Nantes, Pays de la Loire, France) | LinkedIn</title></head></html>`;

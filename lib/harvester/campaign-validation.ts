@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { LocationConfigSchema } from "@/lib/harvester/campaign-config";
 import { HarvestTargetsSchema } from "@/lib/harvester/harvest-query";
 
 // Valeurs de l'enum Prisma OfferContractType (prisma/schema.prisma) — ce
@@ -18,19 +17,22 @@ export const CAMPAIGN_CONTRACT_TYPE_LABELS: Record<CampaignContractType, string>
 
 const campaignIdSchema = z.string().trim().min(1, "Identifiant invalide");
 
-const slugSchema = z
-  .string()
-  .trim()
-  .min(1, "Identifiant de campagne requis")
-  .max(80, "Identifiant de campagne trop long (80 caractères max)")
-  .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, "Identifiant invalide (minuscules, chiffres, tirets)");
+// JOB-59 (suite) : la campagne n'expose plus lat/lng côté formulaire — seul le nom de ville est
+// saisi, le géocodage (lib/harvester/geocoding.ts) résout les coordonnées côté serveur avant
+// stockage. Distinct de LocationConfigSchema (campaign-config.ts), qui reste la forme stockée
+// (avec lat/lng) utilisée aussi par l'import YAML legacy, non concerné par ce formulaire.
+const campaignLocationInputSchema = z.object({
+  label: z.string().trim().min(1, "Ville requise"),
+  radiusKm: z.number().positive("Rayon invalide"),
+});
 
+// L'identifiant (slug) n'est plus saisi par l'utilisateur — généré côté serveur à partir des
+// mots-clés (slugifyKeywords) à la création, puis jamais modifié (campaigns.ts).
 const campaignFieldsSchema = {
-  slug: slugSchema,
   romeCodes: z.array(z.string().trim().min(1)).default([]),
   keywords: z.array(z.string().trim().min(1)).default([]),
   contractTypes: z.array(z.enum(CAMPAIGN_CONTRACT_TYPES)).min(1, "Au moins un type de contrat"),
-  locations: z.array(LocationConfigSchema).min(1, "Au moins une localisation"),
+  locations: z.array(campaignLocationInputSchema).min(1, "Au moins une localisation"),
   targets: HarvestTargetsSchema.optional(),
   schedule: z.string().trim().min(1).optional(),
 };

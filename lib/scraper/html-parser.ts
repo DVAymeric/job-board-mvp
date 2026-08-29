@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { isBlockPageTitle } from "@/lib/scraper/anti-bot";
 import { extractJobPostingFromJsonLd } from "@/lib/scraper/json-ld";
 import { isAggregatorHostname, splitTitleAndCompany } from "@/lib/scraper/title-company-split";
 
@@ -24,7 +25,14 @@ export function extractJobMetadataFromHtml(
   descriptionText: string | null;
 } {
   const $ = cheerio.load(html);
-  const rawTitle = extractMetaContent($, "og:title") ?? extractTitleTag($);
+  const titleCandidate = extractMetaContent($, "og:title") ?? extractTitleTag($);
+  // Une page de blocage anti-bot (Indeed, Cloudflare...) répond parfois avec
+  // un statut 200 et un <title> qui n'est que ce message d'interstitiel — y
+  // compris à l'issue du fallback Playwright, lui aussi détectable comme
+  // navigateur headless. Sans ce filtre ce texte serait accepté tel quel
+  // comme titre de poste.
+  const rawTitle =
+    titleCandidate && !isBlockPageTitle(titleCandidate) ? titleCandidate : undefined;
   const siteName = extractMetaContent($, "og:site_name");
   const descriptionText =
     extractMetaContent($, "og:description") ?? extractMetaContent($, "description");

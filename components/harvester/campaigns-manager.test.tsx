@@ -61,7 +61,6 @@ describe("CampaignsManager", () => {
     await user.click(screen.getByText("alternance-data-hdf"));
 
     expect(screen.getByText("Modifier la campagne")).toBeInTheDocument();
-    expect(screen.getByLabelText("Identifiant")).toHaveValue("alternance-data-hdf");
   });
 
   it(
@@ -72,11 +71,8 @@ describe("CampaignsManager", () => {
       render(<CampaignsManager initialCampaigns={[]} />);
 
       await user.click(screen.getByRole("button", { name: /nouvelle campagne/i }));
-      await user.type(screen.getByLabelText("Identifiant"), "alternance-data-hdf");
       await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
-      await user.type(screen.getByLabelText("Libellé"), "Lille");
-      await user.type(screen.getByLabelText("Latitude"), "50.63");
-      await user.type(screen.getByLabelText("Longitude"), "3.05");
+      await user.type(screen.getByLabelText("Ville"), "Lille");
       await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
 
       expect(await screen.findByText("alternance-data-hdf")).toBeInTheDocument();
