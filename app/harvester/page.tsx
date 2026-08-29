@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getPendingOfferCount } from "@/lib/harvester/pending-offer-count";
 import { PageHeader } from "@/components/page-header";
 import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
 import { HarvesterOverview } from "@/components/harvester/harvester-overview";
@@ -10,7 +11,7 @@ export default async function HarvesterPage() {
 
   const [campaignCount, pendingOfferCount] = await Promise.all([
     prisma.campaign.count({ where: { userId } }),
-    prisma.harvestedOffer.count({ where: { userId, importedJobId: null, ignoredAt: null } }),
+    getPendingOfferCount(userId),
   ]);
 
   return (
@@ -20,7 +21,7 @@ export default async function HarvesterPage() {
         title="Harvester"
         subtitle="Campagnes de recherche et offres collectées en attente de revue."
       />
-      <HarvesterTabs />
+      <HarvesterTabs reviewQueueCount={pendingOfferCount} />
       <HarvesterOverview campaignCount={campaignCount} pendingOfferCount={pendingOfferCount} />
     </div>
   );

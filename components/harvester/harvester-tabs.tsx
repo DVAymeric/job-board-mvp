@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 const TABS = [
   { href: "/harvester", label: "Vue d'ensemble" },
@@ -10,7 +11,11 @@ const TABS = [
   { href: "/harvester/review", label: "File de revue" },
 ] as const;
 
-export function HarvesterTabs() {
+interface HarvesterTabsProps {
+  reviewQueueCount?: number;
+}
+
+export function HarvesterTabs({ reviewQueueCount }: HarvesterTabsProps) {
   const pathname = usePathname();
 
   return (
@@ -21,13 +26,16 @@ export function HarvesterTabs() {
           href={tab.href}
           prefetch={false}
           className={cn(
-            "flex h-11 items-center border-b-2 border-transparent px-2 text-sm font-medium transition-colors hover:text-heading",
+            "flex h-11 items-center gap-1.5 border-b-2 border-transparent px-2 text-sm font-medium transition-colors hover:text-heading",
             pathname === tab.href
               ? "border-primary font-bold text-heading"
               : "text-muted-foreground"
           )}
         >
           {tab.label}
+          {tab.href === "/harvester/review" && !!reviewQueueCount && (
+            <Badge variant="tag">{reviewQueueCount}</Badge>
+          )}
         </Link>
       ))}
     </nav>
