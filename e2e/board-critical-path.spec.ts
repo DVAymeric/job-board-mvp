@@ -46,9 +46,9 @@ async function loginAs(page: Page, email: string) {
 }
 
 /**
- * dnd-kit's PointerSensor only starts a drag once the pointer has moved past
+ * dnd-kit's MouseSensor only starts a drag once the pointer has moved past
  * an 8px activation distance (see components/board/board.tsx). A plain
- * `dragTo()` can resolve before the browser has dispatched enough pointermove
+ * `dragTo()` can resolve before the browser has dispatched enough mousemove
  * events, so the drag is scripted manually with an intermediate move.
  */
 async function dragCardToColumn(page: Page, cardTitle: string, columnTestId: string) {

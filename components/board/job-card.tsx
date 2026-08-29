@@ -81,7 +81,12 @@ export function JobCard({
       aria-current={focused || undefined}
       onClick={() => onOpen(job.id)}
       className={cn(
-        "cursor-grab touch-none select-none border-l-4 shadow-card transition-[transform,box-shadow] duration-150 ease-out active:cursor-grabbing motion-reduce:transition-none",
+        // Pas de touch-action:none (JOB-108) : le TouchSensor du board
+        // (délai d'activation) a besoin que le navigateur garde la main sur
+        // le geste tactile tant que le drag n'est pas activé, pour pouvoir
+        // démarrer un scroll horizontal natif (swipe rapide) plutôt qu'un
+        // drag de carte. Voir sensors dans board.tsx.
+        "cursor-grab select-none border-l-4 shadow-card transition-[transform,box-shadow] duration-150 ease-out active:cursor-grabbing motion-reduce:transition-none",
         "hover:-translate-y-0.5 hover:shadow-md",
         STATUS_CONFIG[job.status as JobStatus]?.accentBorderLeftClassName,
         // Liseré plus marqué pour Entretien ; traitement assourdi pour Refusé

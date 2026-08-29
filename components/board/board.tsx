@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -39,8 +40,22 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [focusedJobId, setFocusedJobId] = useState<string | null>(null);
 
+  // MouseSensor (distance) + TouchSensor (delay) plutôt qu'un PointerSensor
+  // unique (JOB-108) : sous 760px les colonnes défilent horizontalement au
+  // doigt (scroll-snap) et les JobCard n'ont plus `touch-action: none` pour
+  // laisser ce scroll natif s'amorcer. Avec un PointerSensor + distance, un
+  // simple swipe tactile dépasserait les 8px et déclencherait un drag au
+  // lieu de faire défiler le board. Le délai du TouchSensor laisse le
+  // navigateur démarrer son scroll natif si le doigt bouge avant l'échéance
+  // (dnd-kit annule alors la contrainte via `touchcancel`) ; sinon (appui
+  // maintenu quasi immobile) le drag s'active. PointerSensor capterait aussi
+  // les événements tactiles en plus de TouchSensor (double activation) —
+  // MouseSensor n'écoute que `mousedown`, d'où son usage ici pour la souris.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    })
   );
 
   useEffect(() => {
@@ -286,7 +301,16 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex flex-1 gap-4 overflow-x-auto">
+          {/*
+            Mobile (<md, ~760px) : scroll horizontal par colonne avec
+            scroll-snap plutôt que la grille 4 colonnes desktop (JOB-108).
+            Chaque Column passe à ~90% de la largeur du conteneur et
+            s'aligne en snap-start, laissant apparaître un aperçu de la
+            colonne suivante pour inviter au swipe. `snap-mandatory` est
+            retiré à partir de `md:` où les colonnes reprennent leur largeur
+            égale (`flex-1`) sans confinement au scroll-snap.
+          */}
+          <div className="flex flex-1 snap-x snap-mandatory gap-4 overflow-x-auto md:snap-none">
             {STATUS_ORDER.map((status) => (
               <Column
                 key={status}

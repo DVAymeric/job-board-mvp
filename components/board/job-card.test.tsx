@@ -263,6 +263,21 @@ describe("JobCard — date en toutes lettres (JOB-96)", () => {
   });
 });
 
+describe("JobCard — pas de touch-action:none (JOB-108)", () => {
+  // Sous 760px, le board défile horizontalement au doigt entre colonnes
+  // (scroll-snap, cf. board.tsx). `touch-action: none` sur la carte
+  // empêcherait ce scroll natif de démarrer pour tout geste commençant sur
+  // une carte : le TouchSensor (délai) prend le relais pour distinguer
+  // swipe (scroll) et appui maintenu (drag), mais seulement si le
+  // navigateur garde la main sur le pan tant que le drag n'est pas activé —
+  // ce que `touch-none` interdirait dès le premier `touchmove`.
+  it("does not disable native touch panning on the card", () => {
+    const { container } = render(<JobCard job={baseJob} onOpen={() => {}} />);
+    const card = getCard(container);
+    expect(card.className).not.toMatch(/\btouch-none\b/);
+  });
+});
+
 describe("JobCard — StatusBadge icône + couleur + texte (JOB-96)", () => {
   // Inversion volontaire du choix antérieur "texte gras sans pastille de
   // fond" (ex-JOB-101) : le mockup impose icône + fond plein + texte, jamais
