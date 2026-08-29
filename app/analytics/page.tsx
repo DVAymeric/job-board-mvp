@@ -13,6 +13,7 @@ import { ActiveMonthCard } from "@/components/analytics/active-month-card";
 import { FunnelCard } from "@/components/analytics/funnel-card";
 import { HeatmapBentoCard } from "@/components/analytics/heatmap-bento-card";
 import { StatusDetailCard } from "@/components/analytics/status-detail-card";
+import { AnalyticsEmptyState } from "@/components/analytics/analytics-empty-state";
 
 export default async function AnalyticsPage() {
   const session = await auth();
@@ -67,18 +68,22 @@ export default async function AnalyticsPage() {
         />
       </div>
 
-      <BentoGrid>
-        <OverviewCard total={jobs.length} statusCounts={statusCounts} />
-        <ConversionCard
-          rate={interviewStage.conversionFromPrevious}
-          appliedCount={appliedStage.count}
-          interviewCount={interviewStage.count}
-        />
-        <ActiveMonthCard month={mostActiveMonth} />
-        <FunnelCard stages={funnel} />
-        <HeatmapBentoCard days={heatmapDays} />
-        <StatusDetailCard stages={funnel} />
-      </BentoGrid>
+      {jobs.length === 0 ? (
+        <AnalyticsEmptyState />
+      ) : (
+        <BentoGrid>
+          <OverviewCard total={jobs.length} statusCounts={statusCounts} />
+          <ConversionCard
+            rate={interviewStage.conversionFromPrevious}
+            appliedCount={appliedStage.count}
+            interviewCount={interviewStage.count}
+          />
+          <ActiveMonthCard month={mostActiveMonth} />
+          <FunnelCard stages={funnel} />
+          <HeatmapBentoCard days={heatmapDays} />
+          <StatusDetailCard stages={funnel} />
+        </BentoGrid>
+      )}
     </div>
   );
 }

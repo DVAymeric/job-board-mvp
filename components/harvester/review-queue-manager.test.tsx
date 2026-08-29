@@ -65,9 +65,24 @@ beforeEach(() => {
 });
 
 describe("ReviewQueueManager", () => {
-  it("shows an empty state when there are no offers", () => {
+  it("shows a positive, never-buggy-looking empty state when there are no offers (JOB-115)", () => {
     render(<ReviewQueueManager initialOffers={[]} nextCursor={null} />);
-    expect(screen.getByText(/Aucune offre en attente de revue/)).toBeInTheDocument();
+    const emptyState = screen.getByTestId("review-queue-empty-state");
+    expect(emptyState).toHaveTextContent(/tout est à jour/i);
+  });
+
+  it("pairs the icon with a word in the empty state, never an icon alone (JOB-120)", () => {
+    render(<ReviewQueueManager initialOffers={[]} nextCursor={null} />);
+    const emptyState = screen.getByTestId("review-queue-empty-state");
+    const icon = emptyState.querySelector("svg");
+    expect(icon).toBeInTheDocument();
+    expect(emptyState).toHaveTextContent(/tout est à jour/i);
+  });
+
+  it("uses body-text size (16px, JOB-87) for the empty-state message", () => {
+    render(<ReviewQueueManager initialOffers={[]} nextCursor={null} />);
+    const message = screen.getByText(/aucune offre n.attend votre revue/i);
+    expect(message.className).toMatch(/\btext-base\b/);
   });
 
   it("lists offers with title, company, city and source", () => {
@@ -88,7 +103,7 @@ describe("ReviewQueueManager", () => {
     await user.click(screen.getByRole("button", { name: "Importer" }));
 
     expect(importHarvestedOffer).toHaveBeenCalledWith({ offerId: "offer-1" });
-    expect(await screen.findByText(/Aucune offre en attente de revue/)).toBeInTheDocument();
+    expect(await screen.findByText(/[Tt]out est à jour/)).toBeInTheDocument();
   });
 
   it("removes an offer from the list after ignoring it, without a success toast", async () => {
@@ -99,7 +114,7 @@ describe("ReviewQueueManager", () => {
     await user.click(screen.getByRole("button", { name: "Ignorer" }));
 
     expect(ignoreHarvestedOffer).toHaveBeenCalledWith({ offerId: "offer-1" });
-    expect(await screen.findByText(/Aucune offre en attente de revue/)).toBeInTheDocument();
+    expect(await screen.findByText(/[Tt]out est à jour/)).toBeInTheDocument();
   });
 
   it("keeps the offer in the list and shows an error toast when import fails", async () => {
@@ -143,7 +158,7 @@ describe("ReviewQueueManager", () => {
 
       expect(importHarvestedOffer).toHaveBeenCalledWith({ offerId: "o1" });
       expect(importHarvestedOffer).toHaveBeenCalledWith({ offerId: "o2" });
-      expect(await screen.findByText(/Aucune offre en attente de revue/)).toBeInTheDocument();
+      expect(await screen.findByText(/[Tt]out est à jour/)).toBeInTheDocument();
     },
     10000
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { JobWithRelations } from "@/lib/types";
 import { Board } from "@/components/board/board";
@@ -126,6 +126,48 @@ describe("Board search", () => {
       await screen.findByText("Aucune candidature ne correspond")
     ).toBeInTheDocument();
     expect(screen.queryByText("Développeur Frontend")).not.toBeInTheDocument();
+  });
+});
+
+describe("Board — état vide quand il n'y a aucune candidature (JOB-115)", () => {
+  it("shows a welcoming message instead of the silent empty column grid", () => {
+    render(<Board initialJobs={[]} />);
+
+    expect(screen.getByTestId("board-empty-state")).toHaveTextContent(
+      /prêt/i
+    );
+    expect(screen.queryByTestId("column-TO_APPLY")).not.toBeInTheDocument();
+  });
+
+  it("puts forward a CTA to add a first job application", () => {
+    render(<Board initialJobs={[]} />);
+
+    const ctas = screen.getAllByRole("link", { name: /ajouter une candidature/i });
+    expect(ctas.length).toBeGreaterThan(0);
+    for (const cta of ctas) {
+      expect(cta).toHaveAttribute("href", "/");
+    }
+  });
+
+  it("uses body-text size (16px, JOB-87) for the empty-state message, not a smaller caption size", () => {
+    render(<Board initialJobs={[]} />);
+
+    const message = within(screen.getByTestId("board-empty-state")).getByText(
+      /collez l.url/i
+    );
+    expect(message.className).toMatch(/\btext-base\b/);
+  });
+
+  it("still shows the explicit search empty-state (not the welcome panel) once jobs exist but none match a query", async () => {
+    const user = userEvent.setup();
+    render(<Board initialJobs={jobs} />);
+
+    await user.type(screen.getByPlaceholderText(/Rechercher/), "introuvable");
+
+    expect(
+      await screen.findByText("Aucune candidature ne correspond")
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("board-empty-state")).not.toBeInTheDocument();
   });
 });
 

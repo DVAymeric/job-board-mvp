@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import type { HarvestedOffer } from "@prisma/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -161,11 +161,26 @@ export function ReviewQueueManager({
       )}
 
       {filteredOffers.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {offers.length === 0
-            ? "Aucune offre en attente de revue."
-            : "Aucune offre ne correspond à ces filtres."}
-        </p>
+        offers.length === 0 ? (
+          <div
+            data-testid="review-queue-empty-state"
+            className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border p-8 text-center"
+          >
+            <p className="flex items-center gap-2 font-heading text-lg text-heading">
+              <CheckCircle2 aria-hidden="true" className="size-5 text-brand-positive" />
+              Tout est à jour
+            </p>
+            <p className="max-w-md text-base text-muted-foreground">
+              Aucune offre n&apos;attend votre revue pour le moment. Revenez
+              après la prochaine collecte, ou lancez-en une manuellement
+              depuis les campagnes.
+            </p>
+          </div>
+        ) : (
+          <p className="text-base text-muted-foreground">
+            Aucune offre ne correspond à ces filtres.
+          </p>
+        )
       ) : (
         <div role="table" aria-label="Offres collectées" className="overflow-hidden rounded-lg border border-border">
           {/* Sous md: (JOB-111) seule la case « tout sélectionner » reste

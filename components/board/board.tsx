@@ -289,8 +289,25 @@ export function Board({ initialJobs }: { initialJobs: JobWithRelations[] }) {
         </div>
       )}
 
-      {(debouncedSearch.trim() || selectedTagIds.length > 0) &&
-      visibleJobs.length === 0 ? (
+      {jobs.length === 0 ? (
+        <div
+          data-testid="board-empty-state"
+          className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border p-10 text-center"
+        >
+          <p className="font-heading text-lg text-heading">
+            Votre board est prêt à accueillir votre première candidature
+          </p>
+          <p className="max-w-md text-base text-muted-foreground">
+            Collez l&apos;URL d&apos;une offre depuis l&apos;accueil pour
+            commencer à suivre son avancement.
+          </p>
+          <Button size="lg" render={<Link href="/" prefetch={false} />}>
+            <Plus aria-hidden="true" />
+            Ajouter une candidature
+          </Button>
+        </div>
+      ) : (debouncedSearch.trim() || selectedTagIds.length > 0) &&
+        visibleJobs.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
           Aucune candidature ne correspond
         </p>
