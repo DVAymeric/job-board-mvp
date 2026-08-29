@@ -8,7 +8,7 @@ interface HeatmapCardProps {
 
 export function HeatmapCard({ days }: HeatmapCardProps) {
   return (
-    <BentoCard span="1x2" label="Analytics" title="Heatmap d'activité">
+    <BentoCard label="Analytics" title="Heatmap d'activité">
       <ApplicationHeatmap days={days} compact />
     </BentoCard>
   );

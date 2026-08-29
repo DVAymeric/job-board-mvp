@@ -25,58 +25,39 @@ describe("HeroSection", () => {
     expect(screen.getByText("UrlCheckBar placeholder")).toBeInTheDocument();
   });
 
-  it("marks the decorative background layers as hidden from assistive tech", () => {
+  it("marks the decorative background layer as hidden from assistive tech", () => {
     const { container } = render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
     const hiddenLayers = container.querySelectorAll('[aria-hidden="true"]');
-    expect(hiddenLayers.length).toBeGreaterThanOrEqual(2);
+    expect(hiddenLayers.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("renders a blurred photo background layer using the hero asset", () => {
+  it("renders a plain light background with a soft brand-colored glow, matching the mockup's flat hero (no photo)", () => {
     const { container } = render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
-    const bgLayer = container.querySelector('[data-testid="hero-bg-image"]');
-    expect(bgLayer).toBeInTheDocument();
-    expect(bgLayer).toHaveAttribute("aria-hidden", "true");
-    expect(bgLayer?.getAttribute("style")).toContain("/hero-bg.jpg");
+    expect(container.querySelector('[data-testid="hero-bg-image"]')).not.toBeInTheDocument();
+    expect(container.querySelector('[data-testid="hero-scrim"]')).not.toBeInTheDocument();
+    const glow = container.querySelector('[data-testid="hero-glow"]');
+    expect(glow).toBeInTheDocument();
+    expect(glow).toHaveAttribute("aria-hidden", "true");
+    const section = screen.getByRole("heading", { level: 1 }).closest("section");
+    expect(section).toHaveClass("bg-background");
   });
 
-  it("renders a scrim layer over the background photo for text legibility", () => {
-    const { container } = render(
-      <HeroSection>
-        <div>content</div>
-      </HeroSection>
-    );
-    const scrim = container.querySelector('[data-testid="hero-scrim"]');
-    expect(scrim).toBeInTheDocument();
-    expect(scrim).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("uses the project's revised page-title scale for the heading (font-heading text-2xl, JOB-87)", () => {
+  it("uses the project's revised page-title scale for the heading (font-heading text-2xl, JOB-87), colored for a light background", () => {
     render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading).toHaveClass("font-heading", "text-2xl");
-  });
-
-  it("fills at least the full viewport height", () => {
-    render(
-      <HeroSection>
-        <div>content</div>
-      </HeroSection>
-    );
-    const heading = screen.getByRole("heading", { level: 1 });
-    const section = heading.closest("section");
-    expect(section).toHaveClass("min-h-dvh");
+    expect(heading).toHaveClass("font-heading", "text-2xl", "text-heading");
   });
 
   it("aligns its content to the left instead of centering it", () => {

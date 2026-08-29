@@ -16,4 +16,12 @@ describe("HeatmapCard", () => {
     render(<HeatmapCard days={days} />);
     expect(screen.getByText("Heatmap d'activité")).toBeInTheDocument();
   });
+
+  it("sizes the tile to its (small, compact) content instead of forcing a double-height row that leaves most of the card empty", () => {
+    const days = buildHeatmapDays([], new Date(2026, 7, 12));
+    const { container } = render(<HeatmapCard days={days} />);
+    const card = container.querySelector('[data-slot="bento-card"]');
+    expect(card).toHaveClass("row-span-1");
+    expect(card).not.toHaveClass("row-span-2");
+  });
 });

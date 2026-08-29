@@ -226,7 +226,7 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     vi.mocked(createJob).mockReset();
   });
 
-  it("renders the known-url panel with the hero's dark translucent card style", async () => {
+  it("renders the known-url panel with the hero's light card style", async () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
@@ -241,11 +241,11 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
     const panel = await screen.findByTestId("known-job-card");
-    expect(panel.className).toContain("bg-white/10");
-    expect(panel.className).toContain("border-white/15");
+    expect(panel.className).toContain("bg-card");
+    expect(panel.className).toContain("border-border");
   });
 
-  it("renders the created panel with the hero's dark translucent card style", async () => {
+  it("renders the created panel with the hero's light card style", async () => {
     const user = userEvent.setup();
     vi.mocked(checkJobUrl).mockResolvedValue({
       ok: true,
@@ -264,7 +264,7 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     await user.click(screen.getByRole("button", { name: "Vérifier" }));
 
     const panel = await screen.findByTestId("created-job-card");
-    expect(panel.className).toContain("bg-white/10");
-    expect(panel.className).toContain("border-white/15");
+    expect(panel.className).toContain("bg-card");
+    expect(panel.className).toContain("border-border");
   });
 });

@@ -115,7 +115,7 @@ function HomeContentInner() {
       {view.kind === "known" && (
         <div
           data-testid="known-job-card"
-          className="w-full max-w-lg space-y-3 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
+          className="w-full max-w-lg space-y-3 rounded-2xl border border-border bg-card p-4 shadow-card"
         >
           <p className="text-sm font-medium">
             Déjà postulé le{" "}
@@ -125,7 +125,7 @@ function HomeContentInner() {
           </p>
           <Link
             href="/board"
-            className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
+            className="inline-block text-sm text-primary underline underline-offset-2 hover:text-heading"
           >
             Voir et modifier dans le board
           </Link>
@@ -135,7 +135,7 @@ function HomeContentInner() {
       {view.kind === "created" && (
         <div
           data-testid="created-job-card"
-          className="w-full max-w-lg space-y-2 rounded-2xl border border-white/15 bg-white/10 p-4 text-white backdrop-blur-sm"
+          className="w-full max-w-lg space-y-2 rounded-2xl border border-border bg-card p-4 shadow-card"
         >
           {view.enrichmentStatus === "PENDING" ? (
             <p
@@ -153,7 +153,7 @@ function HomeContentInner() {
           )}
           <Link
             href="/board"
-            className="inline-block text-sm text-white/80 underline underline-offset-2 hover:text-white"
+            className="inline-block text-sm text-primary underline underline-offset-2 hover:text-heading"
           >
             Voir dans le board
           </Link>

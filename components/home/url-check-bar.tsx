@@ -48,7 +48,7 @@ export function UrlCheckBar({
   return (
     <div
       ref={containerRef}
-      className="w-full max-w-lg rounded-2xl border border-white/15 bg-white/10 p-2 backdrop-blur-sm"
+      className="w-full max-w-lg rounded-2xl border border-border bg-card p-2 shadow-card"
     >
       <div className="flex items-center gap-2">
         <Input
@@ -59,7 +59,7 @@ export function UrlCheckBar({
           onChange={(event) => onUrlChange(event.target.value)}
           onBlur={handleInputBlur}
           onKeyDown={onKeyDown}
-          className="h-11 border-white/20 bg-transparent text-base text-white placeholder:text-white/60 focus-visible:ring-white/40"
+          className="h-11"
         />
         <Button
           onClick={onCheck}
@@ -82,8 +82,8 @@ export function UrlCheckBar({
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-xs",
               resultTag.kind === "new"
-                ? "bg-palette-mousse/20 text-palette-menthe"
-                : "bg-white/10 text-white/80"
+                ? "bg-palette-mousse/20 text-brand-positive"
+                : "bg-pill-bg text-muted-foreground"
             )}
           >
             {resultTag.label}
