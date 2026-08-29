@@ -11,18 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  CAMPAIGN_CONTRACT_TYPES,
+  CAMPAIGN_CONTRACT_TYPE_LABELS,
+} from "@/lib/harvester/campaign-validation";
 
-// Distincts des types de campagne Harvester (lib/harvester/campaign-validation.ts,
-// APPRENTISSAGE/PROFESSIONNALISATION/STAGE/AUTRE — domaine des campagnes de
-// collecte) : ceux-ci couvrent le marché de l'emploi grand public affiché sur
-// les offres du mockup (CDI, CDD...), un vocabulaire différent (JOB-98).
-const CONTRACT_TYPE_OPTIONS = [
-  { value: "CDI", label: "CDI" },
-  { value: "CDD", label: "CDD" },
-  { value: "ALTERNANCE", label: "Alternance" },
-  { value: "STAGE", label: "Stage" },
-  { value: "FREELANCE", label: "Freelance" },
-] as const;
+// JOB-98 avait initialement des options CDI/CDD/Alternance/Stage/Freelance
+// hypothétiques, calquées sur le vocabulaire générique du mockup. JOB-104
+// (branchement sur les vraies offres collectées) a révélé que le Harvester
+// de ce produit ne collecte que des offres d'alternance/stage (enum Prisma
+// OfferContractType) — ces options ne matchaient donc jamais aucune donnée
+// réelle. Corrigé pour utiliser l'enum réel et ses libellés déjà définis.
+const CONTRACT_TYPE_OPTIONS = CAMPAIGN_CONTRACT_TYPES.map((value) => ({
+  value,
+  label: CAMPAIGN_CONTRACT_TYPE_LABELS[value],
+}));
 
 export interface SearchCriteria {
   keyword: string;
@@ -85,7 +88,10 @@ export function SearchForm({
         <label htmlFor={contractTypeId} className="text-base font-medium">
           Type de contrat
         </label>
-        <Select value={contractType} onValueChange={setContractType}>
+        <Select
+          value={contractType}
+          onValueChange={(value) => setContractType(value ?? "")}
+        >
           <SelectTrigger id={contractTypeId} className="w-full">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
