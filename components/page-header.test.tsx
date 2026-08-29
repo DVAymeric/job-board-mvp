@@ -20,6 +20,12 @@ describe("PageHeader", () => {
     expect(screen.getByText("Suivi du funnel de conversion.")).toBeInTheDocument();
   });
 
+  it("renders the title with the page-title scale (JOB-87: text-2xl)", () => {
+    render(<PageHeader title="Board" />);
+    const heading = screen.getByRole("heading", { level: 1, name: "Board" });
+    expect(heading).toHaveClass("text-2xl");
+  });
+
   it("renders no toolbar row when none is given", () => {
     const { container } = render(<PageHeader title="Board" />);
     expect(container.querySelector('[data-slot="page-header-toolbar"]')).not.toBeInTheDocument();

@@ -21,7 +21,7 @@ export function PageHeader({ eyebrow, title, subtitle, toolbar }: PageHeaderProp
             {eyebrow}
           </p>
         )}
-        <h1 className="font-heading text-xl text-heading">{title}</h1>
+        <h1 className="font-heading text-2xl text-heading">{title}</h1>
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {toolbar && (

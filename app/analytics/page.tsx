@@ -62,7 +62,7 @@ export default async function AnalyticsPage() {
         <PageHeader
           eyebrow="12 derniers mois"
           title="Analytics"
-          subtitle="Suivi du funnel de conversion et de la régularité de vos candidatures."
+          subtitle="Suivi du funnel de conversion et de la régularité de vos candidatures — vos statistiques personnelles, jamais partagées ni agrégées avec d'autres utilisateurs sans votre accord."
           toolbar={<ExportCsvButton className="ml-auto" />}
         />
       </div>
