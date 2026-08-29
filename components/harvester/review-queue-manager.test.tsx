@@ -160,4 +160,19 @@ describe("ReviewQueueManager", () => {
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
     expect(screen.queryByRole("button", { name: "Page suivante" })).not.toBeInTheDocument();
   });
+
+  it("renders the import action as the positive accent button, same size as Ignorer (JOB-100)", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+    const importButton = screen.getByRole("button", { name: "Importer" });
+    const ignoreButton = screen.getByRole("button", { name: "Ignorer" });
+    expect(importButton.className).toMatch(/bg-brand-positive/);
+    expect(importButton.className).toMatch(/\bh-11\b/);
+    expect(ignoreButton.className).toMatch(/\bh-11\b/);
+  });
+
+  it("shows the offer source as an explicit tag badge, never a logo alone (JOB-100)", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer({ source: "smartrecruiters" })]} nextCursor={null} />);
+    const sourceEl = screen.getByText("smartrecruiters");
+    expect(sourceEl.className).toMatch(/bg-pill-bg/);
+  });
 });

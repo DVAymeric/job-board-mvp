@@ -7,6 +7,7 @@ import type { HarvestedOffer } from "@prisma/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { importHarvestedOffer, ignoreHarvestedOffer } from "@/app/actions/harvest";
 import { CAMPAIGN_CONTRACT_TYPE_LABELS } from "@/lib/harvester/campaign-validation";
 
@@ -147,7 +148,7 @@ export function ReviewQueueManager({
           className="flex items-center gap-2 rounded-lg border border-primary bg-muted px-3 py-2 text-sm"
         >
           <span aria-live="polite">{selectedIds.size} offre(s) sélectionnée(s)</span>
-          <Button size="sm" onClick={handleBulkImport}>
+          <Button size="sm" variant="accent" onClick={handleBulkImport}>
             Importer la sélection
           </Button>
           <Button size="sm" variant="outline" onClick={handleBulkIgnore}>
@@ -206,12 +207,14 @@ export function ReviewQueueManager({
                   </a>
                   <span className="truncate">{offer.companyName}</span>
                   <span className="truncate">{offer.city}</span>
-                  <span className="truncate font-mono text-xs text-muted-foreground">
-                    {offer.originSource ? `${offer.originSource} (${offer.source})` : offer.source}
+                  <span className="truncate">
+                    <Badge variant="tag">
+                      {offer.originSource ? `${offer.originSource} (${offer.source})` : offer.source}
+                    </Badge>
                   </span>
                   <span className="font-mono text-xs text-muted-foreground">{formatDate(offer.postedAt)}</span>
                   <span className="flex gap-1.5">
-                    <Button size="sm" disabled={pending} onClick={() => handleImport(offer.id)}>
+                    <Button size="sm" variant="accent" disabled={pending} onClick={() => handleImport(offer.id)}>
                       {pending && <Loader2 className="animate-spin" />}
                       Importer
                     </Button>

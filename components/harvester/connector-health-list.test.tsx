@@ -40,4 +40,14 @@ describe("ConnectorHealthList", () => {
     expect(item).toHaveAttribute("data-ok", "false");
     expect(screen.getByText("Workday")).toBeInTheDocument();
   });
+
+  it("shows the active/inactive state as text, never through color alone (JOB-100)", () => {
+    render(
+      <ConnectorHealthList
+        runs={[makeRun({ ok: true }), makeRun({ ok: false, connectorId: "workday" })]}
+      />
+    );
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
+  });
 });
