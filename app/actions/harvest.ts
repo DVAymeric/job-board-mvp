@@ -45,7 +45,7 @@ const CONNECTORS_HEALTH_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(10, 60
 const CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT_KEY = "global";
 const CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(20, 60_000);
 
-export function __resetConnectorsHealthRateLimitsForTests() {
+export async function __resetConnectorsHealthRateLimitsForTests() {
   CONNECTORS_HEALTH_RATE_LIMIT.reset();
   CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT.reset();
 }

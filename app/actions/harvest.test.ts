@@ -247,11 +247,11 @@ describe("ignoreHarvestedOffer", () => {
 });
 
 describe("getConnectorsHealth", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     for (const connector of ALL_CONNECTORS) {
       vi.mocked(connector.healthCheck).mockReset();
     }
-    __resetConnectorsHealthRateLimitsForTests();
+    await __resetConnectorsHealthRateLimitsForTests();
   });
 
   it("returns UNAUTHENTICATED when there is no session", async () => {
