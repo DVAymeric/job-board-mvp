@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { normalizeUrl } from "@/lib/url";
-import { CONTACT_ROLE, SALARY_TYPE, STATUS } from "@/lib/constants";
+import { CONTACT_ROLE, JOB_CONTRACT_TYPE, SALARY_TYPE, STATUS } from "@/lib/constants";
 
 // Limites de longueur explicites (JOB-90) : évitent qu'un scraping de page
 // énorme (descriptionText) ou un texte libre (notes) ne sature la base ou
@@ -147,6 +147,21 @@ export const updateJobSalarySchema = z.object({
   id: jobIdSchema,
   salaryAmount: z.number().int().positive().nullable(),
   salaryType: z.enum([SALARY_TYPE.ANNUAL, SALARY_TYPE.DAILY_RATE]).nullable(),
+});
+
+export const updateJobContractTypeSchema = z.object({
+  id: jobIdSchema,
+  contractType: z
+    .enum([
+      JOB_CONTRACT_TYPE.CDI,
+      JOB_CONTRACT_TYPE.CDD,
+      JOB_CONTRACT_TYPE.ALTERNANCE,
+      JOB_CONTRACT_TYPE.STAGE,
+      JOB_CONTRACT_TYPE.FREELANCE,
+      JOB_CONTRACT_TYPE.INTERIM,
+      JOB_CONTRACT_TYPE.AUTRE,
+    ])
+    .nullable(),
 });
 
 const optionalDocumentUrlSchema = z

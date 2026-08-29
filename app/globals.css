@@ -56,6 +56,8 @@
   --color-status-answer-fg: var(--status-answer-fg);
   --color-status-rejected-bg: var(--status-rejected-bg);
   --color-status-rejected-fg: var(--status-rejected-fg);
+  --color-contract-bg: var(--contract-bg);
+  --color-contract-fg: var(--contract-fg);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -147,6 +149,8 @@
   --status-answer-fg: #0f7a56;
   --status-rejected-bg: #fbe4d8;
   --status-rejected-fg: #a04000;
+  --contract-bg: #dbeef0;
+  --contract-fg: #0e5e66;
   --chart-1: #4f1271;
   --chart-2: #783f8e;
   --chart-3: #bfacc8;
@@ -216,6 +220,8 @@
   --status-answer-fg: #3fce9a;
   --status-rejected-bg: #3a1f12;
   --status-rejected-fg: #e0784a;
+  --contract-bg: #123638;
+  --contract-fg: #6dd0d9;
   --chart-1: #e0c6ec;
   --chart-2: #c094d3;
   --chart-3: #8c4ca3;

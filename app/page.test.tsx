@@ -143,6 +143,7 @@ const knownJob: Job = {
   companyName: "Acme",
   companyLogoUrl: null,
   notes: null,
+  contractType: null,
   status: "APPLIED",
   enrichmentStatus: "DONE",
   order: 0,

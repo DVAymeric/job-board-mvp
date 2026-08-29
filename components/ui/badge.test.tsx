@@ -29,3 +29,19 @@ describe("Badge — variant tag", () => {
     expect(badge).toHaveClass("mt-1", "bg-pill-bg");
   });
 });
+
+describe("Badge — variant contract (JOB-124)", () => {
+  it("renders with dedicated contract-bg/contract-fg tokens, distinct from tag and status tokens", () => {
+    render(<Badge variant="contract">CDI</Badge>);
+    const badge = screen.getByText("CDI").closest('[data-slot="badge"]');
+    expect(badge).toHaveClass("bg-contract-bg", "text-contract-fg");
+    expect(badge?.className).not.toMatch(/bg-pill-bg|bg-status-/);
+  });
+
+  it("follows the revised typography scale — text-sm minimum, not text-xs", () => {
+    render(<Badge variant="contract">Alternance</Badge>);
+    const badge = screen.getByText("Alternance").closest('[data-slot="badge"]');
+    expect(badge).toHaveClass("text-sm");
+    expect(badge).not.toHaveClass("text-xs");
+  });
+});

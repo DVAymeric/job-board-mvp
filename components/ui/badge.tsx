@@ -20,6 +20,12 @@ const badgeVariants = cva(
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
         tag: "h-auto bg-pill-bg text-primary text-sm px-2.5 py-1 [a]:hover:bg-pill-bg/80",
+        // Type de contrat (JOB-124) : tokens dédiés, distincts des tags
+        // génériques (violet --pill-bg) et des statuts de candidature
+        // (--status-*), pour rester visuellement identifiable au premier
+        // coup d'œil sur une carte qui peut déjà porter plusieurs badges.
+        contract:
+          "h-auto bg-contract-bg text-contract-fg text-sm px-2.5 py-1 [a]:hover:bg-contract-bg/80",
       },
     },
     defaultVariants: {

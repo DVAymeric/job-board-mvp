@@ -29,6 +29,7 @@ const baseJob: JobWithRelations = {
   companyLogoUrl: null,
   notes: null,
   status: "TO_APPLY",
+  contractType: null,
   enrichmentStatus: "DONE",
   order: 0,
   lastFollowUp: null,
@@ -260,6 +261,82 @@ describe("JobCard — date en toutes lettres (JOB-96)", () => {
     );
     expect(screen.getByText(/Ajouté le/)).toHaveTextContent(/2 sept\.?/i);
     expect(screen.queryByText(/\b02\/09\/2026\b/)).not.toBeInTheDocument();
+  });
+});
+
+describe("JobCard — date liée au statut, pas la date d'ajout (JOB-124)", () => {
+  it("shows the creation date for TO_APPLY (nothing has happened yet)", () => {
+    render(
+      <JobCard
+        job={{ ...baseJob, status: "TO_APPLY", createdAt: new Date("2026-09-02") }}
+        onOpen={() => {}}
+      />
+    );
+    expect(screen.getByText(/Ajouté le/)).toHaveTextContent(/2 sept\.?/i);
+  });
+
+  it("shows the date the job reached APPLIED, not the creation date", () => {
+    render(
+      <JobCard
+        job={{
+          ...baseJob,
+          status: "APPLIED",
+          createdAt: new Date("2026-08-01"),
+          statusHistory: [
+            { id: "h1", jobId: "job-1", status: "TO_APPLY", changedAt: new Date("2026-08-01") },
+            { id: "h2", jobId: "job-1", status: "APPLIED", changedAt: new Date("2026-08-12") },
+          ],
+        }}
+        onOpen={() => {}}
+      />
+    );
+    expect(screen.getByText(/Envoyée le/)).toHaveTextContent(/12 août\.?/i);
+    expect(screen.queryByText(/Ajouté le/)).not.toBeInTheDocument();
+  });
+
+  it("shows the date the job reached INTERVIEW", () => {
+    render(
+      <JobCard
+        job={{
+          ...baseJob,
+          status: "INTERVIEW",
+          statusHistory: [
+            { id: "h1", jobId: "job-1", status: "INTERVIEW", changedAt: new Date("2026-09-02") },
+          ],
+        }}
+        onOpen={() => {}}
+      />
+    );
+    expect(screen.getByText(/Entretien le/)).toHaveTextContent(/2 sept\.?/i);
+  });
+
+  it("falls back to the creation date when history has no entry for the current status (legacy data)", () => {
+    render(
+      <JobCard
+        job={{
+          ...baseJob,
+          status: "APPLIED",
+          createdAt: new Date("2026-08-01"),
+          statusHistory: [],
+        }}
+        onOpen={() => {}}
+      />
+    );
+    expect(screen.getByText(/Envoyée le/)).toHaveTextContent(/1 août\.?/i);
+  });
+});
+
+describe("JobCard — badge de type de contrat (JOB-124)", () => {
+  it("shows the contract type badge when set, distinct from generic tags", () => {
+    render(<JobCard job={{ ...baseJob, contractType: "CDI" }} onOpen={() => {}} />);
+    const badge = screen.getByText("CDI").closest('[data-slot="badge"]');
+    expect(badge).not.toBeNull();
+    expect(badge!.className).toMatch(/\bbg-contract-bg\b/);
+  });
+
+  it("renders no contract badge when contractType is not set", () => {
+    render(<JobCard job={{ ...baseJob, contractType: null }} onOpen={() => {}} />);
+    expect(screen.queryByText(/CDI|CDD|Alternance|Stage|Freelance|Intérim/)).not.toBeInTheDocument();
   });
 });
 

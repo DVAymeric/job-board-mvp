@@ -7,6 +7,7 @@ import {
   addTagToJob,
   deleteJob,
   removeTagFromJob,
+  updateJobContractType,
   updateJobDetails,
   updateJobDocuments,
   updateJobInterviewDate,
@@ -22,6 +23,7 @@ vi.mock("@/app/actions", () => ({
   markFollowUpToday: vi.fn(),
   removeTagFromJob: vi.fn(),
   updateContact: vi.fn(),
+  updateJobContractType: vi.fn(),
   updateJobDetails: vi.fn(),
   updateJobDocuments: vi.fn(),
   updateJobInterviewDate: vi.fn(),
@@ -42,6 +44,7 @@ const baseJob: JobWithRelations = {
   companyLogoUrl: null,
   notes: null,
   status: "TO_APPLY",
+  contractType: null,
   enrichmentStatus: "DONE",
   order: 0,
   lastFollowUp: null,
@@ -257,6 +260,62 @@ describe("JobDialog — rémunération", () => {
     expect(onUpdated).toHaveBeenCalledWith(
       expect.objectContaining({ salaryAmount: 500, salaryType: "ANNUAL" })
     );
+  });
+});
+
+describe("JobDialog — type de contrat (JOB-124)", () => {
+  beforeEach(() => {
+    vi.mocked(updateJobContractType).mockReset();
+  });
+
+  it("shows the job's existing contract type", () => {
+    render(
+      <JobDialog
+        job={{ ...baseJob, contractType: "ALTERNANCE" }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByText("Alternance")).toBeInTheDocument();
+  });
+
+  it("shows a neutral placeholder when no contract type is set", () => {
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={vi.fn()} onDeleted={vi.fn()} />
+    );
+    expect(screen.getByText("Non renseigné")).toBeInTheDocument();
+  });
+
+  it("keeps the save button disabled until the value actually changes", () => {
+    render(
+      <JobDialog
+        job={{ ...baseJob, contractType: "CDI" }}
+        onOpenChange={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(
+      screen.getByRole("button", { name: "Enregistrer le type de contrat" })
+    ).toBeDisabled();
+  });
+
+  it("saves a newly selected contract type and clears the button once matched", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateJobContractType).mockResolvedValue({ ok: true, data: null });
+    const onUpdated = vi.fn();
+
+    render(
+      <JobDialog job={baseJob} onOpenChange={vi.fn()} onUpdated={onUpdated} onDeleted={vi.fn()} />
+    );
+
+    await user.click(screen.getByRole("combobox", { name: /type de contrat/i }));
+    await user.click(await screen.findByRole("option", { name: "CDI" }));
+    await user.click(screen.getByRole("button", { name: "Enregistrer le type de contrat" }));
+
+    expect(updateJobContractType).toHaveBeenCalledWith("job-1", "CDI");
+    expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ contractType: "CDI" }));
   });
 });
 

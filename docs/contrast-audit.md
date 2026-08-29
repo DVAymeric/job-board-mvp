@@ -4,9 +4,9 @@ Audit exhaustif des paires token-texte/token-fond sémantiques de `app/globals.c
 
 Outil : `scripts/audit-contrast.ts` (`npx tsx scripts/audit-contrast.ts`). Réexécuter après toute modification de `app/globals.css` touchant les tokens de couleur.
 
-## Résultat final : 46/46 paires passent (0 échec)
+## Résultat final : 48/48 paires passent (0 échec)
 
-23 paires × 2 thèmes. Voir la sortie complète de l'outil pour le détail (chaque paire liste `fg`/`bg` résolus et le ratio calculé).
+24 paires × 2 thèmes (`contract-fg`/`contract-bg` ajoutée en JOB-124, 6.22:1 clair / 7.25:1 sombre — passe d'emblée, aucune correction nécessaire). Voir la sortie complète de l'outil pour le détail (chaque paire liste `fg`/`bg` résolus et le ratio calculé).
 
 ## Corrections apportées suite à l'audit
 
@@ -25,6 +25,6 @@ Note : `--warn` étant repris à deux endroits (fond `background` et fond `card`
 
 ## Portée de l'audit
 
-Paires couvertes : `foreground`/`background`, `card-foreground`/`card`, `popover-foreground`/`popover`, `primary-foreground`/`primary`, `secondary-foreground`/`secondary`, `muted-foreground`/`muted`, `accent-foreground`/`accent`, `destructive-foreground`/`destructive`, `brand-positive-foreground`/`brand-positive`, les 5 paires de statut (`status-*-fg`/`status-*-bg`), `warn` et `danger` sur `background` et `card` (tokens texte-seul), `heading` sur `background` et `card`, et les 3 paires `sidebar-*` (composant non utilisé actuellement mais dont les tokens existent).
+Paires couvertes : `foreground`/`background`, `card-foreground`/`card`, `popover-foreground`/`popover`, `primary-foreground`/`primary`, `secondary-foreground`/`secondary`, `muted-foreground`/`muted`, `accent-foreground`/`accent`, `destructive-foreground`/`destructive`, `brand-positive-foreground`/`brand-positive`, les 5 paires de statut (`status-*-fg`/`status-*-bg`), `contract-fg`/`contract-bg` (badge de type de contrat, JOB-124), `warn` et `danger` sur `background` et `card` (tokens texte-seul), `heading` sur `background` et `card`, et les 3 paires `sidebar-*` (composant non utilisé actuellement mais dont les tokens existent).
 
 Non couvert (hors scope, valeurs non-hex ignorées par l'outil) : `--sidebar-border` en `oklch(...)` dans le thème sombre — ce n'est pas une paire texte/fond, pas concerné par un audit de contraste de lisibilité.

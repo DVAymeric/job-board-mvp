@@ -26,9 +26,12 @@ import { CompanyAvatar } from "@/components/board/company-avatar";
 import { ContactsSection } from "@/components/board/contacts-section";
 import { StatusTimeline } from "@/components/board/status-timeline";
 import {
+  JOB_CONTRACT_TYPE_LABELS,
+  JOB_CONTRACT_TYPE_ORDER,
   SALARY_TYPE,
   SALARY_TYPE_LABELS,
   SALARY_TYPE_ORDER,
+  type JobContractType,
   type SalaryType,
 } from "@/lib/constants";
 import { buildInterviewIcs } from "@/lib/ics";
@@ -39,12 +42,18 @@ import {
   deleteJob,
   markFollowUpToday,
   removeTagFromJob,
+  updateJobContractType,
   updateJobDetails,
   updateJobDocuments,
   updateJobInterviewDate,
   updateJobNotes,
   updateJobSalary,
 } from "@/app/actions";
+
+// Valeur de repli du <Select> représentant "aucun type de contrat" — le
+// champ Prisma est nullable, mais un Select a toujours besoin d'une valeur
+// concrète pour son option affichée (JOB-124).
+const CONTRACT_TYPE_NONE = "NONE";
 
 function toDatetimeLocalValue(date: Date | null): string {
   if (!date) return "";
@@ -78,6 +87,10 @@ export function JobDialog({
     (job?.salaryType as SalaryType) ?? SALARY_TYPE.ANNUAL
   );
   const [savingSalary, setSavingSalary] = useState(false);
+  const [contractType, setContractType] = useState<string>(
+    job?.contractType ?? CONTRACT_TYPE_NONE
+  );
+  const [savingContractType, setSavingContractType] = useState(false);
   const [resumeUrl, setResumeUrl] = useState(job?.resumeUrl ?? "");
   const [coverLetterUrl, setCoverLetterUrl] = useState(job?.coverLetterUrl ?? "");
   const [savingDocuments, setSavingDocuments] = useState(false);
@@ -136,6 +149,20 @@ export function JobDialog({
     }
     onUpdated({ ...job, salaryAmount: amount, salaryType: amount === null ? null : salaryType });
     toast.success("Rémunération enregistrée");
+  }
+
+  async function handleSaveContractType() {
+    if (!job) return;
+    const value = contractType === CONTRACT_TYPE_NONE ? null : contractType;
+    setSavingContractType(true);
+    const result = await updateJobContractType(job.id, value);
+    setSavingContractType(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    onUpdated({ ...job, contractType: value as JobWithRelations["contractType"] });
+    toast.success("Type de contrat enregistré");
   }
 
   async function handleSaveDocuments() {
@@ -296,6 +323,50 @@ export function JobDialog({
                 }
               >
                 Enregistrer
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="job-contract-type" className="text-sm font-medium">
+              Type de contrat
+            </label>
+            <div className="flex gap-2">
+              <Select
+                value={contractType}
+                onValueChange={(value) => setContractType(value ?? CONTRACT_TYPE_NONE)}
+              >
+                <SelectTrigger
+                  id="job-contract-type"
+                  aria-label="Type de contrat"
+                  disabled={savingContractType}
+                >
+                  <SelectValue>
+                    {(value: string) =>
+                      value === CONTRACT_TYPE_NONE
+                        ? "Non renseigné"
+                        : (JOB_CONTRACT_TYPE_LABELS[value as JobContractType] ?? value)
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={CONTRACT_TYPE_NONE}>Non renseigné</SelectItem>
+                  {JOB_CONTRACT_TYPE_ORDER.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {JOB_CONTRACT_TYPE_LABELS[type]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                onClick={handleSaveContractType}
+                disabled={
+                  savingContractType ||
+                  contractType === (job.contractType ?? CONTRACT_TYPE_NONE)
+                }
+              >
+                Enregistrer le type de contrat
               </Button>
             </div>
           </div>

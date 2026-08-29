@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import {
+  updateJobContractTypeSchema,
   updateJobDetailsSchema,
   updateJobDocumentsSchema,
   updateJobInterviewDateSchema,
@@ -135,6 +136,42 @@ export async function updateJobSalary(
   } catch (error) {
     logActionError("updateJobSalary", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible d'enregistrer le salaire");
+  }
+}
+
+/**
+ * Met à jour le type de contrat d'une candidature (JOB-124).
+ *
+ * @param id Identifiant de la candidature.
+ * @param contractType Une valeur de l'enum JobContractType, ou `null` pour
+ * effacer.
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (valeur inconnue),
+ * `INTERNAL_ERROR`.
+ */
+export async function updateJobContractType(
+  id: string,
+  contractType: string | null
+): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  const parsed = updateJobContractTypeSchema.safeParse({ id, contractType });
+  if (!parsed.success) {
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible d'enregistrer le type de contrat")
+    );
+  }
+  try {
+    await prisma.job.update({
+      where: jobOwnerWhere(parsed.data.id, auth.user.id),
+      data: { contractType: parsed.data.contractType },
+    });
+    revalidatePath("/board");
+    return { ok: true, data: null };
+  } catch (error) {
+    logActionError("updateJobContractType", error, { userId: auth.user.id });
+    return actionError("INTERNAL_ERROR", "Impossible d'enregistrer le type de contrat");
   }
 }
 

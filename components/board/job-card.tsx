@@ -16,12 +16,25 @@ import {
   needsFollowUp,
   STATUS,
   STATUS_CONFIG,
+  JOB_CONTRACT_TYPE_LABELS,
+  JobContractType,
   JobStatus,
 } from "@/lib/constants";
 import type { JobWithRelations } from "@/lib/types";
 import { cn, formatDateFr } from "@/lib/utils";
+import { getCurrentStatusDate } from "@/lib/job-status-date";
 import { deleteJob } from "@/app/actions";
 import { toast } from "sonner";
+
+// Libellé de la date affichée en pied de carte (JOB-124) : la date liée au
+// statut ACTUEL, pas la date d'ajout — sauf pour TO_APPLY, où rien ne s'est
+// encore "passé" au sens du mockup (seule la date d'ajout a un sens).
+const STATUS_DATE_LABEL: Record<JobStatus, string> = {
+  [STATUS.TO_APPLY]: "Ajouté le",
+  [STATUS.APPLIED]: "Envoyée le",
+  [STATUS.INTERVIEW]: "Entretien le",
+  [STATUS.REJECTED]: "Réponse le",
+};
 
 function getDisplayTitle(job: Job): string {
   if (job.title) return job.title;
@@ -59,6 +72,9 @@ export function JobCard({
   };
 
   const displayName = getDisplayTitle(job);
+  const jobStatus = job.status as JobStatus;
+  const statusDate = getCurrentStatusDate(job) ?? job.createdAt;
+  const statusDateLabel = STATUS_DATE_LABEL[jobStatus] ?? "Ajouté le";
 
   async function handleDelete(): Promise<boolean> {
     const result = await deleteJob(job.id);
@@ -172,7 +188,12 @@ export function JobCard({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
-          <StatusBadge status={job.status as JobStatus} />
+          <StatusBadge status={jobStatus} />
+          {job.contractType && (
+            <Badge variant="contract">
+              {JOB_CONTRACT_TYPE_LABELS[job.contractType as JobContractType]}
+            </Badge>
+          )}
           {needsFollowUp(job) && (
             <Badge className={FOLLOW_UP_BADGE_CLASSNAME}>Relancer ?</Badge>
           )}
@@ -183,7 +204,7 @@ export function JobCard({
           ))}
         </div>
         <p className="font-mono text-xs text-muted-foreground">
-          Ajouté le {formatDateFr(job.createdAt)}
+          {statusDateLabel} {formatDateFr(statusDate)}
         </p>
       </CardContent>
     </Card>

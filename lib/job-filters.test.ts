@@ -12,6 +12,7 @@ function job(overrides: Partial<Job>): Job {
     companyName: null,
     companyLogoUrl: null,
     notes: null,
+    contractType: null,
     status: "TO_APPLY",
     enrichmentStatus: "DONE",
     order: 0,

@@ -59,6 +59,20 @@ enum EnrichmentStatus {
   FAILED
 }
 
+// Type de contrat de la candidature suivie par l'utilisateur (JOB-124) —
+// distinct de OfferContractType (ci-dessous), qui décrit les offres
+// collectées par le Harvester et se limite à l'alternance/stage. Le Job
+// personnel peut concerner n'importe quel type d'emploi.
+enum JobContractType {
+  CDI
+  CDD
+  ALTERNANCE
+  STAGE
+  FREELANCE
+  INTERIM
+  AUTRE
+}
+
 model Job {
   id               String           @id @default(uuid())
   userId           String
@@ -69,6 +83,7 @@ model Job {
   companyLogoUrl   String?
   notes            String?
   status           JobStatus        @default(TO_APPLY)
+  contractType     JobContractType?
   enrichmentStatus EnrichmentStatus @default(DONE)
   order            Int              @default(0)
   lastFollowUp     DateTime?

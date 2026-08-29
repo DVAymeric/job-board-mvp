@@ -28,6 +28,7 @@ function job(overrides: Partial<JobWithRelations>): JobWithRelations {
     title: null,
     companyName: null,
     companyLogoUrl: null,
+    contractType: overrides.contractType ?? null,
     notes: null,
     status: "TO_APPLY",
     enrichmentStatus: "DONE",

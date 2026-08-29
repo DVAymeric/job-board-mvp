@@ -20,6 +20,7 @@ import {
   updateJobNotesSchema,
   updateJobSalarySchema,
   updateJobStatusSchema,
+  updateJobContractTypeSchema,
 } from "@/lib/validation";
 
 describe("checkJobUrlSchema", () => {
@@ -455,6 +456,32 @@ describe("updateJobSalarySchema", () => {
       id: "job-1",
       salaryAmount: 500,
       salaryType: "MONTHLY",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("updateJobContractTypeSchema (JOB-124)", () => {
+  it("accepts a valid contract type", () => {
+    const result = updateJobContractTypeSchema.safeParse({
+      id: "job-1",
+      contractType: "CDI",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts null (clears the field)", () => {
+    const result = updateJobContractTypeSchema.safeParse({
+      id: "job-1",
+      contractType: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an unknown contract type", () => {
+    const result = updateJobContractTypeSchema.safeParse({
+      id: "job-1",
+      contractType: "CDI_TEMPS_PARTIEL",
     });
     expect(result.success).toBe(false);
   });

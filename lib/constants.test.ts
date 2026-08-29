@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { needsFollowUp, STATUS, STATUS_CONFIG, STATUS_ORDER } from "@/lib/constants";
+import {
+  needsFollowUp,
+  STATUS,
+  STATUS_CONFIG,
+  STATUS_ORDER,
+  JOB_CONTRACT_TYPE,
+  JOB_CONTRACT_TYPE_ORDER,
+  JOB_CONTRACT_TYPE_LABELS,
+  isJobContractType,
+} from "@/lib/constants";
 
 function daysAgo(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -90,5 +99,33 @@ describe("STATUS_CONFIG — couleurs distinctes par statut (pastilles voyantes)"
         extractLightHex(STATUS_CONFIG[status].textClassName)
       );
     }
+  });
+});
+
+describe("JOB_CONTRACT_TYPE (JOB-124)", () => {
+  it("has a label for every order entry, and vice versa", () => {
+    for (const type of JOB_CONTRACT_TYPE_ORDER) {
+      expect(JOB_CONTRACT_TYPE_LABELS[type]).toBeTruthy();
+    }
+    expect(Object.keys(JOB_CONTRACT_TYPE_LABELS).sort()).toEqual(
+      [...JOB_CONTRACT_TYPE_ORDER].sort()
+    );
+  });
+
+  it("matches the Prisma enum values (schema.prisma JobContractType)", () => {
+    expect(JOB_CONTRACT_TYPE_ORDER).toEqual([
+      JOB_CONTRACT_TYPE.CDI,
+      JOB_CONTRACT_TYPE.CDD,
+      JOB_CONTRACT_TYPE.ALTERNANCE,
+      JOB_CONTRACT_TYPE.STAGE,
+      JOB_CONTRACT_TYPE.FREELANCE,
+      JOB_CONTRACT_TYPE.INTERIM,
+      JOB_CONTRACT_TYPE.AUTRE,
+    ]);
+  });
+
+  it("isJobContractType recognizes valid values and rejects unknown ones", () => {
+    expect(isJobContractType("CDI")).toBe(true);
+    expect(isJobContractType("NOPE")).toBe(false);
   });
 });

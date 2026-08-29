@@ -88,6 +88,7 @@ const PAIRS: [string, string, string, "normal" | "large"][] = [
   ["status-interview-fg/status-interview-bg", "status-interview-fg", "status-interview-bg", "normal"],
   ["status-answer-fg/status-answer-bg", "status-answer-fg", "status-answer-bg", "normal"],
   ["status-rejected-fg/status-rejected-bg", "status-rejected-fg", "status-rejected-bg", "normal"],
+  ["contract-fg/contract-bg", "contract-fg", "contract-bg", "normal"],
   ["warn/background", "warn", "background", "normal"],
   ["warn/card", "warn", "card", "normal"],
   ["danger/background", "danger", "background", "normal"],

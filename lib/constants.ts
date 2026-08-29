@@ -76,6 +76,47 @@ export function isJobStatus(value: string): value is JobStatus {
   return value in STATUS_CONFIG;
 }
 
+// Type de contrat de la candidature suivie (JOB-124) — distinct de
+// OfferContractType (Harvester, alternance/stage uniquement) : le Job
+// personnel peut concerner n'importe quel type d'emploi. Valeurs alignées
+// sur l'enum Prisma JobContractType (prisma/schema.prisma).
+export const JOB_CONTRACT_TYPE = {
+  CDI: "CDI",
+  CDD: "CDD",
+  ALTERNANCE: "ALTERNANCE",
+  STAGE: "STAGE",
+  FREELANCE: "FREELANCE",
+  INTERIM: "INTERIM",
+  AUTRE: "AUTRE",
+} as const;
+
+export type JobContractType =
+  (typeof JOB_CONTRACT_TYPE)[keyof typeof JOB_CONTRACT_TYPE];
+
+export const JOB_CONTRACT_TYPE_ORDER: JobContractType[] = [
+  JOB_CONTRACT_TYPE.CDI,
+  JOB_CONTRACT_TYPE.CDD,
+  JOB_CONTRACT_TYPE.ALTERNANCE,
+  JOB_CONTRACT_TYPE.STAGE,
+  JOB_CONTRACT_TYPE.FREELANCE,
+  JOB_CONTRACT_TYPE.INTERIM,
+  JOB_CONTRACT_TYPE.AUTRE,
+];
+
+export const JOB_CONTRACT_TYPE_LABELS: Record<JobContractType, string> = {
+  CDI: "CDI",
+  CDD: "CDD",
+  ALTERNANCE: "Alternance",
+  STAGE: "Stage",
+  FREELANCE: "Freelance",
+  INTERIM: "Intérim",
+  AUTRE: "Autre",
+};
+
+export function isJobContractType(value: string): value is JobContractType {
+  return value in JOB_CONTRACT_TYPE_LABELS;
+}
+
 export function needsFollowUp(
   job: Pick<Job, "status" | "lastFollowUp" | "createdAt">
 ): boolean {
