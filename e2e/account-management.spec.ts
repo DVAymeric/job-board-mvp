@@ -51,9 +51,10 @@ test.describe("Gestion de compte (E2E, JOB-79)", () => {
 
     try {
       await loginAs(page, email);
-      await expect(page.getByRole("button", { name: "Se déconnecter" })).toBeVisible();
+      await page.getByRole("button", { name: "Compte" }).click();
+      await expect(page.getByRole("menuitem", { name: "Se déconnecter" })).toBeVisible();
 
-      await page.getByRole("button", { name: "Se déconnecter" }).click();
+      await page.getByRole("menuitem", { name: "Se déconnecter" }).click();
       await page.waitForURL("**/");
       await waitForSessionCookieCleared(page);
 
