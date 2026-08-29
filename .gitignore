@@ -54,3 +54,8 @@ next-env.d.ts
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Claude Code local config/skills (not application code)
+/.agents/
+/.claude/
+skills-lock.json
