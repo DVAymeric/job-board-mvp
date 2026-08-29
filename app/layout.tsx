@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+import { Geist_Mono, Bricolage_Grotesque, Atkinson_Hyperlegible } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { auth } from "@/auth";
@@ -7,9 +7,11 @@ import { Nav } from "@/components/nav";
 import { Toaster } from "@/components/ui/sonner";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const atkinsonHyperlegible = Atkinson_Hyperlegible({
+  variable: "--font-atkinson-hyperlegible",
   subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
 });
 
 const geistMono = Geist_Mono({
@@ -17,10 +19,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const bricolageGrotesque = Bricolage_Grotesque({
+  variable: "--font-bricolage-grotesque",
   subsets: ["latin"],
-  style: ["normal", "italic"],
+  weight: "variable",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +41,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="fr"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${atkinsonHyperlegible.variable} ${geistMono.variable} ${bricolageGrotesque.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
