@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Prisma, OfferContractType } from "@prisma/client";
 import { ContractTypeSchema, type ContractType } from "@/lib/harvester/normalized-offer";
-import { HarvestTargetsSchema } from "@/lib/harvester/harvest-query";
+import { HarvestTargetsSchema, type HarvestTargets } from "@/lib/harvester/harvest-query";
 
 // L'enum Prisma OfferContractType (prisma/schema.prisma) est en MAJUSCULES ;
 // le YAML source de job-harvester (config/campaigns.yaml) utilise les
@@ -44,6 +44,28 @@ export type CampaignConfig = z.infer<typeof CampaignConfigSchema>;
 export const CampaignsFileSchema = z.object({
   campaigns: z.array(CampaignConfigSchema),
 });
+
+// Relecture d'une `Campaign.config` déjà en base, quand seules les cibles importent :
+// `locations` est laissé opaque (déjà validé à l'écriture par resolveLocations) pour que ce
+// parse ne casse pas si le format des localisations évolue. Schéma partagé par
+// app/actions/discovery.ts et app/actions/campaigns.ts — ne pas en réintroduire une copie
+// locale (l'orchestrateur et le formulaire de campagne en ont chacun une variante plus
+// stricte, volontairement, car ils ont besoin des localisations typées).
+export const StoredCampaignConfigSchema = z.object({
+  locations: z.array(z.unknown()),
+  targets: HarvestTargetsSchema.optional(),
+});
+
+/**
+ * Cibles déjà stockées dans `campaign.config` — `{}` si la config est absente ou illisible.
+ * Sert à préserver, lors d'une réécriture partielle de `config`, les clés de cibles qu'un
+ * appelant ne gère pas (ex. `talentsoft`/`digitalRecruiters` approuvées depuis
+ * /harvester/discovery, absentes du formulaire de campagne).
+ */
+export function storedCampaignTargets(config: unknown): HarvestTargets {
+  const parsed = StoredCampaignConfigSchema.safeParse(config);
+  return parsed.success ? (parsed.data.targets ?? {}) : {};
+}
 
 /**
  * Traduit une campagne au format YAML de job-harvester en données de

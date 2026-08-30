@@ -20,7 +20,7 @@ vi.mock("@/lib/auth/session", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    campaign: { findMany: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    campaign: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
   },
 }));
 
@@ -66,6 +66,7 @@ function p2002() {
 beforeEach(() => {
   vi.mocked(requireUser).mockReset();
   vi.mocked(prisma.campaign.findMany).mockReset();
+  vi.mocked(prisma.campaign.findUnique).mockReset();
   vi.mocked(prisma.campaign.create).mockReset();
   vi.mocked(prisma.campaign.update).mockReset();
   vi.mocked(prisma.campaign.delete).mockReset();
@@ -209,6 +210,65 @@ describe("updateCampaign", () => {
 
     expect(result).toMatchObject({ code: "VALIDATION_ERROR" });
     expect(prisma.campaign.update).not.toHaveBeenCalled();
+  });
+
+  it("carries over target keys the form doesn't manage (talentsoft/digitalRecruiters) while still updating workday/smartrecruiters", async () => {
+    mockAuthedAs("user-1");
+    mockGeocodingSuccess();
+    vi.mocked(prisma.campaign.findUnique).mockResolvedValue({
+      config: {
+        locations: [{ label: "Paris", lat: 48.8, lng: 2.3, radiusKm: 10 }],
+        targets: {
+          talentsoft: ["acme.talent-soft.com"],
+          digitalRecruiters: ["joinus.acme.fr"],
+          workday: [{ tenant: "old", site: "old", dc: "wd1" }],
+          smartrecruiters: ["OLDCORP"],
+        },
+      },
+    } as never);
+    vi.mocked(prisma.campaign.update).mockResolvedValue({ id: "c1", userId: "user-1" } as never);
+
+    await updateCampaign({
+      ...validInput,
+      campaignId: "c1",
+      keywords: ["data engineer"],
+      targets: { workday: [{ tenant: "new", site: "new", dc: "wd3" }], smartrecruiters: ["NEWCORP"] },
+    });
+
+    expect(prisma.campaign.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: {
+            locations: [geocodedLille],
+            targets: {
+              talentsoft: ["acme.talent-soft.com"],
+              digitalRecruiters: ["joinus.acme.fr"],
+              workday: [{ tenant: "new", site: "new", dc: "wd3" }],
+              smartrecruiters: ["NEWCORP"],
+            },
+          },
+        }),
+      })
+    );
+  });
+
+  it("keeps approved talentsoft targets when the form submits no targets at all", async () => {
+    mockAuthedAs("user-1");
+    mockGeocodingSuccess();
+    vi.mocked(prisma.campaign.findUnique).mockResolvedValue({
+      config: { locations: [], targets: { talentsoft: ["acme.talent-soft.com"] } },
+    } as never);
+    vi.mocked(prisma.campaign.update).mockResolvedValue({ id: "c1", userId: "user-1" } as never);
+
+    await updateCampaign({ ...validInput, campaignId: "c1" });
+
+    expect(prisma.campaign.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: { locations: [geocodedLille], targets: { talentsoft: ["acme.talent-soft.com"] } },
+        }),
+      })
+    );
   });
 
   it("passes an optional display name through to Prisma update when provided", async () => {

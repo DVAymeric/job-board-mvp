@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { approveDiscoveredTargetSchema, rejectDiscoveredTargetSchema } from "@/lib/harvester/discovery-validation";
-import { HarvestTargetsSchema } from "@/lib/harvester/harvest-query";
+import { StoredCampaignConfigSchema } from "@/lib/harvester/campaign-config";
 import { actionError, type ActionResult, firstIssueMessage, logActionError } from "./_shared";
 
 const PLATFORM_TO_TARGETS_KEY = {
@@ -15,11 +14,6 @@ const PLATFORM_TO_TARGETS_KEY = {
   TALENTSOFT: "talentsoft",
   DIGITALRECRUITERS: "digitalRecruiters",
 } as const;
-
-const CampaignConfigJsonSchema = z.object({
-  locations: z.array(z.unknown()),
-  targets: HarvestTargetsSchema.optional(),
-});
 
 /**
  * Approuve une cible découverte : l'ajoute à `config.targets` de chaque campagne de
@@ -49,7 +43,7 @@ export async function approveDiscoveredTarget(input: unknown): Promise<ActionRes
     const campaigns = await prisma.campaign.findMany({ where: { userId: auth.user.id } });
 
     for (const campaign of campaigns) {
-      const config = CampaignConfigJsonSchema.parse(campaign.config);
+      const config = StoredCampaignConfigSchema.parse(campaign.config);
       const existingList = (config.targets?.[targetsKey] ?? []) as unknown[];
       const alreadyPresent = existingList.some((item) => JSON.stringify(item) === JSON.stringify(target.target));
       if (alreadyPresent) continue;
@@ -58,7 +52,7 @@ export async function approveDiscoveredTarget(input: unknown): Promise<ActionRes
         ...config,
         targets: { ...config.targets, [targetsKey]: [...existingList, target.target] },
       };
-      // Cast : `CampaignConfigJsonSchema` infère `locations: unknown[]` (Zod), qui n'obtient pas
+      // Cast : `StoredCampaignConfigSchema` infère `locations: unknown[]` (Zod), qui n'obtient pas
       // implicitement la signature d'index structurelle qu'exige Prisma.InputJsonValue (même
       // raison que le commentaire sur GeocodedCity dans geocoding.ts) — la valeur est déjà un
       // JSON valide (relu depuis `campaign.config` puis étendu), seul le type TS est trop strict.

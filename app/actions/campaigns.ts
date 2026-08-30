@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma, type Campaign } from "@prisma/client";
+import type { Campaign } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { requireUser } from "@/lib/auth/session";
 import {
   createCampaignSchema,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/harvester/campaign-validation";
 import { resolveLocations } from "@/lib/harvester/geocoding";
 import { slugifyKeywords } from "@/lib/harvester/campaign-slug";
+import { storedCampaignTargets } from "@/lib/harvester/campaign-config";
 import {
   actionError,
   campaignOwnerWhere,
@@ -23,10 +25,6 @@ import {
 // collision peu probable (slug dérivé des mots-clés, scope par utilisateur) mais possible si
 // deux campagnes du même utilisateur partagent les mêmes mots-clés.
 const MAX_SLUG_ATTEMPTS = 5;
-
-function isUniqueConstraintError(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-}
 
 /**
  * Liste les campagnes de collecte de l'utilisateur courant.
@@ -136,11 +134,28 @@ export async function updateCampaign(
 
   try {
     const { campaignId, locations: _locations, targets, ...fields } = parsed.data;
+
+    // `config` est un champ Json réécrit en entier à chaque update : sans fusion, toute clé de
+    // `config.targets` que l'appelant ne gère pas serait détruite silencieusement. Le
+    // formulaire de campagne ne pilote que `workday` et `smartrecruiters` ; les cibles
+    // approuvées depuis /harvester/discovery (`talentsoft`, `digitalRecruiters`, et toute
+    // plateforme future) sont donc reportées telles quelles depuis la config stockée.
+    const stored = await prisma.campaign.findUnique({
+      where: campaignOwnerWhere(campaignId, auth.user.id),
+      select: { config: true },
+    });
+    const { workday: _workday, smartrecruiters: _smartrecruiters, ...carriedOverTargets } =
+      storedCampaignTargets(stored?.config);
+    const mergedTargets = { ...carriedOverTargets, ...(targets ?? {}) };
+
     const campaign = await prisma.campaign.update({
       where: campaignOwnerWhere(campaignId, auth.user.id),
       data: {
         ...fields,
-        config: { locations: resolved.locations, ...(targets ? { targets } : {}) },
+        config: {
+          locations: resolved.locations,
+          ...(Object.keys(mergedTargets).length > 0 ? { targets: mergedTargets } : {}),
+        },
       },
     });
     revalidatePath("/harvester/campaigns");
