@@ -4,6 +4,7 @@ import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { FranceTravailSearchResponseSchema } from "@/lib/harvester/connectors/francetravail/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
 import { logger } from "@/lib/logger";
+import { extractDepartement } from "@/lib/harvester/query-filter";
 
 // Domaines fixes/codés en dur (jamais dérivés d'une entrée utilisateur ou d'une page scrapée) —
 // le garde SSRF de lib/safe-fetch.ts protège contre un tout autre profil de risque (redirection
@@ -92,14 +93,6 @@ async function getAccessToken(options: FranceTravailClientOptions, forceRefresh 
   const request = requestAccessToken(options).finally(() => inFlightTokenRequests.delete(key));
   inFlightTokenRequests.set(key, request);
   return request;
-}
-
-// L'API n'accepte pas lat/lng en paramètre de recherche, seulement un code département.
-// Les labels de localisation des campagnes contiennent le code postal (ex. "Lille 59000") ;
-// on en extrait les deux premiers chiffres comme code département, sans filtre si absent.
-function extractDepartement(label: string): string | undefined {
-  const match = label.match(/(\d{5})/);
-  return match ? match[1]!.slice(0, 2) : undefined;
 }
 
 function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes" | "keywords">): URL {
