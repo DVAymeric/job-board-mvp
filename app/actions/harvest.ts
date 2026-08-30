@@ -10,6 +10,7 @@ import { runCampaignAcrossConnectors, type RunSummary } from "@/lib/harvester/or
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
 import { harvestEnv } from "@/lib/harvester/harvest-env";
 import { healthCheckWithTimeout, type ConnectorHealth } from "@/lib/harvester/timed-health-check";
+import { discoverTargets } from "@/lib/harvester/discovery/discover-targets";
 import {
   triggerCampaignCollectionSchema,
   importHarvestedOfferSchema,
@@ -87,7 +88,19 @@ export async function triggerCampaignCollection(
     }
 
     const runs = await runCampaignAcrossConnectors(campaign, ALL_CONNECTORS, prisma, harvestEnv());
+
+    // Best-effort : une erreur ici ne doit jamais faire échouer la collecte principale, ni
+    // ralentir sa réponse au-delà du temps de sondage (pas de trigger dans le cron — voir la
+    // spec — donc le coût réseau supplémentaire n'arrive qu'ici, à un moment où l'utilisateur
+    // est déjà en train d'attendre le résultat de la collecte).
+    try {
+      await discoverTargets(prisma, auth.user.id, {});
+    } catch (error) {
+      logActionError("triggerCampaignCollection.discoverTargets", error, { userId: auth.user.id }, "warn");
+    }
+
     revalidatePath("/harvester/review");
+    revalidatePath("/harvester/discovery");
     return { ok: true, data: { runs } };
   } catch (error) {
     logActionError("triggerCampaignCollection", error, { userId: auth.user.id });

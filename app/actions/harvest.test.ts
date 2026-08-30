@@ -11,6 +11,7 @@ import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
 import { runCampaignAcrossConnectors } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
+import { discoverTargets } from "@/lib/harvester/discovery/discover-targets";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -39,6 +40,10 @@ vi.mock("@/lib/harvester/connectors", () => ({
   ],
 }));
 
+vi.mock("@/lib/harvester/discovery/discover-targets", () => ({
+  discoverTargets: vi.fn(),
+}));
+
 function mockAuthedAs(userId: string) {
   vi.mocked(requireUser).mockResolvedValue({
     ok: true,
@@ -62,6 +67,7 @@ beforeEach(() => {
   vi.mocked(prisma.harvestedOffer.update).mockReset();
   vi.mocked(prisma.job.create).mockReset();
   vi.mocked(runCampaignAcrossConnectors).mockReset();
+  vi.mocked(discoverTargets).mockReset();
 });
 
 describe("triggerCampaignCollection", () => {
@@ -98,6 +104,31 @@ describe("triggerCampaignCollection", () => {
 
     expect(result).toEqual({ ok: true, data: { runs } });
     expect(runCampaignAcrossConnectors).toHaveBeenCalledWith(campaign, expect.any(Array), prisma, expect.any(Object));
+  });
+
+  it("calls discoverTargets once after a successful collection, without affecting the result", async () => {
+    mockAuthedAs("trigger-user-discovery");
+    const campaign = { id: "c1", userId: "trigger-user-discovery" };
+    vi.mocked(prisma.campaign.findUnique).mockResolvedValue(campaign as never);
+    vi.mocked(runCampaignAcrossConnectors).mockResolvedValue([]);
+    vi.mocked(discoverTargets).mockResolvedValue({ probed: 2, found: 1 });
+
+    const result = await triggerCampaignCollection({ campaignId: "c1" });
+
+    expect(result).toEqual({ ok: true, data: { runs: [] } });
+    expect(discoverTargets).toHaveBeenCalledWith(prisma, "trigger-user-discovery", {});
+  });
+
+  it("does not fail the collection when discoverTargets throws", async () => {
+    mockAuthedAs("trigger-user-discovery-fail");
+    const campaign = { id: "c1", userId: "trigger-user-discovery-fail" };
+    vi.mocked(prisma.campaign.findUnique).mockResolvedValue(campaign as never);
+    vi.mocked(runCampaignAcrossConnectors).mockResolvedValue([]);
+    vi.mocked(discoverTargets).mockRejectedValue(new Error("network down"));
+
+    const result = await triggerCampaignCollection({ campaignId: "c1" });
+
+    expect(result).toEqual({ ok: true, data: { runs: [] } });
   });
 
   it("returns RATE_LIMITED after 5 triggers within the window", async () => {
