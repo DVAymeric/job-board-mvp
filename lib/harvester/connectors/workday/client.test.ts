@@ -91,6 +91,56 @@ describe("fetchWorkdayOffers", () => {
     };
     await expect(iterate()).rejects.toThrow(/HTTP 500/);
   });
+
+  it("searches with \"stage\" instead of the hardcoded \"alternance\" term when contractTypes is [\"stage\"] (JOB-74)", async () => {
+    const searchTexts: string[] = [];
+    const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/jobs")) {
+        const body = JSON.parse(init!.body as string) as { searchText: string };
+        searchTexts.push(body.searchText);
+        return new Response(JSON.stringify({ total: 0, jobPostings: [] }), { status: 200 });
+      }
+      return new Response(detailResponseBody, { status: 200 });
+    });
+
+    const stageQuery: HarvestQuery = { ...query, contractTypes: ["stage"] };
+    for await (const _item of fetchWorkdayOffers(stageQuery, { fetchImpl })) {
+      // drain
+    }
+
+    expect(searchTexts).toEqual(["stage"]);
+  });
+
+  it("queries once per distinct contract-type search term and dedupes results across them (JOB-74)", async () => {
+    const searchTexts: string[] = [];
+    const fetchImpl = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/jobs")) {
+        const body = JSON.parse(init!.body as string) as { searchText: string };
+        searchTexts.push(body.searchText);
+        // "Stagiaire Data" surfaces under both the "alternance" and "stage" searches — must not
+        // be yielded twice.
+        return new Response(
+          JSON.stringify({
+            total: 1,
+            jobPostings: [{ title: "Stagiaire Data", externalPath: "/job/Lille/Stagiaire-Data_REQ1" }],
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(detailResponseBody, { status: 200 });
+    });
+
+    const mixedQuery: HarvestQuery = { ...query, contractTypes: ["apprentissage", "stage"] };
+    const results: unknown[] = [];
+    for await (const item of fetchWorkdayOffers(mixedQuery, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(searchTexts).toEqual(["alternance", "stage"]);
+    expect(results).toHaveLength(1);
+  });
 });
 
 describe("checkWorkdayHealth", () => {

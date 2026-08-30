@@ -71,6 +71,36 @@ describe("fetchSmartRecruitersOffers", () => {
     expect(results).toHaveLength(0);
   });
 
+  it("keeps stage postings and drops alternance ones when contractTypes is [\"stage\"] (JOB-74)", async () => {
+    const detailUrls: string[] = [];
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("/postings?limit=50")) {
+        return new Response(
+          JSON.stringify({
+            content: [
+              { id: "1", name: "Alternance Data Analyst H/F" },
+              { id: "2", name: "Stage Data Analyst H/F" },
+            ],
+            totalFound: 2,
+          }),
+          { status: 200 },
+        );
+      }
+      detailUrls.push(url);
+      return new Response(JSON.stringify({ id: "2", name: "Stage Data Analyst H/F" }), { status: 200 });
+    });
+
+    const stageQuery: HarvestQuery = { ...query, contractTypes: ["stage"] };
+    const results: unknown[] = [];
+    for await (const item of fetchSmartRecruitersOffers(stageQuery, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(detailUrls[0]).toContain("/postings/2");
+  });
+
   it("throws when the postings list request is not ok", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response("nope", { status: 500 }));
     const iterate = async () => {

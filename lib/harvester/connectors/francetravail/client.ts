@@ -150,10 +150,22 @@ function parseContentRangeTotal(header: string | null): number | undefined {
   return match ? Number(match[1]) : undefined;
 }
 
+// JOB-74 : `alternance=true` en query string est ignoré par l'API (voir plus bas) — le filtre
+// client `listing.alternance !== true` reste donc nécessaire, mais seulement quand la campagne
+// ne demande QUE de l'alternance (apprentissage/professionnalisation). Dès qu'un autre type est
+// demandé (ex. stage), l'appliquer éliminerait ces offres avant même que le filtre centralisé de
+// JOB-73 ait une chance de les voir.
+const ALTERNANCE_ONLY_TYPES = new Set(["apprentissage", "professionnalisation"]);
+
+function isAlternanceOnlyQuery(contractTypes: HarvestQuery["contractTypes"]): boolean {
+  return contractTypes.length > 0 && contractTypes.every((type) => ALTERNANCE_ONLY_TYPES.has(type));
+}
+
 export async function* fetchFranceTravailOffers(query: HarvestQuery, options: FranceTravailClientOptions): AsyncIterable<unknown> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const accessToken = await getAccessToken(options);
   const baseUrl = buildSearchUrl(query);
+  const alternanceOnly = isAlternanceOnlyQuery(query.contractTypes);
 
   let start = 0;
   for (let page = 0; page < MAX_PAGES; page++) {
@@ -176,7 +188,7 @@ export async function* fetchFranceTravailOffers(query: HarvestQuery, options: Fr
       // silencieusement ignoré par l'API). Chaque offre porte en revanche un champ booléen
       // fiable `alternance` ; on filtre donc côté client, avant de yield.
       const listing = item as { alternance?: boolean };
-      if (listing.alternance !== true) continue;
+      if (alternanceOnly && listing.alternance !== true) continue;
       yield item;
     }
 

@@ -1,5 +1,6 @@
 import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-health-check";
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
+import type { ContractType } from "@/lib/harvester/normalized-offer";
 import { SmartRecruitersSearchResponseSchema } from "@/lib/harvester/connectors/smartrecruiters/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
 
@@ -15,8 +16,19 @@ function headers(): Record<string, string> {
   return { "User-Agent": USER_AGENT };
 }
 
-function isAlternanceRelevant(text: string): boolean {
-  return /alternance|apprentissage|apprenti/i.test(text);
+// JOB-74 : l'API SmartRecruiters ne filtre pas par type de contrat côté serveur — le filtre par
+// titre d'offre doit donc suivre query.contractTypes au lieu d'exclure en dur tout ce qui n'est
+// pas alternance (ce qui éliminait systématiquement les offres de stage demandées).
+const CONTRACT_TITLE_PATTERNS: Partial<Record<ContractType, RegExp>> = {
+  apprentissage: /alternance|apprentissage|apprenti/i,
+  professionnalisation: /alternance|apprentissage|apprenti|professionnalisation/i,
+  stage: /stage|stagiaire/i,
+};
+
+function matchesContractTypes(text: string, contractTypes: ContractType[]): boolean {
+  const patterns = contractTypes.map((type) => CONTRACT_TITLE_PATTERNS[type]).filter((pattern): pattern is RegExp => Boolean(pattern));
+  if (patterns.length === 0) return true;
+  return patterns.some((pattern) => pattern.test(text));
 }
 
 // JOB-32 (job-harvester) : vérifié en direct (`totalFound` réel de 188 chez MAZARS,
@@ -60,7 +72,7 @@ export async function* fetchSmartRecruitersOffers(
     const list = await fetchPostingsList(company, fetchImpl);
     for (const item of list) {
       const listing = item as { id?: string; name?: string };
-      if (!listing.id || !isAlternanceRelevant(listing.name ?? "")) continue;
+      if (!listing.id || !matchesContractTypes(listing.name ?? "", query.contractTypes)) continue;
       const detail = await fetchPostingDetail(company, listing.id, fetchImpl);
       // JOB-34 (job-harvester) : `company` (le slug de l'entreprise ciblée) n'apparaît dans
       // aucun champ de la réponse de détail elle-même — sans lui, normalize.ts ne peut pas

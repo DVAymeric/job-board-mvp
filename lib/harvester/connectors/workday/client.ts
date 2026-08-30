@@ -1,5 +1,6 @@
 import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-health-check";
 import type { HarvestQuery, WorkdayTarget } from "@/lib/harvester/harvest-query";
+import type { ContractType } from "@/lib/harvester/normalized-offer";
 import { WorkdaySearchResponseSchema, WorkdayJobDetailSchema } from "@/lib/harvester/connectors/workday/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
 
@@ -28,6 +29,25 @@ function headers(): Record<string, string> {
 // plafond mordait déjà en pratique sans qu'aucun signal ne le montre.
 const LIST_PAGE_SIZE = 20;
 const MAX_LIST_PAGES = 20;
+
+// JOB-74 : l'API Workday ne recherche que par texte libre, pas par type de contrat — on dérive
+// un terme par type demandé plutôt que le mot en dur "alternance" (qui excluait silencieusement
+// tout Contrat=Stage). "autre"/type inconnu n'a pas de terme fiable ; ne pas filtrer plutôt que
+// de forcer "alternance" (le filtre centralisé de JOB-73 affinera ensuite).
+const CONTRACT_SEARCH_TERMS: Partial<Record<ContractType, string>> = {
+  apprentissage: "alternance",
+  professionnalisation: "alternance",
+  stage: "stage",
+};
+
+function buildSearchTerms(contractTypes: ContractType[]): string[] {
+  const terms = new Set<string>();
+  for (const type of contractTypes) {
+    const term = CONTRACT_SEARCH_TERMS[type];
+    if (term) terms.add(term);
+  }
+  return terms.size > 0 ? [...terms] : [""];
+}
 
 async function fetchJobList(target: WorkdayTarget, searchText: string, fetchImpl: typeof fetch): Promise<unknown[]> {
   const items: unknown[] = [];
@@ -66,13 +86,18 @@ async function fetchJobDetail(
 export async function* fetchWorkdayOffers(query: HarvestQuery, options: WorkdayClientOptions): AsyncIterable<unknown> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const targets = query.targets?.workday ?? [];
+  const searchTerms = buildSearchTerms(query.contractTypes);
   for (const target of targets) {
-    const listItems = await fetchJobList(target, "alternance", fetchImpl);
-    for (const item of listItems) {
-      const listing = item as { externalPath?: string };
-      if (!listing.externalPath) continue;
-      const jobPostingInfo = await fetchJobDetail(target, listing.externalPath, fetchImpl);
-      yield { target, externalPath: listing.externalPath, jobPostingInfo };
+    const seenExternalPaths = new Set<string>();
+    for (const searchText of searchTerms) {
+      const listItems = await fetchJobList(target, searchText, fetchImpl);
+      for (const item of listItems) {
+        const listing = item as { externalPath?: string };
+        if (!listing.externalPath || seenExternalPaths.has(listing.externalPath)) continue;
+        seenExternalPaths.add(listing.externalPath);
+        const jobPostingInfo = await fetchJobDetail(target, listing.externalPath, fetchImpl);
+        yield { target, externalPath: listing.externalPath, jobPostingInfo };
+      }
     }
   }
 }
