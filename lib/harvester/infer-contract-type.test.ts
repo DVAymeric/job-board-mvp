@@ -18,4 +18,10 @@ describe("inferContractTypeFromText", () => {
     expect(inferContractTypeFromText("Alternant Data Analyst")).toBe("apprentissage");
     expect(inferContractTypeFromText("Poste en alternance de 12 mois")).toBe("apprentissage");
   });
+
+  it("detects stage (JOB-72)", () => {
+    expect(inferContractTypeFromText("Stage de 6 mois en marketing")).toBe("stage");
+    expect(inferContractTypeFromText("Offre de stage étudiant")).toBe("stage");
+    expect(inferContractTypeFromText("STAGE - Assistant RH")).toBe("stage");
+  });
 });
