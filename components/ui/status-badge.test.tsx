@@ -64,10 +64,11 @@ describe("StatusBadge", () => {
     expect(new Set(shapes).size).toBe(4);
   });
 
-  it("follows the revised typography scale for status labels (font-mono text-sm font-bold, JOB-87)", () => {
+  it("follows the project's typography scale for status labels: text-sm font-bold, never font-mono (JOB-131 — font-mono is reserved for technical/numeric metadata per CLAUDE.md, not full-word labels)", () => {
     render(<StatusBadge status={STATUS.APPLIED} />);
     const badge = screen.getByText("Postulé").closest('[data-slot="badge"]');
-    expect(badge).toHaveClass("font-mono", "text-sm", "font-bold");
+    expect(badge).toHaveClass("text-sm", "font-bold");
+    expect(badge).not.toHaveClass("font-mono");
   });
 
   it("accepts an additional className without dropping the status color tokens", () => {
