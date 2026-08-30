@@ -70,6 +70,48 @@ describe("fetchFranceTravailOffers", () => {
     expect(results).toEqual([{ id: "alternance-1", alternance: true }]);
   });
 
+  it("does not filter by the alternance flag when contractTypes includes a non-alternance type (JOB-74)", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ resultats: [{ id: "cdi-1", alternance: false }, { id: "stage-1", alternance: false }] }),
+        { status: 200, headers: { "content-range": "offres 0-1/2" } },
+      );
+    });
+    const mixedQuery: HarvestQuery = { ...query, contractTypes: ["apprentissage", "stage"] };
+
+    const results: unknown[] = [];
+    for await (const item of fetchFranceTravailOffers(mixedQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toEqual([{ id: "cdi-1", alternance: false }, { id: "stage-1", alternance: false }]);
+  });
+
+  it("still filters out non-alternance offers when contractTypes only contains alternance-only types (JOB-74)", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ resultats: [{ id: "cdi-1", alternance: false }, { id: "pro-1", alternance: true }] }),
+        { status: 200, headers: { "content-range": "offres 0-1/2" } },
+      );
+    });
+    const proQuery: HarvestQuery = { ...query, contractTypes: ["professionnalisation"] };
+
+    const results: unknown[] = [];
+    for await (const item of fetchFranceTravailOffers(proQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toEqual([{ id: "pro-1", alternance: true }]);
+  });
+
   it("reuses a cached token across two calls instead of requesting a new one", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
