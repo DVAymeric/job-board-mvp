@@ -1,6 +1,9 @@
 campaigns:
   - id: alternance-data-hdf
-    romeCodes: [M1403, M1805]
+    # JOB-67 : M1805 (ROME générique dev) retiré — partagé avec alternance-devweb-hdf, il
+    # faisait fuiter des offres dev full-stack dans cette campagne data. M1403 seul, combiné
+    # au post-filtre mots-clés (JOB-73/76), suffit à couvrir le périmètre data de la campagne.
+    romeCodes: [M1403]
     keywords: ["data analyst", "data quality", "statistiques", "BI"]
     locations:
       - { label: "Lille 59000", lat: 50.630951, lng: 3.045391, radiusKm: 30 }

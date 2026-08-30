@@ -36,7 +36,7 @@ describe("importHarvesterCampaigns", () => {
     expect(rows).toHaveLength(2);
 
     const dataCampaign = rows.find((r) => r.slug === "alternance-data-hdf")!;
-    expect(dataCampaign.romeCodes).toEqual(["M1403", "M1805"]);
+    expect(dataCampaign.romeCodes).toEqual(["M1403"]);
     expect(dataCampaign.contractTypes).toEqual(["APPRENTISSAGE", "PROFESSIONNALISATION"]);
     expect(dataCampaign.schedule).toBe("0 7 * * *");
     expect(dataCampaign.config).toMatchObject({
