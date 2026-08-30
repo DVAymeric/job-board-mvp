@@ -175,9 +175,14 @@ export function Nav({ session }: { session: Session | null }) {
           scroll horizontal sur toute la page à cette largeur. Les liens/CTA/
           compte desktop sont maintenant repliés sous md: (JOB-107), le menu
           mobile prend le relais en dessous. */}
-      <span className="mr-2 flex items-center gap-2 font-heading text-lg italic text-heading">
-        <span className="size-2 rounded-full bg-primary" />
-        JobTracker
+      <span className="mr-2 flex items-center gap-2">
+        <Link
+          href="/"
+          className="flex items-center gap-2 font-heading text-lg italic text-heading"
+        >
+          <span className="size-2 rounded-full bg-primary" />
+          JobTracker
+        </Link>
         <Badge
           variant="tag"
           className="bg-brand-positive/10 text-brand-positive not-italic"

@@ -124,6 +124,27 @@ describe("Nav — pas de débordement horizontal de la page (JOB-100)", () => {
   });
 });
 
+describe("Nav — wordmark cliquable vers l'accueil (JOB-135)", () => {
+  it("wraps the JobTracker wordmark in a link to / (standard logo convention)", () => {
+    render(<Nav session={session} />);
+    const wordmarkLink = screen.getByRole("link", { name: /jobtracker/i });
+    expect(wordmarkLink).toHaveAttribute("href", "/");
+  });
+
+  it("leaves prefetch enabled on the wordmark link, like the explicit Accueil link (/ isn't a protected route)", () => {
+    render(<Nav session={session} />);
+    expect(screen.getByRole("link", { name: /jobtracker/i })).toHaveAttribute(
+      "data-prefetch",
+      "true"
+    );
+  });
+
+  it("still shows the beta chip next to the wordmark", () => {
+    render(<Nav session={session} />);
+    expect(screen.getByText("Bêta")).toBeInTheDocument();
+  });
+});
+
 describe("Nav — restyle design system (JOB-95)", () => {
   it("shows the beta chip next to the wordmark", () => {
     render(<Nav session={session} />);
