@@ -84,17 +84,13 @@ describe("HeroSection", () => {
     expect(emphasis).toHaveClass("italic");
   });
 
-  it("renders the trust line at the bottom of the hero content", () => {
-    // JOB-123 : le produit est maintenant hébergé avec compte (JOB-78) —
-    // le wording met l'accent sur la gratuité et la propriété des données
-    // plutôt que sur "zéro cloud"/"sans compte", qui ne sont plus vrais.
+  it("does not repeat its own reassurance line below the hero (JOB-134) — TrustRow, rendered right after in app/page.tsx, already carries that message once", () => {
     render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
-    expect(screen.getByText(/Compte gratuit/i)).toBeInTheDocument();
-    expect(screen.getByText(/données vous appartiennent/i)).toBeInTheDocument();
-    expect(screen.getByText(/Aucune carte requise/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Compte gratuit/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/données vous appartiennent/i)).not.toBeInTheDocument();
   });
 });
