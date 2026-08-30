@@ -1,5 +1,5 @@
 import { describe, expect, it, afterAll, beforeAll } from "vitest";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 const prisma = new PrismaClient();
@@ -24,7 +24,7 @@ describe("DiscoveryProbe / DiscoveredTarget schema", () => {
     });
 
     await expect(
-      prisma.discoveryProbe.create({ data: { companySlug: "acme", platform: "WORKDAY", found: false, target: null } })
+      prisma.discoveryProbe.create({ data: { companySlug: "acme", platform: "WORKDAY", found: false, target: Prisma.JsonNull } })
     ).rejects.toThrow();
 
     await prisma.discoveryProbe.delete({ where: { id: probe.id } });
