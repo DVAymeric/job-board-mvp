@@ -3,7 +3,6 @@ import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-he
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { FranceTravailSearchResponseSchema } from "@/lib/harvester/connectors/francetravail/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
-import { logger } from "@/lib/logger";
 import { extractDepartement } from "@/lib/harvester/query-filter";
 
 // Domaines fixes/codés en dur (jamais dérivés d'une entrée utilisateur ou d'une page scrapée) —
@@ -107,16 +106,17 @@ function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes" | "ke
     url.searchParams.set("motsCles", query.keywords.join(","));
   }
   const departement = extractDepartement(query.location.label);
-  if (departement) {
-    url.searchParams.set("departement", departement);
-  } else {
-    // JOB-23 (job-harvester) : sans code postal dans le label de localisation, la recherche
-    // devient nationale au lieu d'être géo-filtrée — un avertissement visible vaut mieux qu'une
-    // perte silencieuse.
-    logger.warn("harvester.francetravail.no_postal_code_in_location", {
-      locationLabel: query.location.label,
-    });
+  if (!departement) {
+    // JOB-64 (suite de JOB-23) : sans code postal dans le label de localisation, la recherche
+    // deviendrait nationale au lieu d'être géo-filtrée. Un simple log serveur passait inaperçu
+    // de l'utilisateur — on refuse maintenant explicitement la recherche non bornée : l'erreur
+    // remonte via le `catch` existant de runCampaign() (orchestrator.ts) jusqu'au ConnectorRun
+    // (ok:false, errorMessage), rendu visible côté UI (campaigns-manager.tsx).
+    throw new Error(
+      `France Travail : impossible d'extraire un code postal de la localisation "${query.location.label}" — recherche nationale non bornée refusée.`,
+    );
   }
+  url.searchParams.set("departement", departement);
   return url;
 }
 

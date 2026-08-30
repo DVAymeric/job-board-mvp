@@ -107,4 +107,22 @@ describe("CampaignsManager", () => {
     // The dialog never opens for a trigger click, unlike clicking the row itself.
     expect(screen.queryByText("Modifier la campagne")).not.toBeInTheDocument();
   });
+
+  it("shows a visible error when a connector run fails, instead of a silent server-only log (JOB-64)", async () => {
+    const user = userEvent.setup();
+    const { toast } = await import("sonner");
+    vi.mocked(triggerCampaignCollection).mockResolvedValue({
+      ok: true,
+      data: {
+        runs: [
+          { runId: "r1", rawCount: 0, normalizedCount: 0, rejectedCount: 0, filteredCount: 0, ok: false, errorMessage: "France Travail : impossible d'extraire un code postal de la localisation \"Lille\"" },
+        ],
+      },
+    });
+    render(<CampaignsManager initialCampaigns={[campaign]} />);
+
+    await user.click(screen.getByRole("button", { name: "Lancer la collecte" }));
+
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("code postal"));
+  });
 });
