@@ -30,9 +30,6 @@ export function HeroSection({ children }: HeroSectionProps) {
           vue.
         </p>
         {children}
-        <p className="font-mono text-xs text-muted-foreground">
-          Compte gratuit · Vos données vous appartiennent · Aucune carte requise
-        </p>
       </div>
     </section>
   );

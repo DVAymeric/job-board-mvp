@@ -36,7 +36,7 @@ function StatusBadge({ status, className, ...props }: StatusBadgeProps) {
     <Badge
       variant="outline"
       className={cn(
-        "gap-1.5 border-transparent font-mono text-sm font-bold",
+        "gap-1.5 border-transparent text-sm font-bold",
         STATUS_BADGE_CLASSNAME[status],
         className
       )}

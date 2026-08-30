@@ -76,6 +76,47 @@ describe("UrlCheckBar", () => {
     expect(screen.getByTestId("url-check-error")).toHaveTextContent("URL invalide");
   });
 
+  it("offers a signup link next to the error when the visitor is anonymous (JOB-129)", () => {
+    render(
+      <UrlCheckBar
+        url="example.com/job"
+        checking={false}
+        error="Vous devez être connecté pour effectuer cette action."
+        signupHref="/register"
+        resultTag={null}
+        onUrlChange={noop}
+        onBlur={noop}
+        onCheck={noop}
+        onKeyDown={noop}
+      />
+    );
+    expect(screen.getByTestId("url-check-error")).toHaveTextContent(
+      "Vous devez être connecté pour effectuer cette action."
+    );
+    expect(screen.getByRole("link", { name: /créer un compte gratuit/i })).toHaveAttribute(
+      "href",
+      "/register"
+    );
+  });
+
+  it("does not show a signup link for a plain validation error", () => {
+    render(
+      <UrlCheckBar
+        url="not a url"
+        checking={false}
+        error="URL invalide"
+        resultTag={null}
+        onUrlChange={noop}
+        onBlur={noop}
+        onCheck={noop}
+        onKeyDown={noop}
+      />
+    );
+    expect(
+      screen.queryByRole("link", { name: /créer un compte gratuit/i })
+    ).not.toBeInTheDocument();
+  });
+
   it("shows the known-offer tag", () => {
     render(
       <UrlCheckBar

@@ -20,20 +20,23 @@ function toDateKey(d: Date): string {
 // "no activity" on top of that): 5 for the full 6-swatch scale used
 // everywhere by default, 3 for the coarser scale used by the Analytics bento
 // heatmap card.
+//
+// L'échelle à 5 niveaux est absolue et fixe (0 à 5+ candidatures), pas
+// relative à la journée la plus active de la fenêtre : une seule
+// candidature affichait auparavant la teinte la plus intense dès lors
+// qu'aucune autre journée n'en comptait plus, ce qui n'a pas de sens en
+// absolu (une candidature isolée n'est pas "très active"). `max` n'est donc
+// plus utilisé pour ce cas — seul `count`, plafonné à 5, compte.
 function computeLevel(count: number, max: number, levels: 3 | 5): number {
   if (count === 0) return 0;
+  if (levels === 5) {
+    return Math.min(count, 5);
+  }
   if (max <= 0) return 0;
   const ratio = count / max;
-  if (levels === 3) {
-    if (ratio <= 1 / 3) return 1;
-    if (ratio <= 2 / 3) return 2;
-    return 3;
-  }
-  if (ratio <= 0.2) return 1;
-  if (ratio <= 0.4) return 2;
-  if (ratio <= 0.6) return 3;
-  if (ratio <= 0.8) return 4;
-  return 5;
+  if (ratio <= 1 / 3) return 1;
+  if (ratio <= 2 / 3) return 2;
+  return 3;
 }
 
 export function buildHeatmapDays(
