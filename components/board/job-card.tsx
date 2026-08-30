@@ -148,7 +148,15 @@ export function JobCard({
           {/* Actions rapides (JOB-96) : masquées par défaut, révélées au
               survol de la carte ou au focus clavier (Tab), sans passer par
               JobDialog. Le clic est intercepté (stopPropagation) pour ne pas
-              aussi déclencher l'ouverture de la carte. */}
+              aussi déclencher l'ouverture de la carte.
+              JOB-130 : `icon-sm` (28px) est sous les 44px recommandés, et ce
+              bloc dépend du hover (jamais déclenché au tactile). Ce n'est
+              pas le seul chemin : taper n'importe où ailleurs sur la carte
+              déclenche `onOpen` → `JobDialog`, qui expose les mêmes actions
+              modifier (champs titre/entreprise + "Enregistrer") et
+              supprimer (bouton "Supprimer" en pied de dialog, taille par
+              défaut ≥44px) sans dépendre du survol. Ce bloc reste un
+              raccourci desktop, pas le seul moyen d'accès. */}
           <div
             className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover/card:opacity-100 focus-within:opacity-100"
             onClick={(e) => e.stopPropagation()}
