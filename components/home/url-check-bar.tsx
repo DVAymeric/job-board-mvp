@@ -1,4 +1,5 @@
 import { useRef, type FocusEvent, type KeyboardEvent } from "react";
+import Link from "next/link";
 import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,11 @@ interface UrlCheckBarProps {
   url: string;
   checking: boolean;
   error: string | null;
+  // Renseigné uniquement quand `error` vient d'un visiteur non authentifié
+  // (JOB-129) : le message d'erreur seul ("Vous devez être connecté...")
+  // n'offre aucune issue au visiteur venu tester le produit depuis la
+  // maquette "premier contact" — ce lien lui donne le chemin direct.
+  signupHref?: string | null;
   resultTag: UrlCheckResultTag | null;
   onUrlChange: (value: string) => void;
   onBlur: () => void;
@@ -24,6 +30,7 @@ export function UrlCheckBar({
   url,
   checking,
   error,
+  signupHref = null,
   resultTag,
   onUrlChange,
   onBlur,
@@ -74,6 +81,17 @@ export function UrlCheckBar({
         {error && (
           <p data-testid="url-check-error" className="text-sm text-palette-corail">
             {error}
+            {signupHref && (
+              <>
+                {" "}
+                <Link
+                  href={signupHref}
+                  className="font-medium underline underline-offset-2 hover:text-heading"
+                >
+                  Créer un compte gratuit
+                </Link>
+              </>
+            )}
           </p>
         )}
         {resultTag && (

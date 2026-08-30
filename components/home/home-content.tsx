@@ -14,7 +14,7 @@ import { toast } from "sonner";
 type ViewState =
   | { kind: "idle" }
   | { kind: "checking" }
-  | { kind: "error"; message: string }
+  | { kind: "error"; message: string; requiresAuth?: boolean }
   | { kind: "known"; job: Job }
   | {
       kind: "created";
@@ -45,7 +45,7 @@ function HomeContentInner() {
     setView({ kind: "checking" });
     const result = await checkJobUrl(trimmed);
     if (!result.ok) {
-      setView({ kind: "error", message: result.error });
+      setView({ kind: "error", message: result.error, requiresAuth: result.code === "UNAUTHENTICATED" });
       return;
     }
     if (result.data.found) {
@@ -60,7 +60,11 @@ function HomeContentInner() {
     });
 
     if (!createResult.ok) {
-      setView({ kind: "error", message: createResult.error });
+      setView({
+        kind: "error",
+        message: createResult.error,
+        requiresAuth: createResult.code === "UNAUTHENTICATED",
+      });
       return;
     }
 
@@ -94,6 +98,7 @@ function HomeContentInner() {
         url={url}
         checking={checking}
         error={view.kind === "error" ? view.message : null}
+        signupHref={view.kind === "error" && view.requiresAuth ? "/register" : null}
         resultTag={
           view.kind === "known"
             ? { kind: "known", label: "Déjà dans votre board" }
