@@ -124,6 +124,39 @@ describe("CampaignFormDialog — création", () => {
   );
 
   it(
+    "submits a campaign with contractTypes: [\"STAGE\"] when only Stage is checked (JOB-62)",
+    async () => {
+    const user = userEvent.setup();
+    vi.mocked(createCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+    const onCreated = vi.fn();
+
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={onCreated}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Mots-clés"), "développeur web");
+    await user.click(screen.getByRole("checkbox", { name: "Stage" }));
+    await user.type(screen.getByLabelText("Ville"), "Lille");
+
+    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+
+    expect(createCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contractTypes: ["STAGE"],
+      })
+    );
+    expect(onCreated).toHaveBeenCalledWith(existingCampaign);
+    },
+    10000
+  );
+
+  it(
     "shows an error toast and does not call onCreated when the action fails",
     async () => {
     const user = userEvent.setup();
