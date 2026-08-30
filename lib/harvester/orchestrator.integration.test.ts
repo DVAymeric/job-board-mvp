@@ -316,6 +316,45 @@ describe("runCampaign — locationScoped connectors", () => {
     expect(fetchCallCount).toBe(1);
   });
 
+  // JOB-75/77 : un connecteur locationScoped:false n'est fetché qu'une fois, avec la requête de
+  // la première localisation de la campagne — mais ses offres doivent pouvoir matcher n'importe
+  // laquelle des localisations de la campagne, pas seulement la première. Avant le fix,
+  // offerMatchesQuery ne recevait que la query (donc la localisation) de l'itération de boucle
+  // courante : une offre à Amiens était rejetée à tort tant que la boucle n'atteignait pas la
+  // 2ème localisation — ce qui n'arrive jamais pour un connecteur locationScoped:false, qui
+  // s'arrête après la 1ère itération.
+  it("persiste une offre correspondant à la 2ème localisation de la campagne, pas la 1ère, pour un connecteur locationScoped:false", async () => {
+    const campaign = await makeCampaign({
+      config: {
+        locations: [
+          { label: "Lille 59000", lat: 50.630951, lng: 3.045391, radiusKm: 30 },
+          { label: "Amiens 80000", lat: 49.903041, lng: 2.292605, radiusKm: 30 },
+        ],
+      },
+    });
+    const scopedConnector: Connector = {
+      id: "scoped-fake",
+      tier: 1,
+      locationScoped: false,
+      supports: () => true,
+      async *fetch() {
+        yield { source: "scoped-fake", payload: { id: "1", url: "https://example.com/jobs/1" } };
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url, { source: "workday", location: { label: "Amiens", city: "Amiens" } });
+      },
+      async healthCheck() {
+        return { connectorId: "scoped-fake", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, scopedConnector, prisma, {});
+
+    expect(summary).toMatchObject({ normalizedCount: 1, filteredCount: 0 });
+    expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(1);
+  });
+
   it("calls fetch once per location when locationScoped is absent (default true)", async () => {
     const campaign = await makeCampaign({
       config: {

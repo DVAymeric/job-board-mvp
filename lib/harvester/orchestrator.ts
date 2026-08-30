@@ -7,7 +7,7 @@ import { LocationConfigSchema, type LocationConfig } from "@/lib/harvester/campa
 import { HarvestTargetsSchema, type HarvestQuery } from "@/lib/harvester/harvest-query";
 import type { ContractType, NormalizedOffer } from "@/lib/harvester/normalized-offer";
 import type { Connector } from "@/lib/harvester/connector";
-import { offerMatchesQuery } from "@/lib/harvester/query-filter";
+import { offerMatchesQuery, acceptableLocationsFromLocations } from "@/lib/harvester/query-filter";
 import { logger } from "@/lib/logger";
 
 // Enum Prisma OfferContractType (majuscules) -> ContractType (minuscules, format
@@ -109,12 +109,17 @@ export async function runCampaign(
 ): Promise<RunSummary> {
   const guardedFetch = sharedGuardedFetch;
   const { locations, targets } = parseCampaignConfig(campaign);
+  // Dérivées de TOUTES les localisations de la campagne, pas de la seule localisation de
+  // l'itération de boucle courante — un connecteur locationScoped:false n'est fetché qu'une
+  // fois avec la première localisation, ses offres doivent quand même pouvoir matcher
+  // n'importe laquelle des localisations de la campagne (JOB-75/77).
+  const acceptableLocations = acceptableLocationsFromLocations(locations);
   const startedAt = new Date();
   let rawCount = 0;
   let normalizedCount = 0;
   let rejectedCount = 0;
   let filteredCount = 0;
-  let missingDepartmentCount = 0;
+  let unresolvedLocationCount = 0;
   let errorMessage: string | undefined;
 
   let hasFetchedOnce = false;
@@ -137,13 +142,13 @@ export async function runCampaign(
           // pré-filtre. Ne remplace pas les pré-filtres existants côté connecteurs.
           // JOB-76 : comptée à part (filteredCount) de rejectedCount, réservé aux échecs de
           // normalize() ; le détail par motif n'est pas loggé offre par offre (trop verbeux à
-          // fort volume) — seul le total "département manquant" est loggé une fois, en fin de
-          // run, agrégé sur toute la campagne pour ce connecteur.
-          const filterResult = offerMatchesQuery(normalized, query);
+          // fort volume) — seul le total "localisation non vérifiable" est loggé une fois, en
+          // fin de run, agrégé sur toute la campagne pour ce connecteur.
+          const filterResult = offerMatchesQuery(normalized, query, acceptableLocations);
           if (!filterResult.matches) {
             filteredCount += 1;
-            if (filterResult.reason === "missing_department") {
-              missingDepartmentCount += 1;
+            if (filterResult.reason === "location_unresolved") {
+              unresolvedLocationCount += 1;
             }
             continue;
           }
@@ -158,11 +163,11 @@ export async function runCampaign(
     }
   }
 
-  if (missingDepartmentCount > 0) {
-    logger.warn("harvester.orchestrator.offers_rejected_missing_department", {
+  if (unresolvedLocationCount > 0) {
+    logger.warn("harvester.orchestrator.offers_rejected_location_unresolved", {
       connectorId: connector.id,
       campaignId: campaign.id,
-      count: missingDepartmentCount,
+      count: unresolvedLocationCount,
     });
   }
 

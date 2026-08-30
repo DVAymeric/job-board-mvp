@@ -137,10 +137,16 @@ describe("post-filtre centralisé — tous connecteurs réels, un seul HTTP mock
         );
       }
       if (url.includes("/postings/sr1")) {
-        return new Response(JSON.stringify({ id: "sr1", name: "Stage Vendeur Retail H/F" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ id: "sr1", name: "Stage Vendeur Retail H/F", location: { city: "Lille" } }),
+          { status: 200 },
+        );
       }
       if (url.includes("/postings/sr2")) {
-        return new Response(JSON.stringify({ id: "sr2", name: "Stage Développeur Backend H/F" }), { status: 200 });
+        return new Response(
+          JSON.stringify({ id: "sr2", name: "Stage Développeur Backend H/F", location: { city: "Lille" } }),
+          { status: 200 },
+        );
       }
 
       // DigitalRecruiters : une seule requête POST liste des job-ads.

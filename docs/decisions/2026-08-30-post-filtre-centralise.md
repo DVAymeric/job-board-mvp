@@ -32,16 +32,28 @@ ignorer un filtre silencieusement, quel que soit son tier. Les pré-filtres déj
 certains connecteurs tier1 (efficacité réseau — éviter des appels de détail inutiles) sont
 conservés : le filtre centralisé est un filet de sécurité final, pas un remplacement.
 
-**Politique fail-closed sur la localisation** : si le département de l'offre normalisée n'est
-pas résolu (ex. Workday, dont `normalize()` n'extrait aujourd'hui aucun département) alors que
-la requête cible une localisation précise, l'offre est **exclue** plutôt qu'incluse par
-défaut. Une offre qu'on ne peut pas prouver conforme n'est pas considérée conforme. Le
-compromis inverse (inclure par défaut) aurait réintroduit silencieusement le problème que ce
-ticket résout.
+**Politique fail-closed sur la localisation** : une offre qu'on ne peut pas prouver conforme
+n'est pas considérée conforme. Le compromis inverse (inclure par défaut) aurait réintroduit
+silencieusement le problème que ce ticket résout.
+
+**Correctif JOB-75/77 (2026-08-30, porté depuis job-harvester)** : la comparaison initiale
+(égalité stricte de département) faisait tomber Workday et WTTJ en fail-closed *systématique*
+— Workday n'expose ni coordonnées ni code postal (seulement un nom de ville libre), et un
+connecteur `locationScoped:false` (Workday, SmartRecruiters, Talentsoft, DigitalRecruiters)
+n'étant fetché qu'une fois avec la première localisation de la campagne, ses offres n'étaient
+jamais vérifiées contre les localisations suivantes. `resolveLocationVerdict()`
+(`lib/harvester/query-filter.ts`) remplace l'égalité stricte par une cascade à 3 niveaux, du
+plus fiable au plus grossier : rayon géographique (haversine) si l'offre a ses propres
+coordonnées (WTTJ, La Bonne Alternance), puis égalité de département (comportement historique,
+France Travail/SmartRecruiters/Talentsoft/DigitalRecruiters), puis correspondance par nom de
+ville normalisé en dernier recours (Workday). `offerMatchesQuery` reçoit désormais
+`acceptableLocations`, dérivé de **toutes** les localisations de la campagne
+(`acceptableLocationsFromLocations`), et non plus de la seule requête de l'itération de boucle
+courante — ce qui corrige les deux bugs à la fois.
 
 ## Suites (JOB-76)
 
-- Le rejet pour département manquant est désormais compté et loggé une seule fois par run
-  (agrégé), pas une ligne par offre.
+- Le rejet pour localisation non vérifiable (`location_unresolved`) est désormais compté et
+  loggé une seule fois par run (agrégé), pas une ligne par offre.
 - `ConnectorRun.filteredCount` distingue les rejets du post-filtre (`rejectedCount` reste
   réservé aux échecs de `normalize()`).
