@@ -28,8 +28,9 @@ model User {
   jobs Job[]
   tags Tag[]
 
-  campaigns       Campaign[]
-  harvestedOffers HarvestedOffer[]
+  campaigns         Campaign[]
+  harvestedOffers   HarvestedOffer[]
+  discoveredTargets DiscoveredTarget[]
 }
 
 enum Plan {
@@ -96,9 +97,9 @@ model Job {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  contacts      Contact[]
-  tags          JobTag[]
-  statusHistory StatusHistory[]
+  contacts       Contact[]
+  tags           JobTag[]
+  statusHistory  StatusHistory[]
   harvestedOffer HarvestedOffer?
 
   @@unique([userId, url])
@@ -271,4 +272,52 @@ model ConnectorRun {
   errorMessage     String?
 
   @@index([campaignId])
+}
+
+enum DiscoveryPlatform {
+  WORKDAY
+  SMARTRECRUITERS
+  TALENTSOFT
+  DIGITALRECRUITERS
+}
+
+enum DiscoveredTargetStatus {
+  PENDING
+  ADDED
+  REJECTED
+}
+
+// Cache global de sondage, volontairement PAS scopé par userId : ne contient que des faits
+// publics et vérifiables sur l'infrastructure de recrutement d'entreprises réelles (ex.
+// "capgemini.com utilise myworkdayjobs.com"), jamais de donnée utilisateur. Partagé entre tous
+// les comptes pour éviter de re-sonder en direct la même entreprise pour chacun d'eux.
+model DiscoveryProbe {
+  id          String            @id @default(uuid())
+  companySlug String
+  platform    DiscoveryPlatform
+  found       Boolean
+  // string (domaine) pour SmartRecruiters/Talentsoft/DigitalRecruiters, { tenant, site, dc }
+  // pour Workday. Toujours null si found=false.
+  target      Json?
+  probedAt    DateTime          @default(now())
+
+  @@unique([companySlug, platform])
+}
+
+// File de revue par utilisateur : une cible trouvée par le sondage global doit être approuvée
+// avant de rejoindre config.targets des campagnes de CET utilisateur.
+model DiscoveredTarget {
+  id           String                 @id @default(uuid())
+  userId       String
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companySlug  String
+  companyName  String
+  platform     DiscoveryPlatform
+  target       Json
+  status       DiscoveredTargetStatus @default(PENDING)
+  discoveredAt DateTime               @default(now())
+  reviewedAt   DateTime?
+
+  @@unique([userId, companySlug, platform])
+  @@index([userId, status])
 }
