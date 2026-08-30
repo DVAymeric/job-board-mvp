@@ -7,6 +7,8 @@ import { LocationConfigSchema, type LocationConfig } from "@/lib/harvester/campa
 import { HarvestTargetsSchema, type HarvestQuery } from "@/lib/harvester/harvest-query";
 import type { ContractType, NormalizedOffer } from "@/lib/harvester/normalized-offer";
 import type { Connector } from "@/lib/harvester/connector";
+import { offerMatchesQuery } from "@/lib/harvester/query-filter";
+import { logger } from "@/lib/logger";
 
 // Enum Prisma OfferContractType (majuscules) -> ContractType (minuscules, format
 // HarvestQuery/connecteurs) — voir aussi lib/harvester/offer-mapper.ts pour la table complète
@@ -126,6 +128,19 @@ export async function runCampaign(
         rawCount += 1;
         try {
           const normalized = connector.normalize(raw);
+          // JOB-73 : filet de sécurité final, appliqué après normalize() pour tous les
+          // connecteurs (tier0 et tier1) — une offre hors contrat/mots-clés/localisation de la
+          // requête n'est jamais persistée, même si le connecteur d'origine n'a pas de
+          // pré-filtre. Ne remplace pas les pré-filtres existants côté connecteurs.
+          if (!offerMatchesQuery(normalized, query)) {
+            rejectedCount += 1;
+            logger.warn("harvester.orchestrator.offer_rejected_by_query_filter", {
+              connectorId: connector.id,
+              source: normalized.source,
+              sourceOfferId: normalized.sourceOfferId,
+            });
+            continue;
+          }
           normalizedCount += 1;
           await upsertOffer(prisma, campaign.userId, campaign.id, normalized);
         } catch {

@@ -182,6 +182,110 @@ describe("runCampaign", () => {
   });
 });
 
+describe("runCampaign — post-filtre centralisé (JOB-73)", () => {
+  it("rejette une offre hors-contrat même pour un connecteur tier0 sans pré-filtre", async () => {
+    const campaign = await makeCampaign({ contractTypes: ["APPRENTISSAGE"] });
+    const rawOffers: RawOffer[] = [{ source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } }];
+    const tier0Connector: Connector = {
+      id: "fake-tier0",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) yield raw;
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url, { contractType: "autre" });
+      },
+      async healthCheck() {
+        return { connectorId: "fake-tier0", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, tier0Connector, prisma, {});
+
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 1, ok: true });
+    expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
+  });
+
+  it("rejette une offre hors mots-clés pour un connecteur tier1 sans pré-filtre mots-clés", async () => {
+    const campaign = await makeCampaign({ keywords: ["react"] });
+    const rawOffers: RawOffer[] = [{ source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } }];
+    const tier1Connector: Connector = {
+      id: "fake-tier1",
+      tier: 1,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) yield raw;
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url, { title: "Comptable", descriptionText: "Gestion de la paie" });
+      },
+      async healthCheck() {
+        return { connectorId: "fake-tier1", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, tier1Connector, prisma, {});
+
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 1, ok: true });
+    expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
+  });
+
+  it("rejette une offre hors localisation (département différent de la campagne)", async () => {
+    const campaign = await makeCampaign({
+      config: { locations: [{ label: "Lille 59000", lat: 50.63, lng: 3.05, radiusKm: 30 }] },
+    });
+    const rawOffers: RawOffer[] = [{ source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } }];
+    const fakeConnector: Connector = {
+      id: "fake-tier0",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) yield raw;
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url, { location: { label: "Paris 75001", city: "Paris", department: "75" } });
+      },
+      async healthCheck() {
+        return { connectorId: "fake-tier0", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, fakeConnector, prisma, {});
+
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 1, ok: true });
+    expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
+  });
+
+  it("persiste une offre conforme à contrat/mots-clés/localisation", async () => {
+    const campaign = await makeCampaign({ keywords: ["react"] });
+    const rawOffers: RawOffer[] = [{ source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } }];
+    const fakeConnector: Connector = {
+      id: "fake-tier0",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) yield raw;
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url, { title: "Développeur React" });
+      },
+      async healthCheck() {
+        return { connectorId: "fake-tier0", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, fakeConnector, prisma, {});
+
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 1, rejectedCount: 0, ok: true });
+    expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(1);
+  });
+});
+
 describe("runCampaign — locationScoped connectors", () => {
   it("calls fetch exactly once across multiple campaign locations when locationScoped is false", async () => {
     const campaign = await makeCampaign({
