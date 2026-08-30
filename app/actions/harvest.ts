@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
+import { isUniqueConstraintError } from "@/lib/prisma-errors";
+import { logger } from "@/lib/logger";
 import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
 import { STATUS } from "@/lib/constants";
 import { runCampaignAcrossConnectors, type RunSummary } from "@/lib/harvester/orchestrator";
@@ -89,18 +91,28 @@ export async function triggerCampaignCollection(
 
     const runs = await runCampaignAcrossConnectors(campaign, ALL_CONNECTORS, prisma, harvestEnv());
 
-    // Best-effort : une erreur ici ne doit jamais faire échouer la collecte principale, ni
-    // ralentir sa réponse au-delà du temps de sondage (pas de trigger dans le cron — voir la
-    // spec — donc le coût réseau supplémentaire n'arrive qu'ici, à un moment où l'utilisateur
-    // est déjà en train d'attendre le résultat de la collecte).
-    try {
-      await discoverTargets(prisma, auth.user.id, {});
-    } catch (error) {
-      logActionError("triggerCampaignCollection.discoverTargets", error, { userId: auth.user.id }, "warn");
-    }
-
     revalidatePath("/harvester/review");
-    revalidatePath("/harvester/discovery");
+
+    // Hors du chemin de réponse (`after`) : le sondage peut durer des minutes (N entreprises ×
+    // 4 plateformes × timeouts + attentes du rate-limiter), et l'attendre ici exposerait une
+    // collecte DÉJÀ persistée à être signalée en échec si la fonction est tuée sur timeout.
+    // Best-effort de bout en bout : une erreur de découverte ne doit jamais toucher le
+    // résultat de la collecte. La revalidation de /harvester/discovery est faite ici, après
+    // le sondage, puisque c'est lui qui produit les nouvelles cibles à afficher.
+    after(async () => {
+      try {
+        const summary = await discoverTargets(prisma, auth.user.id, {});
+        logger.info("harvester.discovery.completed", {
+          userId: auth.user.id,
+          probed: summary.probed,
+          found: summary.found,
+        });
+        revalidatePath("/harvester/discovery");
+      } catch (error) {
+        logActionError("triggerCampaignCollection.discoverTargets", error, { userId: auth.user.id }, "warn");
+      }
+    });
+
     return { ok: true, data: { runs } };
   } catch (error) {
     logActionError("triggerCampaignCollection", error, { userId: auth.user.id });
@@ -157,7 +169,7 @@ export async function importHarvestedOffer(
       // que le premier ait déjà créé le Job (contrainte unique userId+url) mais avant que
       // importedJobId ne soit posé — on relit l'offre plutôt que d'échouer, pour rester
       // idempotent même sous concurrence (JOB-47).
-      if (createError instanceof Prisma.PrismaClientKnownRequestError && createError.code === "P2002") {
+      if (isUniqueConstraintError(createError)) {
         const refreshed = await prisma.harvestedOffer.findUnique({ where: { id: offer.id } });
         if (refreshed?.importedJobId) {
           return { ok: true, data: { jobId: refreshed.importedJobId } };

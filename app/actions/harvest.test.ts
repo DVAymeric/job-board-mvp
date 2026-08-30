@@ -7,7 +7,9 @@ import {
   getConnectorsHealth,
   __resetConnectorsHealthRateLimitsForTests,
 } from "@/app/actions/harvest";
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth/session";
+import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 import { runCampaignAcrossConnectors } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
@@ -16,6 +18,21 @@ import { discoverTargets } from "@/lib/harvester/discovery/discover-targets";
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
+
+// `after()` de Next planifie une tâche APRÈS l'envoi de la réponse — impossible à appeler hors
+// d'un scope de requête. On la remplace par une file que les tests vident explicitement : c'est
+// justement ce qui permet de vérifier que le chemin de réponse n'attend plus la découverte.
+const { afterTasks } = vi.hoisted(() => ({ afterTasks: [] as Array<() => unknown> }));
+vi.mock("next/server", () => ({
+  after: vi.fn((task: () => unknown) => {
+    afterTasks.push(task);
+  }),
+}));
+
+async function drainAfterTasks() {
+  const tasks = afterTasks.splice(0, afterTasks.length);
+  for (const task of tasks) await task();
+}
 
 vi.mock("@/lib/auth/session", () => ({
   requireUser: vi.fn(),
@@ -60,6 +77,8 @@ function mockUnauthenticated() {
 }
 
 beforeEach(() => {
+  afterTasks.length = 0;
+  vi.mocked(revalidatePath).mockReset();
   vi.mocked(requireUser).mockReset();
   vi.mocked(prisma.campaign.findUnique).mockReset();
   vi.mocked(prisma.harvestedOffer.findFirst).mockReset();
@@ -106,7 +125,7 @@ describe("triggerCampaignCollection", () => {
     expect(runCampaignAcrossConnectors).toHaveBeenCalledWith(campaign, expect.any(Array), prisma, expect.any(Object));
   });
 
-  it("calls discoverTargets once after a successful collection, without affecting the result", async () => {
+  it("schedules discoverTargets via after() instead of awaiting it on the response path", async () => {
     mockAuthedAs("trigger-user-discovery");
     const campaign = { id: "c1", userId: "trigger-user-discovery" };
     vi.mocked(prisma.campaign.findUnique).mockResolvedValue(campaign as never);
@@ -115,8 +134,31 @@ describe("triggerCampaignCollection", () => {
 
     const result = await triggerCampaignCollection({ campaignId: "c1" });
 
+    // La réponse est déjà construite alors que la découverte n'a pas encore commencé : c'est
+    // exactement ce qui la met hors de portée d'un timeout de fonction (revue finale, #2).
     expect(result).toEqual({ ok: true, data: { runs: [] } });
+    expect(discoverTargets).not.toHaveBeenCalled();
+    expect(afterTasks).toHaveLength(1);
+
+    await drainAfterTasks();
+
     expect(discoverTargets).toHaveBeenCalledWith(prisma, "trigger-user-discovery", {});
+  });
+
+  it("revalidates the review path before the response and the discovery path only after discovery ran", async () => {
+    mockAuthedAs("trigger-user-discovery-revalidate");
+    vi.mocked(prisma.campaign.findUnique).mockResolvedValue({ id: "c1" } as never);
+    vi.mocked(runCampaignAcrossConnectors).mockResolvedValue([]);
+    vi.mocked(discoverTargets).mockResolvedValue({ probed: 0, found: 0 });
+
+    await triggerCampaignCollection({ campaignId: "c1" });
+
+    expect(revalidatePath).toHaveBeenCalledWith("/harvester/review");
+    expect(revalidatePath).not.toHaveBeenCalledWith("/harvester/discovery");
+
+    await drainAfterTasks();
+
+    expect(revalidatePath).toHaveBeenCalledWith("/harvester/discovery");
   });
 
   it("does not fail the collection when discoverTargets throws", async () => {
@@ -129,6 +171,25 @@ describe("triggerCampaignCollection", () => {
     const result = await triggerCampaignCollection({ campaignId: "c1" });
 
     expect(result).toEqual({ ok: true, data: { runs: [] } });
+    await expect(drainAfterTasks()).resolves.toBeUndefined();
+  });
+
+  it("logs the discovery summary once the scheduled run completes", async () => {
+    mockAuthedAs("trigger-user-discovery-log");
+    vi.mocked(prisma.campaign.findUnique).mockResolvedValue({ id: "c1" } as never);
+    vi.mocked(runCampaignAcrossConnectors).mockResolvedValue([]);
+    vi.mocked(discoverTargets).mockResolvedValue({ probed: 3, found: 2 });
+    const infoSpy = vi.spyOn(logger, "info").mockImplementation(() => {});
+
+    await triggerCampaignCollection({ campaignId: "c1" });
+    await drainAfterTasks();
+
+    expect(infoSpy).toHaveBeenCalledWith("harvester.discovery.completed", {
+      userId: "trigger-user-discovery-log",
+      probed: 3,
+      found: 2,
+    });
+    infoSpy.mockRestore();
   });
 
   it("returns RATE_LIMITED after 5 triggers within the window", async () => {
