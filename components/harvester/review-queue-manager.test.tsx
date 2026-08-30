@@ -278,5 +278,80 @@ describe("ReviewQueueManager", () => {
         "false"
       );
     });
+
+    // Bug réel constaté en direct : sur une file de 48 offres (page 1 = 25, page 2 = les 23
+    // restantes), "Page suivante" affiche un tableau qui reste indéfiniment en état de
+    // chargement. Cause racine : `<ReviewQueueManager>` n'est pas re-monté entre deux pages
+    // (app/harvester/review/page.tsx ne lui passait aucune `key` liée au curseur), donc
+    // `useState(initialOffers)` ne se resynchronise jamais sur un simple re-render — ET, quand
+    // la nouvelle page est la DERNIÈRE (nextCursor devient null), le bloc `{nextCursor && (...)}`
+    // qui contient `NextPagePendingBridge` (seul responsable de repasser isPaginating à false)
+    // disparaît du JSX en même temps que le bouton, sans jamais avoir eu la main pour le faire.
+    // Le fix (page.tsx) est de passer `key={cursor}` à ce composant pour forcer un remontage
+    // complet à chaque changement de page — ce test caractérise le mécanisme exact que ce fix
+    // doit contourner : sans changement de clé, ni les offres ni l'état de chargement ne se
+    // resynchronisent, même quand le parent transmet de nouvelles props.
+    it("without a key change from the parent, stays stuck showing stale offers and never clears the loading indicator once the pending Link unmounts (root cause of the 'stuck loading forever' bug)", () => {
+      useLinkStatusMock.mockReturnValue({ pending: true });
+      const { rerender } = render(
+        <ReviewQueueManager
+          initialOffers={[makeOffer({ id: "o1", title: "Data Analyst" })]}
+          nextCursor="offer-25"
+        />
+      );
+      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      // La navigation aboutit : page.tsx re-rend avec les offres de la page 2 (23 restantes sur
+      // 48) et nextCursor=null (dernière page) — mais SANS clé changeante, donc SANS remontage.
+      useLinkStatusMock.mockReturnValue({ pending: false });
+      rerender(
+        <ReviewQueueManager
+          initialOffers={[makeOffer({ id: "o2", title: "Dev Web" })]}
+          nextCursor={null}
+        />
+      );
+
+      // Le bug : toujours "en chargement" (le bridge qui aurait remis isPaginating à false a
+      // disparu avec le bouton), donc toujours des lignes squelettes — ni le titre de la page 1
+      // (useState ne s'est jamais resynchronisé, mais isPaginating=true masque son propre
+      // affichage) ni celui de la page 2 (jamais monté) ne sont visibles. C'est précisément le
+      // "tableau vide, comme toujours en chargement" rapporté : aucun contenu réel, indéfiniment.
+      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+        "aria-busy",
+        "true"
+      );
+      expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
+      expect(screen.queryByText("Dev Web")).not.toBeInTheDocument();
+    });
+
+    it("with a key change from the parent (the actual fix), shows the new page's offers and clears the loading indicator", () => {
+      useLinkStatusMock.mockReturnValue({ pending: true });
+      const { rerender } = render(
+        <ReviewQueueManager
+          key="page-1"
+          initialOffers={[makeOffer({ id: "o1", title: "Data Analyst" })]}
+          nextCursor="offer-25"
+        />
+      );
+
+      useLinkStatusMock.mockReturnValue({ pending: false });
+      rerender(
+        <ReviewQueueManager
+          key="page-2"
+          initialOffers={[makeOffer({ id: "o2", title: "Dev Web" })]}
+          nextCursor={null}
+        />
+      );
+
+      expect(screen.getByText("Dev Web")).toBeInTheDocument();
+      expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
+      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+        "aria-busy",
+        "false"
+      );
+    });
   });
 });

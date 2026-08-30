@@ -45,7 +45,12 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
       />
       <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
       <ConnectorHealthPanel runs={connectorRuns} />
-      <ReviewQueueManager initialOffers={offers} nextCursor={nextCursor} />
+      {/* key={cursor} force un remontage complet à chaque page — sans ça, useState(initialOffers)
+          ne se resynchronise jamais sur un simple re-render, et si la nouvelle page est la
+          dernière (nextCursor devient null), le bouton "Page suivante" et son
+          NextPagePendingBridge disparaissent du JSX sans jamais avoir repassé isPaginating à
+          false, laissant le tableau bloqué en état de chargement indéfiniment. */}
+      <ReviewQueueManager key={cursor ?? "first-page"} initialOffers={offers} nextCursor={nextCursor} />
     </div>
   );
 }
