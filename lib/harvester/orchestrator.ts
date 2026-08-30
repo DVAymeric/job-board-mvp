@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Campaign, PrismaClient } from "@prisma/client";
+import type { Campaign, OfferContractType, PrismaClient } from "@prisma/client";
 import { isFuzzyDuplicate, mergeOffers } from "@/lib/harvester/merge";
 import { harvestedOfferToNormalizedOffer, normalizedOfferToHarvestedOfferData } from "@/lib/harvester/offer-mapper";
 import { createRateLimitedFetch } from "@/lib/harvester/rate-limited-fetch";
@@ -12,11 +12,15 @@ import { logger } from "@/lib/logger";
 
 // Enum Prisma OfferContractType (majuscules) -> ContractType (minuscules, format
 // HarvestQuery/connecteurs) — voir aussi lib/harvester/offer-mapper.ts pour la table complète
-// dans l'autre sens.
-const CONTRACT_TYPE_FROM_PRISMA: Record<string, ContractType> = {
+// dans l'autre sens. Typé sur l'enum Prisma (pas `string`) pour que le compilateur signale
+// toute valeur manquante à l'extension de l'enum (cdi/cdd, JOB-78-bis, ont été ajoutés ici
+// à la main faute de ce typage strict — la table complète dans offer-mapper.ts l'a).
+const CONTRACT_TYPE_FROM_PRISMA: Record<OfferContractType, ContractType> = {
   APPRENTISSAGE: "apprentissage",
   PROFESSIONNALISATION: "professionnalisation",
   STAGE: "stage",
+  CDI: "cdi",
+  CDD: "cdd",
   AUTRE: "autre",
 };
 

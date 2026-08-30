@@ -13,6 +13,8 @@ const CONTRACT_TYPE_TO_PRISMA_ENUM: Record<ContractType, OfferContractType> = {
   apprentissage: "APPRENTISSAGE",
   professionnalisation: "PROFESSIONNALISATION",
   stage: "STAGE",
+  cdi: "CDI",
+  cdd: "CDD",
   autre: "AUTRE",
 };
 

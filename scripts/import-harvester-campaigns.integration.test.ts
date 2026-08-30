@@ -37,7 +37,7 @@ describe("importHarvesterCampaigns", () => {
 
     const dataCampaign = rows.find((r) => r.slug === "alternance-data-hdf")!;
     expect(dataCampaign.romeCodes).toEqual(["M1403"]);
-    expect(dataCampaign.contractTypes).toEqual(["APPRENTISSAGE", "PROFESSIONNALISATION"]);
+    expect(dataCampaign.contractTypes).toEqual(["APPRENTISSAGE", "PROFESSIONNALISATION", "STAGE", "CDI", "CDD"]);
     expect(dataCampaign.schedule).toBe("0 7 * * *");
     expect(dataCampaign.config).toMatchObject({
       targets: { workday: [{ tenant: "valeo", site: "valeo_jobs", dc: "wd3" }], smartrecruiters: ["MAZARS"] },

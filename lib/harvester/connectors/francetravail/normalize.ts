@@ -6,10 +6,18 @@ import type { RawOffer } from "@/lib/harvester/harvest-query";
 import { FranceTravailOfferSchema } from "@/lib/harvester/connectors/francetravail/types";
 import { FRANCE_TRAVAIL_CONNECTOR_ID } from "@/lib/harvester/connectors/francetravail/client";
 
-function mapContractType(natureContrat: string | undefined): ContractType {
-  if (!natureContrat) return "autre";
-  if (/apprentissage/i.test(natureContrat)) return "apprentissage";
-  if (/professionnalisation/i.test(natureContrat)) return "professionnalisation";
+// natureContrat (texte libre) distingue apprentissage/professionnalisation/stage, une nuance
+// que typeContrat (CDI/CDD/...) ne fait pas (les deux premiers y sont classés CDD). typeContrat
+// ne sert qu'en repli pour les contrats classiques, une fois l'alternance/stage écarté
+// (JOB-78-bis).
+function mapContractType(natureContrat: string | undefined, typeContrat: string | undefined): ContractType {
+  if (natureContrat) {
+    if (/apprentissage/i.test(natureContrat)) return "apprentissage";
+    if (/professionnalisation/i.test(natureContrat)) return "professionnalisation";
+    if (/\bstages?\b|stagiaire/i.test(natureContrat)) return "stage";
+  }
+  if (typeContrat === "CDI") return "cdi";
+  if (typeContrat === "CDD") return "cdd";
   return "autre";
 }
 
@@ -64,7 +72,7 @@ export function normalizeFranceTravailOffer(raw: RawOffer): NormalizedOffer {
       postalCode: parsed.lieuTravail.codePostal,
       department,
     },
-    contractType: mapContractType(parsed.natureContrat),
+    contractType: mapContractType(parsed.natureContrat, parsed.typeContrat),
     romeCodes: [parsed.romeCode],
     descriptionText: parsed.description,
     remotePolicy: "unknown",

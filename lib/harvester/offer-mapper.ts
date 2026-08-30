@@ -8,12 +8,16 @@ const CONTRACT_TYPE_TO_PRISMA: Record<ContractType, OfferContractType> = {
   apprentissage: "APPRENTISSAGE",
   professionnalisation: "PROFESSIONNALISATION",
   stage: "STAGE",
+  cdi: "CDI",
+  cdd: "CDD",
   autre: "AUTRE",
 };
 const CONTRACT_TYPE_FROM_PRISMA: Record<OfferContractType, ContractType> = {
   APPRENTISSAGE: "apprentissage",
   PROFESSIONNALISATION: "professionnalisation",
   STAGE: "stage",
+  CDI: "cdi",
+  CDD: "cdd",
   AUTRE: "autre",
 };
 

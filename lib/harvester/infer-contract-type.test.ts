@@ -10,8 +10,20 @@ describe("inferContractTypeFromText", () => {
     expect(inferContractTypeFromText("Contrat de professionnalisation proposé")).toBe("professionnalisation");
   });
 
-  it("falls back to autre when neither matches", () => {
-    expect(inferContractTypeFromText("Poste en CDI, non concerné")).toBe("autre");
+  it("falls back to autre when nothing matches", () => {
+    expect(inferContractTypeFromText("Poste ouvert, type à préciser")).toBe("autre");
+  });
+
+  it("detects cdi (JOB-78-bis)", () => {
+    expect(inferContractTypeFromText("Poste en CDI, statut cadre")).toBe("cdi");
+  });
+
+  it("detects cdd (JOB-78-bis)", () => {
+    expect(inferContractTypeFromText("Contrat CDD de 6 mois")).toBe("cdd");
+  });
+
+  it("does not match cdi/cdd as a substring inside an unrelated word", () => {
+    expect(inferContractTypeFromText("Décideur et acteur du changement")).toBe("autre");
   });
 
   it("maps the generic word alternance/alternant to apprentissage (JOB-33)", () => {

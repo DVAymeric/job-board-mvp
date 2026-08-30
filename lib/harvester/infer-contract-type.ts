@@ -9,5 +9,7 @@ export function inferContractTypeFromText(text: string): ContractType {
   // courant des deux) plutôt que de perdre l'offre dans "autre", qu'un filtre UI en égalité
   // stricte exclurait entièrement. À revoir si une source distingue les deux plus précisément.
   if (/alternan(t|ce)/i.test(text)) return "apprentissage";
+  if (/\bCDI\b/i.test(text)) return "cdi";
+  if (/\bCDD\b/i.test(text)) return "cdd";
   return "autre";
 }

@@ -155,6 +155,8 @@ enum OfferContractType {
   APPRENTISSAGE
   PROFESSIONNALISATION
   STAGE
+  CDI
+  CDD
   AUTRE
 }
 

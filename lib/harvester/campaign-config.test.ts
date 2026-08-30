@@ -21,7 +21,7 @@ describe("CampaignsFileSchema", () => {
     expect(dataCampaign).toMatchObject({
       id: "alternance-data-hdf",
       romeCodes: ["M1403"],
-      contractTypes: ["apprentissage", "professionnalisation"],
+      contractTypes: ["apprentissage", "professionnalisation", "stage", "cdi", "cdd"],
       schedule: "0 7 * * *",
     });
     expect(dataCampaign!.locations).toHaveLength(3);
@@ -46,7 +46,7 @@ describe("CampaignsFileSchema", () => {
             romeCodes: [],
             keywords: [],
             locations: [],
-            contractTypes: ["cdi"],
+            contractTypes: ["interim"],
           },
         ],
       }),
@@ -66,7 +66,7 @@ describe("mapYamlCampaignToCreateInput", () => {
       slug: "alternance-data-hdf",
       romeCodes: ["M1403"],
       keywords: ["data analyst", "data quality", "statistiques", "BI"],
-      contractTypes: ["APPRENTISSAGE", "PROFESSIONNALISATION"],
+      contractTypes: ["APPRENTISSAGE", "PROFESSIONNALISATION", "STAGE", "CDI", "CDD"],
       schedule: "0 7 * * *",
       config: {
         locations: dataCampaign.locations,
