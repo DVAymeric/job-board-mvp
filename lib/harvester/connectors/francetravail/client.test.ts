@@ -311,26 +311,23 @@ describe("fetchFranceTravailOffers", () => {
     expect(new URL(searchUrl).searchParams.has("motsCles")).toBe(false);
   });
 
-  it("warns and omits the departement filter when the location label has no postal code (JOB-23)", async () => {
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+  it("throws an explicit error instead of falling back to an unbounded national search when the location label has no postal code (JOB-64, suite de JOB-23)", async () => {
     const noPostalCodeQuery: HarvestQuery = { ...query, location: { ...query.location, label: "Lille" } };
-    let searchUrl = "";
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
       if (url.includes("access_token")) {
         return new Response(tokenResponseBody, { status: 200 });
       }
-      searchUrl = url;
-      return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
+      throw new Error("should not reach the search endpoint — the departement-less search must be refused before any fetch");
     });
 
-    for await (const _item of fetchFranceTravailOffers(noPostalCodeQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
-      // drain
+    async function drain() {
+      for await (const _item of fetchFranceTravailOffers(noPostalCodeQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+        // drain
+      }
     }
 
-    expect(new URL(searchUrl).searchParams.has("departement")).toBe(false);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Lille"));
-    warnSpy.mockRestore();
+    await expect(drain()).rejects.toThrow(/Lille/);
   });
 
   it("throws a validation error when the token response is missing access_token", async () => {

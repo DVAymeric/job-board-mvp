@@ -23,11 +23,23 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
       return;
     }
     const offersCollected = result.data.runs.reduce((sum, run) => sum + run.normalizedCount, 0);
-    toast.success(
-      offersCollected > 0
-        ? `${offersCollected} offre${offersCollected > 1 ? "s" : ""} collectée${offersCollected > 1 ? "s" : ""}`
-        : "Collecte terminée, aucune nouvelle offre"
-    );
+    // JOB-64 : un run par connecteur peut échouer individuellement (ex. localisation sans code
+    // postal exploitable, refusée explicitement côté France Travail) sans que la Server Action
+    // elle-même échoue — sans ceci, l'utilisateur ne voyait qu'un succès générique alors qu'un
+    // connecteur avait échoué en silence côté serveur.
+    const failedRuns = result.data.runs.filter((run) => !run.ok);
+    if (failedRuns.length > 0) {
+      toast.error(
+        failedRuns.map((run) => run.errorMessage).filter(Boolean).join(" · ") || "Un connecteur a échoué pendant la collecte"
+      );
+    }
+    if (offersCollected > 0 || failedRuns.length === 0) {
+      toast.success(
+        offersCollected > 0
+          ? `${offersCollected} offre${offersCollected > 1 ? "s" : ""} collectée${offersCollected > 1 ? "s" : ""}`
+          : "Collecte terminée, aucune nouvelle offre"
+      );
+    }
   }
 
   return (
