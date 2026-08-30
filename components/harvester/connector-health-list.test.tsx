@@ -13,6 +13,7 @@ function makeRun(overrides: Partial<ConnectorRun> = {}): ConnectorRun {
     rawCount: 10,
     normalizedCount: 8,
     rejectedCount: 2,
+    filteredCount: 0,
     httpStatusesSeen: [200],
     ok: true,
     errorMessage: null,
