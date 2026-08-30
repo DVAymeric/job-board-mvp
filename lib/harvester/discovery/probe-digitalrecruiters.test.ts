@@ -19,6 +19,12 @@ describe("probeDigitalRecruiters", () => {
     expect(await probeDigitalRecruiters("acme", fetchImpl)).toBeUndefined();
   });
 
+  it("returns undefined when the count is zero (domain served but no offers)", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({ count: 0 }), { status: 200 }));
+
+    expect(await probeDigitalRecruiters("acme", fetchImpl)).toBeUndefined();
+  });
+
   it("returns undefined when the body has no numeric count", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({}), { status: 200 }));
 

@@ -11,6 +11,8 @@ export async function probeDigitalRecruiters(slug: string, fetchImpl: typeof fet
   });
   if (!response.ok) return undefined;
   const body = (await response.json()) as { count?: unknown };
-  if (typeof body.count !== "number") return undefined;
+  // `count: 0` = domaine servi par DigitalRecruiters mais sans aucune offre : rien à collecter,
+  // donc pas une cible (même règle que `totalFound === 0` dans probe-smartrecruiters.ts).
+  if (typeof body.count !== "number" || body.count === 0) return undefined;
   return domain;
 }
