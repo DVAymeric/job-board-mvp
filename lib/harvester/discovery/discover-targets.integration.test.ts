@@ -150,6 +150,74 @@ describe("discoverTargets", () => {
     expect(summary).toEqual({ probed: 0, found: 0 });
   });
 
+  it("survives a concurrent probe write on the shared cache and keeps probing the other platforms", async () => {
+    await makeOfferForCompany(userId, "Acme Discover F");
+    // WORKDAY est la première plateforme sondée : un `create` (au lieu d'un upsert) échouerait
+    // ici en P2002 et emporterait tout le reste du run, DIGITALRECRUITERS compris.
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("myworkdayjobs.com")) {
+        await prisma.discoveryProbe
+          .create({ data: { companySlug: "acme-discover-f", platform: "WORKDAY", found: false } })
+          .catch(() => undefined); // une seule des 3 tentatives de DC doit réussir à l'insérer
+        return new Response("nope", { status: 404 });
+      }
+      if (url.includes("digitalrecruiters.com")) return new Response(JSON.stringify({ count: 5 }), { status: 200 });
+      return new Response("nope", { status: 404 });
+    });
+
+    const summary = await discoverTargets(prisma, userId, { fetchImpl });
+
+    expect(summary).toEqual({ probed: 1, found: 1 });
+    const probes = await prisma.discoveryProbe.findMany({ where: { companySlug: "acme-discover-f" } });
+    expect(probes).toHaveLength(4);
+  });
+
+  it("re-probes a pair whose verdict is older than the TTL, and leaves fresh ones alone", async () => {
+    await makeOfferForCompany(userId, "Acme Discover G");
+    const slug = "acme-discover-g";
+    await prisma.discoveryProbe.create({
+      data: {
+        companySlug: slug,
+        platform: "WORKDAY",
+        found: false,
+        probedAt: new Date(Date.now() - 61 * 24 * 60 * 60 * 1000),
+      },
+    });
+    await prisma.discoveryProbe.create({
+      data: { companySlug: slug, platform: "TALENTSOFT", found: false, probedAt: new Date() },
+    });
+
+    const probedUrls: string[] = [];
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      probedUrls.push(String(input));
+      return new Response("nope", { status: 404 });
+    });
+
+    await discoverTargets(prisma, userId, { fetchImpl });
+
+    expect(probedUrls.some((url) => url.includes("myworkdayjobs.com"))).toBe(true);
+    expect(probedUrls.some((url) => url.includes("talent-soft.com") || url.includes("recrutement."))).toBe(false);
+
+    const refreshed = await prisma.discoveryProbe.findFirst({ where: { companySlug: slug, platform: "WORKDAY" } });
+    expect(refreshed!.probedAt.getTime()).toBeGreaterThan(Date.now() - 60_000);
+  });
+
+  it("stops starting new probes once the wall-clock budget is exhausted", async () => {
+    await makeOfferForCompany(userId, "Acme Discover H1");
+    await makeOfferForCompany(userId, "Acme Discover H2");
+    const fetchImpl = vi.fn<typeof fetch>(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      return new Response("nope", { status: 404 });
+    });
+
+    const summary = await discoverTargets(prisma, userId, { fetchImpl, budgetMs: 50 });
+
+    // La 2e entreprise n'est jamais entamée : le budget est vérifié entre deux sondes, la
+    // sonde déjà lancée va au bout.
+    expect(summary.probed).toBe(1);
+  });
+
   it("does not record a probe that throws, keeping the pair eligible for retry", async () => {
     await makeOfferForCompany(userId, "Acme Discover E");
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
