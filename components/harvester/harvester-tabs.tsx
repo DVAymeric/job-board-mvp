@@ -9,13 +9,15 @@ const TABS = [
   { href: "/harvester", label: "Vue d'ensemble" },
   { href: "/harvester/campaigns", label: "Campagnes" },
   { href: "/harvester/review", label: "File de revue" },
+  { href: "/harvester/discovery", label: "Cibles découvertes" },
 ] as const;
 
 interface HarvesterTabsProps {
   reviewQueueCount?: number;
+  discoveredTargetCount?: number;
 }
 
-export function HarvesterTabs({ reviewQueueCount }: HarvesterTabsProps) {
+export function HarvesterTabs({ reviewQueueCount, discoveredTargetCount }: HarvesterTabsProps) {
   const pathname = usePathname();
 
   return (
@@ -40,6 +42,9 @@ export function HarvesterTabs({ reviewQueueCount }: HarvesterTabsProps) {
           {tab.label}
           {tab.href === "/harvester/review" && !!reviewQueueCount && (
             <Badge variant="tag">{reviewQueueCount}</Badge>
+          )}
+          {tab.href === "/harvester/discovery" && !!discoveredTargetCount && (
+            <Badge variant="tag">{discoveredTargetCount}</Badge>
           )}
         </Link>
       ))}

@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPendingOfferCount } from "@/lib/harvester/pending-offer-count";
+import { getPendingDiscoveredTargetCount } from "@/lib/harvester/pending-discovered-target-count";
 import { PageHeader } from "@/components/page-header";
 import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
 import { ReviewQueueManager } from "@/components/harvester/review-queue-manager";
@@ -15,7 +16,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
-  const [offersPage, connectorRuns, pendingOfferCount] = await Promise.all([
+  const [offersPage, connectorRuns, pendingOfferCount, discoveredTargetCount] = await Promise.all([
     prisma.harvestedOffer.findMany({
       where: { userId, importedJobId: null, ignoredAt: null },
       orderBy: { firstSeenAt: "desc" },
@@ -28,6 +29,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
       orderBy: { startedAt: "desc" },
     }),
     getPendingOfferCount(userId),
+    getPendingDiscoveredTargetCount(userId),
   ]);
 
   const hasNextPage = offersPage.length > PAGE_SIZE;
@@ -41,7 +43,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
         title="File de revue"
         subtitle="Offres collectées non encore traitées — importez-les vers le board ou ignorez-les."
       />
-      <HarvesterTabs reviewQueueCount={pendingOfferCount} />
+      <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
       <ConnectorHealthPanel runs={connectorRuns} />
       <ReviewQueueManager initialOffers={offers} nextCursor={nextCursor} />
     </div>

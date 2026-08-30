@@ -41,4 +41,21 @@ describe("HarvesterTabs", () => {
     render(<HarvesterTabs />);
     expect(screen.getByRole("link", { name: "File de revue" })).toBeInTheDocument();
   });
+
+  it("renders a link to the discovery route", () => {
+    render(<HarvesterTabs />);
+    expect(screen.getByRole("link", { name: /Cibles découvertes/ })).toHaveAttribute("href", "/harvester/discovery");
+  });
+
+  it("shows a count badge on the discovery tab when there are pending targets", () => {
+    render(<HarvesterTabs discoveredTargetCount={2} />);
+    const link = screen.getByRole("link", { name: /Cibles découvertes/ });
+    expect(link).toHaveTextContent("2");
+  });
+
+  it("does not show a count badge on the discovery tab when there are no pending targets", () => {
+    render(<HarvesterTabs discoveredTargetCount={0} />);
+    const link = screen.getByRole("link", { name: "Cibles découvertes" });
+    expect(link).not.toHaveTextContent("0");
+  });
 });

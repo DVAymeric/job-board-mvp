@@ -4,14 +4,17 @@ import { getPendingOfferCount } from "@/lib/harvester/pending-offer-count";
 import { getPendingDiscoveredTargetCount } from "@/lib/harvester/pending-discovered-target-count";
 import { PageHeader } from "@/components/page-header";
 import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
-import { HarvesterOverview } from "@/components/harvester/harvester-overview";
+import { DiscoveredTargetsManager } from "@/components/harvester/discovered-targets-manager";
 
-export default async function HarvesterPage() {
+export default async function HarvesterDiscoveryPage() {
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
-  const [campaignCount, pendingOfferCount, discoveredTargetCount] = await Promise.all([
-    prisma.campaign.count({ where: { userId } }),
+  const [targets, pendingOfferCount, discoveredTargetCount] = await Promise.all([
+    prisma.discoveredTarget.findMany({
+      where: { userId, status: "PENDING" },
+      orderBy: { discoveredAt: "desc" },
+    }),
     getPendingOfferCount(userId),
     getPendingDiscoveredTargetCount(userId),
   ]);
@@ -19,12 +22,12 @@ export default async function HarvesterPage() {
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-4 p-4">
       <PageHeader
-        eyebrow="Collecte automatisée"
-        title="Harvester"
-        subtitle="Campagnes de recherche et offres collectées en attente de revue."
+        eyebrow="Harvester"
+        title="Cibles découvertes"
+        subtitle="Entreprises repérées dans vos offres et trouvées sur Workday, SmartRecruiters, Talentsoft ou DigitalRecruiters — approuvez pour les ajouter à vos campagnes."
       />
       <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
-      <HarvesterOverview campaignCount={campaignCount} pendingOfferCount={pendingOfferCount} />
+      <DiscoveredTargetsManager initialTargets={targets} />
     </div>
   );
 }
