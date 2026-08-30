@@ -97,7 +97,7 @@ describe("CampaignsManager", () => {
     const user = userEvent.setup();
     vi.mocked(triggerCampaignCollection).mockResolvedValue({
       ok: true,
-      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 3, rejectedCount: 2, ok: true }] },
+      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 3, rejectedCount: 2, filteredCount: 0, ok: true }] },
     });
     render(<CampaignsManager initialCampaigns={[campaign]} />);
 

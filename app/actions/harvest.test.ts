@@ -91,7 +91,7 @@ describe("triggerCampaignCollection", () => {
     mockAuthedAs("trigger-user-success");
     const campaign = { id: "c1", userId: "trigger-user-success" };
     vi.mocked(prisma.campaign.findUnique).mockResolvedValue(campaign as never);
-    const runs = [{ runId: "r1", rawCount: 5, normalizedCount: 4, rejectedCount: 1, ok: true }];
+    const runs = [{ runId: "r1", rawCount: 5, normalizedCount: 4, rejectedCount: 1, filteredCount: 0, ok: true }];
     vi.mocked(runCampaignAcrossConnectors).mockResolvedValue(runs);
 
     const result = await triggerCampaignCollection({ campaignId: "c1" });

@@ -54,6 +54,7 @@ export interface RunSummary {
   rawCount: number;
   normalizedCount: number;
   rejectedCount: number;
+  filteredCount: number;
   ok: boolean;
   errorMessage?: string;
 }
@@ -112,6 +113,8 @@ export async function runCampaign(
   let rawCount = 0;
   let normalizedCount = 0;
   let rejectedCount = 0;
+  let filteredCount = 0;
+  let missingDepartmentCount = 0;
   let errorMessage: string | undefined;
 
   let hasFetchedOnce = false;
@@ -132,13 +135,16 @@ export async function runCampaign(
           // connecteurs (tier0 et tier1) — une offre hors contrat/mots-clés/localisation de la
           // requête n'est jamais persistée, même si le connecteur d'origine n'a pas de
           // pré-filtre. Ne remplace pas les pré-filtres existants côté connecteurs.
-          if (!offerMatchesQuery(normalized, query)) {
-            rejectedCount += 1;
-            logger.warn("harvester.orchestrator.offer_rejected_by_query_filter", {
-              connectorId: connector.id,
-              source: normalized.source,
-              sourceOfferId: normalized.sourceOfferId,
-            });
+          // JOB-76 : comptée à part (filteredCount) de rejectedCount, réservé aux échecs de
+          // normalize() ; le détail par motif n'est pas loggé offre par offre (trop verbeux à
+          // fort volume) — seul le total "département manquant" est loggé une fois, en fin de
+          // run, agrégé sur toute la campagne pour ce connecteur.
+          const filterResult = offerMatchesQuery(normalized, query);
+          if (!filterResult.matches) {
+            filteredCount += 1;
+            if (filterResult.reason === "missing_department") {
+              missingDepartmentCount += 1;
+            }
             continue;
           }
           normalizedCount += 1;
@@ -152,6 +158,14 @@ export async function runCampaign(
     }
   }
 
+  if (missingDepartmentCount > 0) {
+    logger.warn("harvester.orchestrator.offers_rejected_missing_department", {
+      connectorId: connector.id,
+      campaignId: campaign.id,
+      count: missingDepartmentCount,
+    });
+  }
+
   const ok = errorMessage === undefined;
   const run = await prisma.connectorRun.create({
     data: {
@@ -162,13 +176,14 @@ export async function runCampaign(
       rawCount,
       normalizedCount,
       rejectedCount,
+      filteredCount,
       httpStatusesSeen: [],
       ok,
       errorMessage,
     },
   });
 
-  return { runId: run.id, rawCount, normalizedCount, rejectedCount, ok, errorMessage };
+  return { runId: run.id, rawCount, normalizedCount, rejectedCount, filteredCount, ok, errorMessage };
 }
 
 export async function runCampaignAcrossConnectors(

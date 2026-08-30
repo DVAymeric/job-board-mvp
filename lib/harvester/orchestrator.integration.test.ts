@@ -95,7 +95,7 @@ describe("runCampaign", () => {
 
     const summary = await runCampaign(campaign, fakeConnector, prisma, {});
 
-    expect(summary).toMatchObject({ rawCount: 3, normalizedCount: 2, rejectedCount: 1, ok: true });
+    expect(summary).toMatchObject({ rawCount: 3, normalizedCount: 2, rejectedCount: 1, filteredCount: 0, ok: true });
     expect(summary.errorMessage).toBeUndefined();
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(1);
     expect(await prisma.connectorRun.count({ where: { campaignId: campaign.id } })).toBe(1);
@@ -150,7 +150,7 @@ describe("runCampaign", () => {
 
     const summary = await runCampaign(campaign, brokenConnector, prisma, {});
 
-    expect(summary).toMatchObject({ rawCount: 0, normalizedCount: 0, rejectedCount: 0, ok: false });
+    expect(summary).toMatchObject({ rawCount: 0, normalizedCount: 0, rejectedCount: 0, filteredCount: 0, ok: false });
     expect(summary.errorMessage).toContain("network down");
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
 
@@ -204,7 +204,7 @@ describe("runCampaign — post-filtre centralisé (JOB-73)", () => {
 
     const summary = await runCampaign(campaign, tier0Connector, prisma, {});
 
-    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 1, ok: true });
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 0, filteredCount: 1, ok: true });
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
   });
 
@@ -229,7 +229,7 @@ describe("runCampaign — post-filtre centralisé (JOB-73)", () => {
 
     const summary = await runCampaign(campaign, tier1Connector, prisma, {});
 
-    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 1, ok: true });
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 0, filteredCount: 1, ok: true });
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
   });
 
@@ -256,7 +256,7 @@ describe("runCampaign — post-filtre centralisé (JOB-73)", () => {
 
     const summary = await runCampaign(campaign, fakeConnector, prisma, {});
 
-    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 1, ok: true });
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 0, rejectedCount: 0, filteredCount: 1, ok: true });
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(0);
   });
 
@@ -281,7 +281,7 @@ describe("runCampaign — post-filtre centralisé (JOB-73)", () => {
 
     const summary = await runCampaign(campaign, fakeConnector, prisma, {});
 
-    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 1, rejectedCount: 0, ok: true });
+    expect(summary).toMatchObject({ rawCount: 1, normalizedCount: 1, rejectedCount: 0, filteredCount: 0, ok: true });
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(1);
   });
 });
