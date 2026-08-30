@@ -18,6 +18,8 @@ npm run dev
 
 Ouvrir [http://localhost:3000](http://localhost:3000) et créer un compte sur `/register`.
 
+Pour peupler ce compte avec des candidatures de test (Board/Analytics/bloc "Aperçu" de l'accueil non vides, utile en QA visuelle) : `npm run seed:dev -- <email-du-compte>`. Idempotent (rejouable sans dupliquer), ne couvre pas Recherche ni Harvester.
+
 - `/` — colle une URL d'offre : détection automatique si déjà connue, sinon création automatique (scraping du titre/entreprise/logo), avec repli manuel si le scraping échoue.
 - `/board` — Kanban (À postuler / Postulé / Entretien / Refusé), drag & drop, recherche, tags, relances, édition/suppression.
 - `/analytics` — funnel de conversion, heatmap de fréquence de candidature.

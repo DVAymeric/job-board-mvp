@@ -11,7 +11,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:e2e": "playwright test",
-    "import-harvester-campaigns": "tsx scripts/import-harvester-campaigns.ts"
+    "import-harvester-campaigns": "tsx scripts/import-harvester-campaigns.ts",
+    "seed:dev": "tsx scripts/seed-dev-data.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
