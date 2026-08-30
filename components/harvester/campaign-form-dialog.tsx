@@ -91,6 +91,7 @@ export function CampaignFormDialog({
   const isNew = campaign === "new";
   const existing = isNew ? null : campaign;
 
+  const [name, setName] = useState(existing?.name ?? "");
   const [keywords, setKeywords] = useState((existing?.keywords ?? []).join(", "));
   const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
     (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
@@ -145,6 +146,7 @@ export function CampaignFormDialog({
     const hasTargets = parsedWorkdayTargets.length > 0 || smartrecruitersSlugs.length > 0;
 
     return {
+      name: name.trim() || undefined,
       keywords: splitCommaList(keywords),
       contractTypes,
       locations: parsedLocations,
@@ -207,6 +209,19 @@ export function CampaignFormDialog({
         </DialogHeader>
 
         <div className="flex flex-col gap-4 overflow-y-auto px-1">
+          <div className="space-y-1.5">
+            <label htmlFor="campaign-name" className="text-base font-medium">
+              Nom (optionnel)
+            </label>
+            <Input
+              id="campaign-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Data"
+              disabled={saving}
+            />
+          </div>
+
           <div className="space-y-1.5">
             <label htmlFor="campaign-keywords" className="text-base font-medium">
               Mots-clés

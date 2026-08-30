@@ -24,6 +24,7 @@ const campaign: Campaign = {
   id: "campaign-1",
   userId: "user-1",
   slug: "alternance-data-hdf",
+  name: null,
   romeCodes: ["M1403"],
   keywords: [],
   contractTypes: ["APPRENTISSAGE", "PROFESSIONNALISATION"],
@@ -43,6 +44,12 @@ describe("CampaignsManager", () => {
     render(<CampaignsManager initialCampaigns={[campaign]} />);
     expect(screen.getByText("alternance-data-hdf")).toBeInTheDocument();
     expect(screen.getByText("Apprentissage · Professionnalisation")).toBeInTheDocument();
+  });
+
+  it("shows the display name instead of the raw slug when one is set, keeping the slug visible as secondary meta", () => {
+    render(<CampaignsManager initialCampaigns={[{ ...campaign, name: "Data" }]} />);
+    expect(screen.getByText("Data")).toBeInTheDocument();
+    expect(screen.getByText("alternance-data-hdf")).toBeInTheDocument();
   });
 
   it("opens the create dialog on 'Nouvelle campagne'", async () => {

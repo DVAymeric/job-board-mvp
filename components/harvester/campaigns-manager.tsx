@@ -66,8 +66,11 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
                 className="flex min-w-0 flex-1 flex-col gap-1 text-left"
               >
                 <span className="font-heading text-sm leading-snug text-heading">
-                  {campaign.slug}
+                  {campaign.name ?? campaign.slug}
                 </span>
+                {campaign.name && (
+                  <span className="font-mono text-xs text-muted-foreground">{campaign.slug}</span>
+                )}
                 <span className="font-mono text-xs text-muted-foreground">
                   {(campaign.contractTypes as CampaignContractType[])
                     .map((type) => CAMPAIGN_CONTRACT_TYPE_LABELS[type])

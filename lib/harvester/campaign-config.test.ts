@@ -20,6 +20,7 @@ describe("CampaignsFileSchema", () => {
 
     expect(dataCampaign).toMatchObject({
       id: "alternance-data-hdf",
+      name: "Data",
       romeCodes: ["M1403"],
       contractTypes: ["apprentissage", "professionnalisation", "stage", "cdi", "cdd"],
       schedule: "0 7 * * *",
@@ -64,6 +65,7 @@ describe("mapYamlCampaignToCreateInput", () => {
     expect(input).toEqual({
       userId: "user-1",
       slug: "alternance-data-hdf",
+      name: "Data",
       romeCodes: ["M1403"],
       keywords: ["data analyst", "data quality", "statistiques", "BI"],
       contractTypes: ["APPRENTISSAGE", "PROFESSIONNALISATION", "STAGE", "CDI", "CDD"],

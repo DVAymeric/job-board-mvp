@@ -137,6 +137,19 @@ describe("createCampaign", () => {
     });
   });
 
+  it("passes an optional display name through to Prisma create when provided", async () => {
+    mockAuthedAs("user-1");
+    mockGeocodingSuccess();
+    const created = { id: "c1", userId: "user-1", slug: "data-analyst", name: "Data" };
+    vi.mocked(prisma.campaign.create).mockResolvedValue(created as never);
+
+    await createCampaign({ ...validInput, name: "Data" });
+
+    expect(prisma.campaign.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ name: "Data" }) })
+    );
+  });
+
   it("retries with a numeric suffix when the generated slug collides, then succeeds", async () => {
     mockAuthedAs("user-1");
     mockGeocodingSuccess();
@@ -196,6 +209,19 @@ describe("updateCampaign", () => {
 
     expect(result).toMatchObject({ code: "VALIDATION_ERROR" });
     expect(prisma.campaign.update).not.toHaveBeenCalled();
+  });
+
+  it("passes an optional display name through to Prisma update when provided", async () => {
+    mockAuthedAs("user-1");
+    mockGeocodingSuccess();
+    const updated = { id: "c1", userId: "user-1", slug: "data-analyst", name: "Data" };
+    vi.mocked(prisma.campaign.update).mockResolvedValue(updated as never);
+
+    await updateCampaign({ ...validInput, campaignId: "c1", name: "Data" });
+
+    expect(prisma.campaign.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ name: "Data" }) })
+    );
   });
 });
 

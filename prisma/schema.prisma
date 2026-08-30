@@ -178,6 +178,10 @@ model Campaign {
   userId        String
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   slug          String
+  // Nom d'affichage optionnel, distinct du slug technique (identifiant stable généré depuis les
+  // mots-clés à la création) — retombe sur le slug dans l'UI quand absent (porté depuis
+  // job-harvester, commit 4d079b6).
+  name          String?
   romeCodes     String[]
   keywords      String[]
   contractTypes OfferContractType[]

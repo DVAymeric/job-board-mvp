@@ -31,6 +31,7 @@ export type LocationConfig = z.infer<typeof LocationConfigSchema>;
 // l'insertion.
 export const CampaignConfigSchema = z.object({
   id: z.string(),
+  name: z.string().optional(),
   romeCodes: z.array(z.string()),
   keywords: z.array(z.string()),
   locations: z.array(LocationConfigSchema),
@@ -59,6 +60,7 @@ export function mapYamlCampaignToCreateInput(
   return {
     userId,
     slug: config.id,
+    name: config.name,
     romeCodes: config.romeCodes,
     keywords: config.keywords,
     contractTypes: config.contractTypes.map((type) => CONTRACT_TYPE_TO_PRISMA_ENUM[type]),

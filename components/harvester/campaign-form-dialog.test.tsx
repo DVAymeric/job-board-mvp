@@ -19,6 +19,7 @@ const existingCampaign: Campaign = {
   id: "campaign-1",
   userId: "user-1",
   slug: "data-analyst",
+  name: "Data",
   romeCodes: ["M1403", "M1805"],
   keywords: ["data analyst"],
   contractTypes: ["APPRENTISSAGE"],
@@ -67,6 +68,43 @@ describe("CampaignFormDialog — création", () => {
     expect(screen.queryByLabelText("Latitude")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Longitude")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Ville")).toBeInTheDocument();
+  });
+
+  it("offers an optional display name field, distinct from the (absent) identifier field", () => {
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(screen.getByLabelText("Nom (optionnel)")).toBeInTheDocument();
+  });
+
+  it("submits the display name when filled in, and omits it when left blank", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Nom (optionnel)"), "Data");
+    await user.type(screen.getByLabelText("Mots-clés"), "data analyst");
+    await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
+    await user.type(screen.getByLabelText("Ville"), "Lille");
+
+    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+
+    expect(createCampaign).toHaveBeenCalledWith(expect.objectContaining({ name: "Data" }));
   });
 
   it("disables the submit button until at least one contract type is set", async () => {
@@ -268,6 +306,7 @@ describe("CampaignFormDialog — édition", () => {
     );
 
     expect(screen.getByText("Modifier la campagne")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nom (optionnel)")).toHaveValue("Data");
     expect(screen.getByRole("checkbox", { name: "Apprentissage" })).toBeChecked();
     expect(screen.getByLabelText("Ville")).toHaveValue("Lille");
     expect(screen.getByLabelText("Tenant Workday")).toHaveValue("valeo");

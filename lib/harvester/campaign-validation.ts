@@ -31,6 +31,8 @@ const campaignLocationInputSchema = z.object({
 // L'identifiant (slug) n'est plus saisi par l'utilisateur — généré côté serveur à partir des
 // mots-clés (slugifyKeywords) à la création, puis jamais modifié (campaigns.ts).
 const campaignFieldsSchema = {
+  // Nom d'affichage optionnel, distinct du slug technique — voir prisma/schema.prisma.
+  name: z.string().trim().min(1).optional(),
   romeCodes: z.array(z.string().trim().min(1)).default([]),
   keywords: z.array(z.string().trim().min(1)).default([]),
   contractTypes: z.array(z.enum(CAMPAIGN_CONTRACT_TYPES)).min(1, "Au moins un type de contrat"),
