@@ -14,7 +14,7 @@ export type GeocodedCity = {
 
 interface BanFeature {
   geometry: { coordinates: [number, number] };
-  properties: { label?: string };
+  properties: { label?: string; postcode?: string };
 }
 
 // JOB-59 (suite) : le formulaire de campagne ne demande plus qu'un nom de ville — lat/lng sont
@@ -35,7 +35,15 @@ export async function geocodeCity(query: string): Promise<GeocodedCity | null> {
   if (!feature) return null;
 
   const [lng, lat] = feature.geometry.coordinates;
-  return { label: feature.properties.label ?? query, lat, lng };
+  const bareLabel = feature.properties.label ?? query;
+  // La BAN renvoie `postcode` séparément de `label` pour une recherche `type=municipality`
+  // ("Amiens" / "80000", jamais "Amiens 80000" dans le label lui-même) — on l'ajoute ici pour
+  // que les consommateurs en aval qui dérivent un département en cherchant un code postal DANS
+  // le label (France Travail : extractDepartement, query-filter.ts) puissent le faire. Sans ça,
+  // toute campagne créée depuis le formulaire (qui ne demande qu'un nom de ville, JOB-59)
+  // échouait en direct sur France Travail avec "impossible d'extraire un code postal".
+  const label = feature.properties.postcode ? `${bareLabel} ${feature.properties.postcode}` : bareLabel;
+  return { label, lat, lng };
 }
 
 export interface LocationInput {

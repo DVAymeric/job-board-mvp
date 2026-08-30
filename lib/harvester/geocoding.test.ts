@@ -61,6 +61,35 @@ describe("geocodeCity", () => {
 
     expect(result).toBeNull();
   });
+
+  // Bug réel constaté en direct (campagne "Data", villes saisies sans code postal) : la BAN
+  // renvoie un `label` municipal sans code postal ("Amiens"), mais fournit `postcode`
+  // séparément dans la même réponse ("80000") — jusqu'ici ignoré. France Travail dérive son
+  // département en cherchant un code postal à 5 chiffres DANS le label (extractDepartement,
+  // query-filter.ts) ; sans lui, la campagne échoue en direct avec "impossible d'extraire un
+  // code postal... recherche nationale non bornée refusée" (JOB-64) pour CHAQUE ville saisie
+  // via le formulaire (qui ne demande qu'un nom de ville depuis JOB-59).
+  it("appends the postcode to the label when the BAN response provides one, so downstream postal-code extraction (France Travail) succeeds", async () => {
+    vi.mocked(safeFetch).mockResolvedValue(
+      featureCollection([
+        { geometry: { coordinates: [2.292605, 49.903041] }, properties: { label: "Amiens", postcode: "80000" } },
+      ])
+    );
+
+    const result = await geocodeCity("Amiens");
+
+    expect(result).toEqual({ label: "Amiens 80000", lat: 49.903041, lng: 2.292605 });
+  });
+
+  it("falls back to the bare label when the BAN response has no postcode", async () => {
+    vi.mocked(safeFetch).mockResolvedValue(
+      featureCollection([{ geometry: { coordinates: [3.045391, 50.630951] }, properties: { label: "Lille" } }])
+    );
+
+    const result = await geocodeCity("Lille");
+
+    expect(result).toEqual({ label: "Lille", lat: 50.630951, lng: 3.045391 });
+  });
 });
 
 describe("resolveLocations", () => {
