@@ -30,13 +30,20 @@ describe("ApplicationHeatmap", () => {
   });
 
   it("shows the represented candidature count next to each legend swatch, not just a color gradient (RGAA: never encode intensity by hue alone)", () => {
-    const jobs = Array.from({ length: 10 }, () => ({ createdAt: new Date(2026, 7, 12) }));
+    const days = buildHeatmapDays([], new Date(2026, 7, 12));
+    render(<ApplicationHeatmap days={days} />);
+    // fixed absolute scale (0 to 5+), independent of the actual data
+    for (const label of ["0", "1", "2", "3", "4", "5+"]) {
+      expect(screen.getByText(label, { selector: "[data-legend-count]" })).toBeInTheDocument();
+    }
+  });
+
+  it("keeps the same fixed 0-5+ legend regardless of how busy the busiest day in the window was (absolute scale, not relative to max)", () => {
+    const jobs = Array.from({ length: 40 }, () => ({ createdAt: new Date(2026, 7, 12) }));
     const days = buildHeatmapDays(jobs, new Date(2026, 7, 12));
     render(<ApplicationHeatmap days={days} />);
-    // max = 10 candidatures on the busiest day -> level 5 legend swatch shows "10"
-    expect(screen.getByText("10", { selector: "[data-legend-count]" })).toBeInTheDocument();
-    // the empty (level 0) swatch always reads "0"
-    expect(screen.getByText("0", { selector: "[data-legend-count]" })).toBeInTheDocument();
+    expect(screen.getByText("5+", { selector: "[data-legend-count]" })).toBeInTheDocument();
+    expect(screen.queryByText("40", { selector: "[data-legend-count]" })).not.toBeInTheDocument();
   });
 
   it("renders a 5-step intensity legend using the green --brand-positive scale (JOB-126)", () => {
@@ -56,10 +63,19 @@ describe("ApplicationHeatmap", () => {
     }
   });
 
-  it("shows the month labels row by default", () => {
+  it("shows the day's count as visible text inside each cell, not just via title/aria-label (mockup: chiffre visible dans la case)", () => {
+    const jobs = Array.from({ length: 4 }, () => ({ createdAt: new Date(2026, 7, 12) }));
+    const days = buildHeatmapDays(jobs, new Date(2026, 7, 12));
+    const { container } = render(<ApplicationHeatmap days={days} />);
+    const cell = container.querySelector('[data-heatmap-cell][title*="12 août 2026"]');
+    expect(cell).toHaveTextContent("4");
+  });
+
+  it("lays out cells on a fixed 10-column grid (3 rows for the 30-day window) that fills the full container width, not a fixed pixel size", () => {
     const days = buildHeatmapDays([], new Date(2026, 7, 12));
-    render(<ApplicationHeatmap days={days} />);
-    expect(screen.getByTestId("heatmap-month-labels")).toBeInTheDocument();
+    const { container } = render(<ApplicationHeatmap days={days} />);
+    const grid = container.querySelector("[data-heatmap-cell]")?.parentElement as HTMLElement;
+    expect(grid.style.gridTemplateColumns).toBe("repeat(10, 1fr)");
   });
 
   describe("compact mode", () => {
@@ -76,10 +92,12 @@ describe("ApplicationHeatmap", () => {
       expect(container.querySelectorAll("[data-legend-cell]")).toHaveLength(0);
     });
 
-    it("hides the month labels row", () => {
-      const days = buildHeatmapDays([], new Date(2026, 7, 12));
-      render(<ApplicationHeatmap days={days} compact />);
-      expect(screen.queryByTestId("heatmap-month-labels")).not.toBeInTheDocument();
+    it("does not show the count as text inside cells (too small to stay legible)", () => {
+      const jobs = Array.from({ length: 4 }, () => ({ createdAt: new Date(2026, 7, 12) }));
+      const days = buildHeatmapDays(jobs, new Date(2026, 7, 12));
+      const { container } = render(<ApplicationHeatmap days={days} compact />);
+      const cell = container.querySelector('[data-heatmap-cell][title*="12 août 2026"]');
+      expect(cell).toHaveTextContent("");
     });
   });
 

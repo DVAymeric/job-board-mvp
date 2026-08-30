@@ -43,7 +43,7 @@ describe("buildHeatmapDays", () => {
     expect(days.reduce((sum, d) => sum + d.count, 0)).toBe(0);
   });
 
-  it("assigns level 0 to empty days and the top level to the busiest day", () => {
+  it("assigns level 0 to empty days and the top level (5) to a day with 5 or more applications", () => {
     const today = new Date(2026, 7, 12);
     const jobs = [
       { createdAt: new Date(2026, 7, 12) },
@@ -57,11 +57,38 @@ describe("buildHeatmapDays", () => {
     expect(days.find((d) => d.date === "2026-08-12")?.level).toBe(5);
   });
 
-  it("gives any single application at least level 1 when there is no busier day", () => {
+  it("uses a fixed absolute scale (0 to 5+), not relative to the busiest day: a single application anywhere in the window is always level 1, never the top level", () => {
     const today = new Date(2026, 7, 12);
     const jobs = [{ createdAt: new Date(2026, 7, 12) }];
     const days = buildHeatmapDays(jobs, today);
+    expect(days.find((d) => d.date === "2026-08-12")?.level).toBe(1);
+  });
+
+  it("caps the level at 5 even when a day has more than 5 applications", () => {
+    const today = new Date(2026, 7, 12);
+    const jobs = Array.from({ length: 9 }, () => ({ createdAt: new Date(2026, 7, 12) }));
+    const days = buildHeatmapDays(jobs, today);
     expect(days.find((d) => d.date === "2026-08-12")?.level).toBe(5);
+  });
+
+  it("gives count 3 exactly level 3 regardless of what the busiest day in the window is", () => {
+    const today = new Date(2026, 7, 12);
+    const jobs = [
+      { createdAt: new Date(2026, 7, 12) },
+      { createdAt: new Date(2026, 7, 12) },
+      { createdAt: new Date(2026, 7, 12) },
+      // a much busier day elsewhere in the window must not compress the scale
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+      { createdAt: new Date(2026, 7, 1) },
+    ];
+    const days = buildHeatmapDays(jobs, today);
+    expect(days.find((d) => d.date === "2026-08-12")?.level).toBe(3);
   });
 
   describe("with levels: 3", () => {
