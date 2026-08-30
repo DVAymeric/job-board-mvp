@@ -30,6 +30,12 @@ describe("AccountView", () => {
     expect(screen.getByText("jane@example.com")).toBeInTheDocument();
   });
 
+  it("links to /tarifs, previously orphaned (unreachable from any nav point) — JOB-133", () => {
+    render(<AccountView email="jane@example.com" />);
+
+    expect(screen.getByRole("link", { name: /tarifs/i })).toHaveAttribute("href", "/tarifs");
+  });
+
   it("deletes the account via the shared confirmation modal and redirects home", async () => {
     const user = userEvent.setup();
     const { toast } = await import("sonner");
