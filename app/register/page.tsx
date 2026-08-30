@@ -8,7 +8,10 @@ export default function RegisterPage() {
         <div className="space-y-1">
           <h1 className="font-heading text-xl text-heading">Créer un compte</h1>
           <p className="text-sm text-muted-foreground">
-            Gratuit, avec compte — commence à suivre tes candidatures.
+            <Link href="/tarifs" className="text-primary underline underline-offset-2">
+              Gratuit
+            </Link>
+            , avec compte — commence à suivre tes candidatures.
           </p>
         </div>
         <RegisterForm />
