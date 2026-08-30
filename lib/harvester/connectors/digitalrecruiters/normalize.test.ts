@@ -43,12 +43,12 @@ describe("normalizeDigitalRecruitersOffer", () => {
     expect(offer.location.postalCode).toBe("95410");
   });
 
-  it("falls back to autre for a contract label with no apprentissage/alternance/professionnalisation wording (JOB-33 limitation)", () => {
+  it("classifies a stage contract label as stage (JOB-72)", () => {
     const items = loadFixtureItems() as Array<Record<string, unknown>>;
     const stage = items.find((item) => (item.job_ad_id as number) === 4552725)!;
     const offer = normalizeDigitalRecruitersOffer({ source: "digitalrecruiters", payload: payloadFor(stage) });
 
-    expect(offer.contractType).toBe("autre");
+    expect(offer.contractType).toBe("stage");
   });
 
   it("throws on a payload that fails schema validation", () => {
