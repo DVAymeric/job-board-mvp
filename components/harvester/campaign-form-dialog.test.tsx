@@ -360,6 +360,43 @@ describe("CampaignFormDialog — édition", () => {
     expect(deleteCampaign).toHaveBeenCalledWith({ campaignId: "campaign-1" });
     expect(onDeleted).toHaveBeenCalledWith("campaign-1");
   });
+
+  it("pre-fills a chip per existing keyword (JOB-148)", () => {
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, keywords: ["data analyst", "BI"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("data analyst")).toBeInTheDocument();
+    expect(screen.getByText("BI")).toBeInTheDocument();
+  });
+
+  it("removes a single keyword chip without touching the others, then saves the trimmed list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, keywords: ["data analyst", "BI"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retirer BI" }));
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ keywords: ["data analyst"] })
+    );
+  });
 });
 
 describe("CampaignFormDialog — échelle typographique (JOB-97)", () => {
