@@ -30,7 +30,7 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
     const failedRuns = result.data.runs.filter((run) => !run.ok);
     if (failedRuns.length > 0) {
       toast.error(
-        failedRuns.map((run) => run.errorMessage).filter(Boolean).join(" · ") || "Un connecteur a échoué pendant la collecte"
+        failedRuns.map((run) => run.errorMessage).filter(Boolean).join(" · ") || "Un connecteur a échoué pendant la recherche"
       );
     }
     if (offersCollected > 0 || failedRuns.length === 0) {
