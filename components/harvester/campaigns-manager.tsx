@@ -36,8 +36,8 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
     if (offersCollected > 0 || failedRuns.length === 0) {
       toast.success(
         offersCollected > 0
-          ? `${offersCollected} offre${offersCollected > 1 ? "s" : ""} collectée${offersCollected > 1 ? "s" : ""}`
-          : "Collecte terminée, aucune nouvelle offre"
+          ? `${offersCollected} offre${offersCollected > 1 ? "s" : ""} trouvée${offersCollected > 1 ? "s" : ""}`
+          : "Recherche terminée, aucune nouvelle offre"
       );
     }
   }
@@ -46,12 +46,12 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
     <div className="space-y-4">
       <Button onClick={() => setSelected("new")}>
         <Plus className="size-3.5" />
-        Nouvelle campagne
+        Nouvelle alerte
       </Button>
 
       {campaigns.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune campagne pour le moment — créez-en une pour commencer à collecter des offres.
+          Aucune alerte pour le moment — créez-en une pour commencer à recevoir des offres.
         </p>
       ) : (
         <ul className="space-y-2">
@@ -84,7 +84,7 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
                 onClick={() => handleTrigger(campaign.id)}
               >
                 {triggeringId === campaign.id ? <Loader2 className="animate-spin" /> : <Play className="size-3.5" />}
-                Lancer la collecte
+                Chercher des offres
               </Button>
             </li>
           ))}

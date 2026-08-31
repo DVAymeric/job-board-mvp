@@ -12,7 +12,7 @@ describe("ReviewQueueCard", () => {
     render(<ReviewQueueCard pendingCount={12} />);
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.queryByTestId("review-queue-empty")).not.toBeInTheDocument();
-    const link = screen.getByRole("button", { name: /voir la file de revue/i });
+    const link = screen.getByRole("button", { name: /voir les nouvelles offres/i });
     expect(link).toHaveAttribute("href", "/harvester/review");
   });
 });

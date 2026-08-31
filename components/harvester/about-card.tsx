@@ -2,11 +2,11 @@ import { BentoCard } from "@/components/ui/bento-card";
 
 export function AboutCard() {
   return (
-    <BentoCard span="2x1" tone="muted" label="Harvester" title="Collecte automatisée d'offres">
+    <BentoCard span="2x1" tone="muted" label="Alertes emploi" title="Trouvez des offres automatiquement">
       <p>
-        Configurez des campagnes (mots-clés, zones, types de contrat) pour collecter des offres
-        depuis France Travail, La Bonne Alternance, Workday et SmartRecruiters, puis importez
-        celles qui vous intéressent directement dans votre board.
+        Créez des alertes (mots-clés, zones, types de contrat) pour trouver des offres depuis
+        France Travail, La Bonne Alternance, Workday et SmartRecruiters, puis ajoutez à votre
+        suivi celles qui vous intéressent directement depuis votre board.
       </p>
     </BentoCard>
   );

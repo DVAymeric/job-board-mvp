@@ -180,10 +180,10 @@ export function CampaignFormDialog({
     }
     if (isNew) {
       onCreated(result.data.campaign);
-      toast.success("Campagne créée");
+      toast.success("Alerte créée");
     } else {
       onUpdated(result.data.campaign);
-      toast.success("Campagne mise à jour");
+      toast.success("Alerte mise à jour");
     }
   }
 
@@ -195,7 +195,7 @@ export function CampaignFormDialog({
       return false;
     }
     onDeleted(existing.id);
-    toast.success("Campagne supprimée");
+    toast.success("Alerte supprimée");
     return true;
   }
 
@@ -203,9 +203,9 @@ export function CampaignFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-full max-w-lg flex-col sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Nouvelle campagne" : "Modifier la campagne"}</DialogTitle>
+          <DialogTitle>{isNew ? "Nouvelle alerte" : "Modifier l'alerte"}</DialogTitle>
           <DialogDescription>
-            Mots-clés, zones géographiques et types de contrat visés par cette collecte.
+            Mots-clés, zones géographiques et types de contrat visés par cette alerte.
           </DialogDescription>
         </DialogHeader>
 
@@ -400,8 +400,8 @@ export function CampaignFormDialog({
                   Supprimer
                 </Button>
               }
-              title="Supprimer cette campagne ?"
-              description={`La campagne "${existing?.slug}" et les offres déjà collectées associées seront définitivement supprimées.`}
+              title="Supprimer cette alerte ?"
+              description={`L'alerte "${existing?.slug}" et les offres déjà trouvées associées seront définitivement supprimées.`}
               onConfirm={handleDelete}
             />
           )}
@@ -411,7 +411,7 @@ export function CampaignFormDialog({
             aria-describedby={formError ? formErrorId : undefined}
           >
             {saving && <Loader2 className="animate-spin" />}
-            {isNew ? "Créer la campagne" : "Enregistrer"}
+            {isNew ? "Créer l'alerte" : "Enregistrer"}
           </Button>
         </DialogFooter>
       </DialogContent>

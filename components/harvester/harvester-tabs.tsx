@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 
 const TABS = [
   { href: "/harvester", label: "Vue d'ensemble" },
-  { href: "/harvester/campaigns", label: "Campagnes" },
-  { href: "/harvester/review", label: "File de revue" },
+  { href: "/harvester/campaigns", label: "Alertes" },
+  { href: "/harvester/review", label: "Nouvelles offres" },
   { href: "/harvester/discovery", label: "Cibles découvertes" },
 ] as const;
 

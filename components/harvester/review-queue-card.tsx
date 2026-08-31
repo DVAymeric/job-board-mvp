@@ -8,17 +8,16 @@ interface ReviewQueueCardProps {
 
 export function ReviewQueueCard({ pendingCount }: ReviewQueueCardProps) {
   return (
-    <BentoCard span="1x2" tone="accent" label="À traiter" title="File de revue">
+    <BentoCard span="1x2" tone="accent" label="À traiter" title="Nouvelles offres">
       <div className="flex h-full flex-col gap-3">
         {pendingCount > 0 ? (
           <p>
             <span className="font-heading text-2xl text-white">{pendingCount}</span> offre
-            {pendingCount > 1 ? "s" : ""} collectée{pendingCount > 1 ? "s" : ""} en attente
-            d&apos;import.
+            {pendingCount > 1 ? "s" : ""} trouvée{pendingCount > 1 ? "s" : ""} en attente.
           </p>
         ) : (
           <p data-testid="review-queue-empty">
-            Aucune offre en attente — lancez une collecte depuis une campagne pour en trouver.
+            Aucune offre en attente — lancez une recherche depuis une alerte pour en trouver.
           </p>
         )}
         <Button
@@ -27,7 +26,7 @@ export function ReviewQueueCard({ pendingCount }: ReviewQueueCardProps) {
           size="sm"
           className="mt-auto self-start"
         >
-          Voir la file de revue
+          Voir les nouvelles offres
         </Button>
       </div>
     </BentoCard>

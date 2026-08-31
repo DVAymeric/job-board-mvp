@@ -8,17 +8,17 @@ interface CampaignsCardProps {
 
 export function CampaignsCard({ count }: CampaignsCardProps) {
   return (
-    <BentoCard span="1x2" tone="dark" label="Collecte" title="Campagnes">
+    <BentoCard span="1x2" tone="dark" label="Recherche" title="Alertes">
       <div className="flex h-full flex-col gap-3">
         {count > 0 ? (
           <p>
             <span className="font-heading text-2xl text-white">{count}</span>{" "}
-            campagne{count > 1 ? "s" : ""} configurée{count > 1 ? "s" : ""}.
+            alerte{count > 1 ? "s" : ""} active{count > 1 ? "s" : ""}.
           </p>
         ) : (
           <p data-testid="campaigns-empty">
-            Aucune campagne pour le moment — configurez des mots-clés, zones et types de
-            contrat pour lancer une première collecte.
+            Aucune alerte pour le moment — configurez des mots-clés, zones et types de
+            contrat pour lancer une première recherche.
           </p>
         )}
         <Button
@@ -27,7 +27,7 @@ export function CampaignsCard({ count }: CampaignsCardProps) {
           size="sm"
           className="mt-auto self-start"
         >
-          {count > 0 ? "Gérer les campagnes" : "Créer une campagne"}
+          {count > 0 ? "Gérer mes alertes" : "Créer une alerte"}
         </Button>
       </div>
     </BentoCard>
