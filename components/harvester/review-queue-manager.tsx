@@ -201,7 +201,7 @@ export function ReviewQueueManager({
         )
       ) : (
         <ul
-          aria-label="Offres collectées"
+          aria-label="Offres trouvées"
           aria-busy={isPaginating}
           className="space-y-2"
         >
@@ -240,7 +240,7 @@ export function ReviewQueueManager({
                         onClick={() => handleImport(offer.id)}
                         className="flex-1 md:flex-none"
                       >
-                        {pending && <Loader2 className="animate-spin" />}
+                        {pending && <Loader2 className="animate-spin" aria-hidden="true" />}
                         Ajouter à mon suivi
                       </Button>
                       <Button

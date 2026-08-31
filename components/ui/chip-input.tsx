@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FocusEvent, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export function ChipInput({
     }
   }
 
-  function handleBlur(_event: FocusEvent<HTMLInputElement>) {
+  function handleBlur() {
     if (draft.trim()) commitDraft();
   }
 

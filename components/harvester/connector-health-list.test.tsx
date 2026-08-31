@@ -24,7 +24,7 @@ function makeRun(overrides: Partial<ConnectorRun> = {}): ConnectorRun {
 describe("ConnectorHealthList", () => {
   it("shows an empty state when no run exists yet", () => {
     render(<ConnectorHealthList runs={[]} />);
-    expect(screen.getByText(/Aucune collecte lancée/)).toBeInTheDocument();
+    expect(screen.getByText(/Aucune recherche lancée/)).toBeInTheDocument();
   });
 
   it("shows a healthy indicator with the connector label and offer count", () => {
@@ -107,7 +107,7 @@ describe("ConnectorHealthList", () => {
         }}
       />
     );
-    expect(screen.queryByText(/Aucune collecte lancée/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Aucune recherche lancée/)).not.toBeInTheDocument();
     expect(screen.getByText("Welcome to the Jungle")).toBeInTheDocument();
     expect(screen.getByText(/Jamais lancé/)).toBeInTheDocument();
     expect(screen.getByTestId("connector-live-status")).toHaveAttribute("data-ok", "false");

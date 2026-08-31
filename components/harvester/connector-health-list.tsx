@@ -1,15 +1,10 @@
 import type { ConnectorRun } from "@prisma/client";
 import { ConnectorBadge } from "@/components/ui/connector-badge";
+import { SOURCE_LABELS } from "@/lib/harvester/source-labels";
 import type { ConnectorHealth } from "@/lib/harvester/timed-health-check";
 
 const CONNECTOR_LABELS: Record<string, string> = {
-  francetravail: "France Travail",
-  labonnealternance: "La Bonne Alternance",
-  workday: "Workday",
-  smartrecruiters: "SmartRecruiters",
-  welcometothejungle: "Welcome to the Jungle",
-  talentsoft: "Talentsoft",
-  digitalrecruiters: "DigitalRecruiters",
+  ...SOURCE_LABELS,
   "jsonld-generic": "Générique (JSON-LD)",
   "sitemap-crawler": "Générique (sitemap)",
 };
@@ -56,7 +51,7 @@ export function ConnectorHealthList({
   if (runs.length === 0 && liveOnlyIds.length === 0) {
     return (
       <p className="text-base text-muted-foreground">
-        Aucune collecte lancée pour le moment.
+        Aucune recherche lancée pour le moment.
       </p>
     );
   }

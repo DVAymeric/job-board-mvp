@@ -229,7 +229,7 @@ describe("ReviewQueueManager", () => {
       useLinkStatusMock.mockReturnValue({ pending: true });
       render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
 
-      expect(screen.getByRole("list", { name: /offres collectées/i })).toHaveAttribute(
+      expect(screen.getByRole("list", { name: /offres trouvées/i })).toHaveAttribute(
         "aria-busy",
         "true"
       );
@@ -239,7 +239,7 @@ describe("ReviewQueueManager", () => {
       useLinkStatusMock.mockReturnValue({ pending: false });
       render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
 
-      expect(screen.getByRole("list", { name: /offres collectées/i })).toHaveAttribute(
+      expect(screen.getByRole("list", { name: /offres trouvées/i })).toHaveAttribute(
         "aria-busy",
         "false"
       );
@@ -266,7 +266,7 @@ describe("ReviewQueueManager", () => {
 
       expect(screen.getByText("Dev Web")).toBeInTheDocument();
       expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
-      expect(screen.getByRole("list", { name: /offres collectées/i })).toHaveAttribute(
+      expect(screen.getByRole("list", { name: /offres trouvées/i })).toHaveAttribute(
         "aria-busy",
         "false"
       );
