@@ -57,15 +57,18 @@ function ReviewQueueCardSkeleton() {
 export function ReviewQueueManager({
   initialOffers,
   nextCursor,
+  campaigns = [],
 }: {
   initialOffers: HarvestedOffer[];
   nextCursor: string | null;
+  campaigns?: { id: string; name: string | null; slug: string }[];
 }) {
   const [offers, setOffers] = useState(initialOffers);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [city, setCity] = useState("");
   const [contractType, setContractType] = useState(CONTRACT_TYPE_ALL);
   const [search, setSearch] = useState("");
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState<Set<string>>(new Set());
   // JOB-117 : reflète le useLinkStatus du lien "Page suivante" — voir
   // NextPagePendingBridge plus haut.
   const [isPaginating, setIsPaginating] = useState(false);
@@ -78,9 +81,10 @@ export function ReviewQueueManager({
         const haystack = `${offer.title} ${offer.companyName}`.toLowerCase();
         if (!haystack.includes(search.toLowerCase())) return false;
       }
+      if (selectedCampaignIds.size > 0 && !selectedCampaignIds.has(offer.campaignId)) return false;
       return true;
     });
-  }, [offers, city, contractType, search]);
+  }, [offers, city, contractType, search, selectedCampaignIds]);
 
   function removeOffer(id: string) {
     setOffers((prev) => prev.filter((o) => o.id !== id));
@@ -147,6 +151,32 @@ export function ReviewQueueManager({
           className="w-48"
         />
       </div>
+
+      {campaigns.length >= 2 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {campaigns.map((campaign) => {
+            const selected = selectedCampaignIds.has(campaign.id);
+            return (
+              <Button
+                key={campaign.id}
+                type="button"
+                variant={selected ? "default" : "outline"}
+                size="xs"
+                onClick={() =>
+                  setSelectedCampaignIds((prev) => {
+                    const next = new Set(prev);
+                    if (selected) next.delete(campaign.id);
+                    else next.add(campaign.id);
+                    return next;
+                  })
+                }
+              >
+                {campaign.name ?? campaign.slug}
+              </Button>
+            );
+          })}
+        </div>
+      )}
 
       {filteredOffers.length === 0 ? (
         offers.length === 0 ? (

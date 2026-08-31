@@ -272,4 +272,72 @@ describe("ReviewQueueManager", () => {
       );
     });
   });
+
+  describe("filtre par campagne (JOB-154)", () => {
+    const campaigns = [
+      { id: "campaign-1", name: "Data Lille", slug: "data-lille" },
+      { id: "campaign-2", name: null, slug: "dev-paris" },
+    ];
+
+    it("does not show a campaign pill row when the user has a single campaign", () => {
+      render(
+        <ReviewQueueManager
+          initialOffers={[makeOffer()]}
+          nextCursor={null}
+          campaigns={[campaigns[0]!]}
+        />
+      );
+      expect(screen.queryByRole("button", { name: "Data Lille" })).not.toBeInTheDocument();
+    });
+
+    it("shows one pill per campaign when the user has 2 or more", () => {
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} campaigns={campaigns} />);
+      expect(screen.getByRole("button", { name: "Data Lille" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "dev-paris" })).toBeInTheDocument();
+    });
+
+    it("filters offers to a single selected campaign", async () => {
+      const user = userEvent.setup();
+      const offers = [
+        makeOffer({ id: "o1", campaignId: "campaign-1" }),
+        makeOffer({ id: "o2", campaignId: "campaign-2", title: "Dev web" }),
+      ];
+      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+
+      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
+      expect(screen.queryByText("Dev web")).not.toBeInTheDocument();
+    });
+
+    it("selecting multiple campaign pills unions their offers", async () => {
+      const user = userEvent.setup();
+      const offers = [
+        makeOffer({ id: "o1", campaignId: "campaign-1" }),
+        makeOffer({ id: "o2", campaignId: "campaign-2", title: "Dev web" }),
+      ];
+      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+      await user.click(screen.getByRole("button", { name: "dev-paris" }));
+
+      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
+      expect(screen.getByText("Dev web")).toBeInTheDocument();
+    });
+
+    it("combines the campaign filter (OR within category) with the city filter (AND across categories)", async () => {
+      const user = userEvent.setup();
+      const offers = [
+        makeOffer({ id: "o1", campaignId: "campaign-1", city: "Lille" }),
+        makeOffer({ id: "o2", campaignId: "campaign-1", city: "Paris", title: "Dev Lille bis" }),
+      ];
+      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+      await user.type(screen.getByLabelText("Filtrer par ville"), "Paris");
+
+      expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
+      expect(screen.getByText("Dev Lille bis")).toBeInTheDocument();
+    });
+  });
 });
