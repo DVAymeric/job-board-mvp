@@ -50,7 +50,7 @@ describe("CampaignFormDialog — création", () => {
       />
     );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("Nouvelle campagne")).toBeInTheDocument();
+    expect(screen.getByText("Nouvelle alerte")).toBeInTheDocument();
   });
 
   it("does not ask for an identifier or ROME codes — keywords and a city are enough", () => {
@@ -102,7 +102,7 @@ describe("CampaignFormDialog — création", () => {
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
     await user.type(screen.getByLabelText("Ville"), "Lille");
 
-    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+    await user.click(screen.getByRole("button", { name: "Créer l'alerte" }));
 
     expect(createCampaign).toHaveBeenCalledWith(expect.objectContaining({ name: "Data" }));
   });
@@ -119,10 +119,10 @@ describe("CampaignFormDialog — création", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Créer la campagne" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Créer l'alerte" })).toBeDisabled();
 
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
-    expect(screen.getByRole("button", { name: "Créer la campagne" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Créer l'alerte" })).not.toBeDisabled();
   });
 
   it(
@@ -146,7 +146,7 @@ describe("CampaignFormDialog — création", () => {
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
     await user.type(screen.getByLabelText("Ville"), "Lille");
 
-    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+    await user.click(screen.getByRole("button", { name: "Créer l'alerte" }));
 
     expect(createCampaign).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -182,7 +182,7 @@ describe("CampaignFormDialog — création", () => {
     await user.click(screen.getByRole("checkbox", { name: "Stage" }));
     await user.type(screen.getByLabelText("Ville"), "Lille");
 
-    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+    await user.click(screen.getByRole("button", { name: "Créer l'alerte" }));
 
     expect(createCampaign).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -217,7 +217,7 @@ describe("CampaignFormDialog — création", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
     await user.type(screen.getByLabelText("Ville"), "Villeinexistante");
-    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+    await user.click(screen.getByRole("button", { name: "Créer l'alerte" }));
 
     expect(onCreated).not.toHaveBeenCalled();
     },
@@ -246,7 +246,7 @@ describe("CampaignFormDialog — création", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
 
-    const submitButton = screen.getByRole("button", { name: "Créer la campagne" });
+    const submitButton = screen.getByRole("button", { name: "Créer l'alerte" });
     await user.click(submitButton);
 
     const alert = await screen.findByRole("alert");
@@ -280,7 +280,7 @@ describe("CampaignFormDialog — création", () => {
 
     await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
 
-    const submitButton = screen.getByRole("button", { name: "Créer la campagne" });
+    const submitButton = screen.getByRole("button", { name: "Créer l'alerte" });
     await user.click(submitButton);
     expect(await screen.findByRole("alert")).toBeInTheDocument();
 
@@ -305,7 +305,7 @@ describe("CampaignFormDialog — édition", () => {
       />
     );
 
-    expect(screen.getByText("Modifier la campagne")).toBeInTheDocument();
+    expect(screen.getByText("Modifier l'alerte")).toBeInTheDocument();
     expect(screen.getByLabelText("Nom (optionnel)")).toHaveValue("Data");
     expect(screen.getByRole("checkbox", { name: "Apprentissage" })).toBeChecked();
     expect(screen.getByLabelText("Ville")).toHaveValue("Lille");
@@ -359,6 +359,43 @@ describe("CampaignFormDialog — édition", () => {
 
     expect(deleteCampaign).toHaveBeenCalledWith({ campaignId: "campaign-1" });
     expect(onDeleted).toHaveBeenCalledWith("campaign-1");
+  });
+
+  it("pre-fills a chip per existing keyword (JOB-148)", () => {
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, keywords: ["data analyst", "BI"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("data analyst")).toBeInTheDocument();
+    expect(screen.getByText("BI")).toBeInTheDocument();
+  });
+
+  it("removes a single keyword chip without touching the others, then saves the trimmed list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, keywords: ["data analyst", "BI"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retirer BI" }));
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ keywords: ["data analyst"] })
+    );
   });
 });
 

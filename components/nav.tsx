@@ -30,7 +30,7 @@ const LINKS = [
   { href: "/board", label: "Board", prefetch: false },
   { href: "/recherche", label: "Recherche", prefetch: false },
   { href: "/analytics", label: "Analytics", prefetch: false },
-  { href: "/harvester", label: "Harvester", prefetch: false },
+  { href: "/harvester", label: "Alertes", prefetch: false },
 ] as const;
 
 const noopSubscribe = () => () => {};

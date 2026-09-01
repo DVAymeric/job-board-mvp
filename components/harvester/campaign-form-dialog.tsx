@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ChipInput } from "@/components/ui/chip-input";
 import { Button } from "@/components/ui/button";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { createCampaign, updateCampaign, deleteCampaign } from "@/app/actions/campaigns";
@@ -92,7 +93,7 @@ export function CampaignFormDialog({
   const existing = isNew ? null : campaign;
 
   const [name, setName] = useState(existing?.name ?? "");
-  const [keywords, setKeywords] = useState((existing?.keywords ?? []).join(", "));
+  const [keywords, setKeywords] = useState<string[]>(existing?.keywords ?? []);
   const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
     (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
   );
@@ -147,7 +148,7 @@ export function CampaignFormDialog({
 
     return {
       name: name.trim() || undefined,
-      keywords: splitCommaList(keywords),
+      keywords,
       contractTypes,
       locations: parsedLocations,
       targets: hasTargets
@@ -179,10 +180,10 @@ export function CampaignFormDialog({
     }
     if (isNew) {
       onCreated(result.data.campaign);
-      toast.success("Campagne créée");
+      toast.success("Alerte créée");
     } else {
       onUpdated(result.data.campaign);
-      toast.success("Campagne mise à jour");
+      toast.success("Alerte mise à jour");
     }
   }
 
@@ -194,7 +195,7 @@ export function CampaignFormDialog({
       return false;
     }
     onDeleted(existing.id);
-    toast.success("Campagne supprimée");
+    toast.success("Alerte supprimée");
     return true;
   }
 
@@ -202,9 +203,9 @@ export function CampaignFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-full max-w-lg flex-col sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Nouvelle campagne" : "Modifier la campagne"}</DialogTitle>
+          <DialogTitle>{isNew ? "Nouvelle alerte" : "Modifier l'alerte"}</DialogTitle>
           <DialogDescription>
-            Mots-clés, zones géographiques et types de contrat visés par cette collecte.
+            Mots-clés, zones géographiques et types de contrat visés par cette alerte.
           </DialogDescription>
         </DialogHeader>
 
@@ -226,10 +227,10 @@ export function CampaignFormDialog({
             <label htmlFor="campaign-keywords" className="text-base font-medium">
               Mots-clés
             </label>
-            <Input
+            <ChipInput
               id="campaign-keywords"
-              value={keywords}
-              onChange={(e) => setKeywords(e.target.value)}
+              values={keywords}
+              onChange={setKeywords}
               placeholder="data analyst, BI"
               disabled={saving}
             />
@@ -399,8 +400,8 @@ export function CampaignFormDialog({
                   Supprimer
                 </Button>
               }
-              title="Supprimer cette campagne ?"
-              description={`La campagne "${existing?.slug}" et les offres déjà collectées associées seront définitivement supprimées.`}
+              title="Supprimer cette alerte ?"
+              description={`L'alerte "${existing?.slug}" et les offres déjà trouvées associées seront définitivement supprimées.`}
               onConfirm={handleDelete}
             />
           )}
@@ -410,7 +411,7 @@ export function CampaignFormDialog({
             aria-describedby={formError ? formErrorId : undefined}
           >
             {saving && <Loader2 className="animate-spin" />}
-            {isNew ? "Créer la campagne" : "Enregistrer"}
+            {isNew ? "Créer l'alerte" : "Enregistrer"}
           </Button>
         </DialogFooter>
       </DialogContent>

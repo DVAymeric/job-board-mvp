@@ -16,7 +16,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
-  const [offersPage, connectorRuns, pendingOfferCount, discoveredTargetCount] = await Promise.all([
+  const [offersPage, connectorRuns, pendingOfferCount, discoveredTargetCount, campaigns] = await Promise.all([
     prisma.harvestedOffer.findMany({
       where: { userId, importedJobId: null, ignoredAt: null },
       orderBy: { firstSeenAt: "desc" },
@@ -30,6 +30,11 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
     }),
     getPendingOfferCount(userId),
     getPendingDiscoveredTargetCount(userId),
+    prisma.campaign.findMany({
+      where: { userId },
+      select: { id: true, name: true, slug: true },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   const hasNextPage = offersPage.length > PAGE_SIZE;
@@ -39,9 +44,9 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-4 p-4">
       <PageHeader
-        eyebrow="Harvester"
-        title="File de revue"
-        subtitle="Offres collectées non encore traitées — importez-les vers le board ou ignorez-les."
+        eyebrow="Alertes emploi"
+        title="Nouvelles offres"
+        subtitle="Offres trouvées par vos alertes — ajoutez-les à votre suivi ou passez."
       />
       <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
       <ConnectorHealthPanel runs={connectorRuns} />
@@ -50,7 +55,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
           dernière (nextCursor devient null), le bouton "Page suivante" et son
           NextPagePendingBridge disparaissent du JSX sans jamais avoir repassé isPaginating à
           false, laissant le tableau bloqué en état de chargement indéfiniment. */}
-      <ReviewQueueManager key={cursor ?? "first-page"} initialOffers={offers} nextCursor={nextCursor} />
+      <ReviewQueueManager key={cursor ?? "first-page"} initialOffers={offers} nextCursor={nextCursor} campaigns={campaigns} />
     </div>
   );
 }

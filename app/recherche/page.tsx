@@ -19,7 +19,7 @@ export default async function RecherchePage() {
       <PageHeader
         eyebrow="Recherche"
         title="Recherche d'offres"
-        subtitle="Parcourez les offres déjà collectées pour vous par le Harvester."
+        subtitle="Parcourez les offres déjà trouvées pour vous par vos alertes."
       />
       <OfferSearch
         offers={result.ok ? result.offers : []}

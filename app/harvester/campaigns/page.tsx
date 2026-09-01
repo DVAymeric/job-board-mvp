@@ -22,9 +22,9 @@ export default async function HarvesterCampaignsPage() {
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-4 p-4">
       <PageHeader
-        eyebrow="Harvester"
-        title="Campagnes"
-        subtitle="Mots-clés, zones géographiques et types de contrat visés par chaque collecte."
+        eyebrow="Alertes emploi"
+        title="Alertes"
+        subtitle="Mots-clés, zones géographiques et types de contrat visés par chaque alerte."
       />
       <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
       <CampaignsManager initialCampaigns={campaigns} />

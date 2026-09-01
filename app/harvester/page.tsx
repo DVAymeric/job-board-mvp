@@ -19,9 +19,9 @@ export default async function HarvesterPage() {
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-4 p-4">
       <PageHeader
-        eyebrow="Collecte automatisée"
-        title="Harvester"
-        subtitle="Campagnes de recherche et offres collectées en attente de revue."
+        eyebrow="Alertes emploi"
+        title="Vue d'ensemble"
+        subtitle="Alertes actives et nouvelles offres en attente."
       />
       <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
       <HarvesterOverview campaignCount={campaignCount} pendingOfferCount={pendingOfferCount} />

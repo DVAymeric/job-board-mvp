@@ -14,12 +14,6 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
-// JOB-117 : la pagination "Page suivante" est un vrai <Link> Next.js
-// (navigation App Router, pas un fetch client), donc son état "en attente"
-// se lit via useLinkStatus (recommandé par Next.js précisément quand
-// prefetch={false}, ce qui est déjà le cas ici). On mocke ce hook pour
-// piloter l'état pending depuis les tests, sans dépendre d'une vraie
-// navigation (impossible à simuler fidèlement en jsdom).
 const { useLinkStatusMock } = vi.hoisted(() => ({
   useLinkStatusMock: vi.fn(() => ({ pending: false })),
 }));
@@ -91,21 +85,13 @@ describe("ReviewQueueManager", () => {
     expect(emptyState).toHaveTextContent(/tout est à jour/i);
   });
 
-  it("pairs the icon with a word in the empty state, never an icon alone (JOB-120)", () => {
-    render(<ReviewQueueManager initialOffers={[]} nextCursor={null} />);
-    const emptyState = screen.getByTestId("review-queue-empty-state");
-    const icon = emptyState.querySelector("svg");
-    expect(icon).toBeInTheDocument();
-    expect(emptyState).toHaveTextContent(/tout est à jour/i);
-  });
-
   it("uses body-text size (16px, JOB-87) for the empty-state message", () => {
     render(<ReviewQueueManager initialOffers={[]} nextCursor={null} />);
     const message = screen.getByText(/aucune offre n.attend votre revue/i);
     expect(message.className).toMatch(/\btext-base\b/);
   });
 
-  it("lists offers with title, company, city and source", () => {
+  it("lists offers with title, company, city and a readable source label", () => {
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
     expect(screen.getByRole("link", { name: "Data Analyst" })).toHaveAttribute(
       "href",
@@ -113,31 +99,38 @@ describe("ReviewQueueManager", () => {
     );
     expect(screen.getByText("Acme")).toBeInTheDocument();
     expect(screen.getByText("Lille")).toBeInTheDocument();
+    expect(screen.getByText("SmartRecruiters")).toBeInTheDocument();
+    expect(screen.queryByText("smartrecruiters")).not.toBeInTheDocument();
   });
 
-  it("removes an offer from the list and shows a success toast after import", async () => {
+  it("falls back to the raw code for an unregistered source", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer({ source: "mystere" })]} nextCursor={null} />);
+    expect(screen.getByText("mystere")).toBeInTheDocument();
+  });
+
+  it("adds an offer to the user's tracker and shows a success toast (JOB-149 vocabulary)", async () => {
     const user = userEvent.setup();
     vi.mocked(importHarvestedOffer).mockResolvedValue({ ok: true, data: { jobId: "job-1" } });
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
 
-    await user.click(screen.getByRole("button", { name: "Importer" }));
+    await user.click(screen.getByRole("button", { name: "Ajouter à mon suivi" }));
 
     expect(importHarvestedOffer).toHaveBeenCalledWith({ offerId: "offer-1" });
     expect(await screen.findByText(/[Tt]out est à jour/)).toBeInTheDocument();
   });
 
-  it("removes an offer from the list after ignoring it, without a success toast", async () => {
+  it("removes an offer from the list after passing on it, without a success toast", async () => {
     const user = userEvent.setup();
     vi.mocked(ignoreHarvestedOffer).mockResolvedValue({ ok: true, data: null });
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
 
-    await user.click(screen.getByRole("button", { name: "Ignorer" }));
+    await user.click(screen.getByRole("button", { name: "Passer" }));
 
     expect(ignoreHarvestedOffer).toHaveBeenCalledWith({ offerId: "offer-1" });
     expect(await screen.findByText(/[Tt]out est à jour/)).toBeInTheDocument();
   });
 
-  it("keeps the offer in the list and shows an error toast when import fails", async () => {
+  it("keeps the offer in the list and shows an error toast when adding to the tracker fails", async () => {
     const user = userEvent.setup();
     vi.mocked(importHarvestedOffer).mockResolvedValue({
       ok: false,
@@ -146,7 +139,7 @@ describe("ReviewQueueManager", () => {
     });
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
 
-    await user.click(screen.getByRole("button", { name: "Importer" }));
+    await user.click(screen.getByRole("button", { name: "Ajouter à mon suivi" }));
 
     expect(screen.getByText("Data Analyst")).toBeInTheDocument();
   });
@@ -162,26 +155,27 @@ describe("ReviewQueueManager", () => {
     expect(screen.getByText("Dev web")).toBeInTheDocument();
   });
 
-  it(
-    "selects and bulk-imports multiple offers",
-    async () => {
-      const user = userEvent.setup();
-      vi.mocked(importHarvestedOffer).mockResolvedValue({ ok: true, data: { jobId: "job-1" } });
-      const offers = [makeOffer({ id: "o1" }), makeOffer({ id: "o2", title: "Dev web" })];
-      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} />);
+  it("filters the list by contract type using the design-system Select", async () => {
+    const user = userEvent.setup();
+    const offers = [
+      makeOffer({ id: "o1", contractType: "APPRENTISSAGE" }),
+      makeOffer({ id: "o2", contractType: "STAGE", title: "Stagiaire data" }),
+    ];
+    render(<ReviewQueueManager initialOffers={offers} nextCursor={null} />);
 
-      await user.click(screen.getByRole("checkbox", { name: "Sélectionner Data Analyst" }));
-      await user.click(screen.getByRole("checkbox", { name: "Sélectionner Dev web" }));
-      expect(screen.getByText("2 offre(s) sélectionnée(s)")).toBeInTheDocument();
+    await user.click(screen.getByRole("combobox", { name: "Filtrer par type de contrat" }));
+    await user.click(await screen.findByRole("option", { name: "Stage" }));
 
-      await user.click(screen.getByRole("button", { name: "Importer la sélection" }));
+    expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
+    expect(screen.getByText("Stagiaire data")).toBeInTheDocument();
+  });
 
-      expect(importHarvestedOffer).toHaveBeenCalledWith({ offerId: "o1" });
-      expect(importHarvestedOffer).toHaveBeenCalledWith({ offerId: "o2" });
-      expect(await screen.findByText(/[Tt]out est à jour/)).toBeInTheDocument();
-    },
-    10000
-  );
+  it("has no table/row semantics and no selection checkboxes left (JOB-152)", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByRole("row")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+  });
 
   it("shows a next-page link with the given cursor", () => {
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
@@ -196,29 +190,23 @@ describe("ReviewQueueManager", () => {
     expect(screen.queryByRole("button", { name: "Page suivante" })).not.toBeInTheDocument();
   });
 
-  it("renders the import action as the positive accent button, same size as Ignorer (JOB-100)", () => {
+  it("renders the tracker action as the positive accent button, same height as Passer (JOB-100)", () => {
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
-    const importButton = screen.getByRole("button", { name: "Importer" });
-    const ignoreButton = screen.getByRole("button", { name: "Ignorer" });
+    const importButton = screen.getByRole("button", { name: "Ajouter à mon suivi" });
+    const ignoreButton = screen.getByRole("button", { name: "Passer" });
     expect(importButton.className).toMatch(/bg-brand-positive/);
     expect(importButton.className).toMatch(/\bh-11\b/);
     expect(ignoreButton.className).toMatch(/\bh-11\b/);
   });
 
-  it("shows the offer source as an explicit tag badge, never a logo alone (JOB-100)", () => {
-    render(<ReviewQueueManager initialOffers={[makeOffer({ source: "smartrecruiters" })]} nextCursor={null} />);
-    const sourceEl = screen.getByText("smartrecruiters");
-    expect(sourceEl.className).toMatch(/bg-pill-bg/);
-  });
-
-  it("signals interactivity on hover on each offer row (JOB-114)", () => {
+  it("signals interactivity on hover on each offer card (JOB-114)", () => {
     render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
-    const row = screen.getByRole("row", { name: /Data Analyst/ });
-    expect(row.className).toMatch(/hover:bg-muted/);
+    const card = screen.getByText("Data Analyst").closest("li");
+    expect(card?.className).toMatch(/hover:bg-muted/);
   });
 
   describe("loading state while navigating to the next page (JOB-117)", () => {
-    it("keeps the real offer rows and an enabled next-page button when no navigation is pending", () => {
+    it("keeps the real offer cards and an enabled next-page button when no navigation is pending", () => {
       useLinkStatusMock.mockReturnValue({ pending: false });
       render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
 
@@ -226,108 +214,38 @@ describe("ReviewQueueManager", () => {
       expect(screen.getByRole("button", { name: "Page suivante" })).not.toBeDisabled();
     });
 
-    it("replaces the offer rows with row skeletons and disables the CTA while the next page is loading", () => {
+    it("replaces the offer cards with skeletons and disables the CTA while the next page is loading", () => {
       useLinkStatusMock.mockReturnValue({ pending: true });
       render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
 
       expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
-      // Le CTA est un <a> (base-ui Button rendu comme Link) : `disabled`
-      // n'existe pas nativement sur un lien, base-ui l'exprime via
-      // aria-disabled (toBeDisabled() de jest-dom ne couvre que les vrais
-      // éléments de formulaire, jamais les liens).
       expect(screen.getByRole("button", { name: "Page suivante" })).toHaveAttribute(
         "aria-disabled",
         "true"
       );
     });
 
-    it("marks the offer table as busy for assistive tech while the next page is loading", () => {
+    it("marks the offer list as busy for assistive tech while the next page is loading", () => {
       useLinkStatusMock.mockReturnValue({ pending: true });
       render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor="offer-25" />);
 
-      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+      expect(screen.getByRole("list", { name: /offres trouvées/i })).toHaveAttribute(
         "aria-busy",
         "true"
       );
     });
 
-    it("renders one skeleton row per currently visible offer, to keep the same table height (no CLS)", () => {
-      useLinkStatusMock.mockReturnValue({ pending: true });
-      const offers = [makeOffer({ id: "o1" }), makeOffer({ id: "o2", title: "Dev web" })];
-      const { container } = render(
-        <ReviewQueueManager initialOffers={offers} nextCursor="offer-25" />
-      );
-
-      const skeletonRows = container.querySelectorAll('[role="row"] [data-slot="skeleton"]');
-      expect(skeletonRows.length).toBeGreaterThan(0);
-      // Les lignes squelettes sont décoratives (aria-hidden, comme
-      // Skeleton lui-même) donc absentes de l'arbre d'accessibilité — on
-      // les compte directement dans le DOM plutôt que via getAllByRole.
-      const skeletonRowElements = container.querySelectorAll(
-        '[role="row"][aria-hidden="true"]'
-      );
-      expect(skeletonRowElements).toHaveLength(offers.length);
-    });
-
-    it("does not show a busy/disabled state when there is no next page", () => {
+    it("does not show a busy state when there is no next page", () => {
       useLinkStatusMock.mockReturnValue({ pending: false });
       render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
 
-      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+      expect(screen.getByRole("list", { name: /offres trouvées/i })).toHaveAttribute(
         "aria-busy",
         "false"
       );
     });
 
-    // Bug réel constaté en direct : sur une file de 48 offres (page 1 = 25, page 2 = les 23
-    // restantes), "Page suivante" affiche un tableau qui reste indéfiniment en état de
-    // chargement. Cause racine : `<ReviewQueueManager>` n'est pas re-monté entre deux pages
-    // (app/harvester/review/page.tsx ne lui passait aucune `key` liée au curseur), donc
-    // `useState(initialOffers)` ne se resynchronise jamais sur un simple re-render — ET, quand
-    // la nouvelle page est la DERNIÈRE (nextCursor devient null), le bloc `{nextCursor && (...)}`
-    // qui contient `NextPagePendingBridge` (seul responsable de repasser isPaginating à false)
-    // disparaît du JSX en même temps que le bouton, sans jamais avoir eu la main pour le faire.
-    // Le fix (page.tsx) est de passer `key={cursor}` à ce composant pour forcer un remontage
-    // complet à chaque changement de page — ce test caractérise le mécanisme exact que ce fix
-    // doit contourner : sans changement de clé, ni les offres ni l'état de chargement ne se
-    // resynchronisent, même quand le parent transmet de nouvelles props.
-    it("without a key change from the parent, stays stuck showing stale offers and never clears the loading indicator once the pending Link unmounts (root cause of the 'stuck loading forever' bug)", () => {
-      useLinkStatusMock.mockReturnValue({ pending: true });
-      const { rerender } = render(
-        <ReviewQueueManager
-          initialOffers={[makeOffer({ id: "o1", title: "Data Analyst" })]}
-          nextCursor="offer-25"
-        />
-      );
-      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
-        "aria-busy",
-        "true"
-      );
-
-      // La navigation aboutit : page.tsx re-rend avec les offres de la page 2 (23 restantes sur
-      // 48) et nextCursor=null (dernière page) — mais SANS clé changeante, donc SANS remontage.
-      useLinkStatusMock.mockReturnValue({ pending: false });
-      rerender(
-        <ReviewQueueManager
-          initialOffers={[makeOffer({ id: "o2", title: "Dev Web" })]}
-          nextCursor={null}
-        />
-      );
-
-      // Le bug : toujours "en chargement" (le bridge qui aurait remis isPaginating à false a
-      // disparu avec le bouton), donc toujours des lignes squelettes — ni le titre de la page 1
-      // (useState ne s'est jamais resynchronisé, mais isPaginating=true masque son propre
-      // affichage) ni celui de la page 2 (jamais monté) ne sont visibles. C'est précisément le
-      // "tableau vide, comme toujours en chargement" rapporté : aucun contenu réel, indéfiniment.
-      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
-        "aria-busy",
-        "true"
-      );
-      expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
-      expect(screen.queryByText("Dev Web")).not.toBeInTheDocument();
-    });
-
-    it("with a key change from the parent (the actual fix), shows the new page's offers and clears the loading indicator", () => {
+    it("with a key change from the parent, shows the new page's offers and clears the loading indicator", () => {
       useLinkStatusMock.mockReturnValue({ pending: true });
       const { rerender } = render(
         <ReviewQueueManager
@@ -348,10 +266,78 @@ describe("ReviewQueueManager", () => {
 
       expect(screen.getByText("Dev Web")).toBeInTheDocument();
       expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
-      expect(screen.getByRole("table", { name: /offres collectées/i })).toHaveAttribute(
+      expect(screen.getByRole("list", { name: /offres trouvées/i })).toHaveAttribute(
         "aria-busy",
         "false"
       );
+    });
+  });
+
+  describe("filtre par campagne (JOB-154)", () => {
+    const campaigns = [
+      { id: "campaign-1", name: "Data Lille", slug: "data-lille" },
+      { id: "campaign-2", name: null, slug: "dev-paris" },
+    ];
+
+    it("does not show a campaign pill row when the user has a single campaign", () => {
+      render(
+        <ReviewQueueManager
+          initialOffers={[makeOffer()]}
+          nextCursor={null}
+          campaigns={[campaigns[0]!]}
+        />
+      );
+      expect(screen.queryByRole("button", { name: "Data Lille" })).not.toBeInTheDocument();
+    });
+
+    it("shows one pill per campaign when the user has 2 or more", () => {
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} campaigns={campaigns} />);
+      expect(screen.getByRole("button", { name: "Data Lille" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "dev-paris" })).toBeInTheDocument();
+    });
+
+    it("filters offers to a single selected campaign", async () => {
+      const user = userEvent.setup();
+      const offers = [
+        makeOffer({ id: "o1", campaignId: "campaign-1" }),
+        makeOffer({ id: "o2", campaignId: "campaign-2", title: "Dev web" }),
+      ];
+      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+
+      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
+      expect(screen.queryByText("Dev web")).not.toBeInTheDocument();
+    });
+
+    it("selecting multiple campaign pills unions their offers", async () => {
+      const user = userEvent.setup();
+      const offers = [
+        makeOffer({ id: "o1", campaignId: "campaign-1" }),
+        makeOffer({ id: "o2", campaignId: "campaign-2", title: "Dev web" }),
+      ];
+      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+      await user.click(screen.getByRole("button", { name: "dev-paris" }));
+
+      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
+      expect(screen.getByText("Dev web")).toBeInTheDocument();
+    });
+
+    it("combines the campaign filter (OR within category) with the city filter (AND across categories)", async () => {
+      const user = userEvent.setup();
+      const offers = [
+        makeOffer({ id: "o1", campaignId: "campaign-1", city: "Lille" }),
+        makeOffer({ id: "o2", campaignId: "campaign-1", city: "Paris", title: "Dev Lille bis" }),
+      ];
+      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+      await user.type(screen.getByLabelText("Filtrer par ville"), "Paris");
+
+      expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
+      expect(screen.getByText("Dev Lille bis")).toBeInTheDocument();
     });
   });
 });
