@@ -63,7 +63,7 @@ export function DiscoveredTargetsManager({ initialTargets }: { initialTargets: D
       >
         <p className="font-heading text-lg text-heading">Aucune cible découverte</p>
         <p className="max-w-md text-base text-muted-foreground">
-          Lancez une recherche manuelle depuis une alerte — de nouvelles cibles apparaîtront ici
+          Lancez une recherche manuelle depuis une campagne — de nouvelles cibles apparaîtront ici
           si des entreprises déjà vues publient aussi sur Workday, SmartRecruiters, Talentsoft ou
           DigitalRecruiters.
         </p>

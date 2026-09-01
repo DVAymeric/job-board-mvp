@@ -39,7 +39,7 @@ export default async function RecherchePage(props: PageProps<"/recherche">) {
         <PageHeader
           eyebrow="Recherche"
           title="Recherche d'offres"
-          subtitle="Parcourez les offres déjà trouvées pour vous par vos alertes."
+          subtitle="Parcourez les offres déjà trouvées pour vous par vos campagnes."
         />
         <OfferSearch offers={[]} signedOut initialCriteria={initialCriteria} />
       </div>
@@ -57,7 +57,7 @@ export default async function RecherchePage(props: PageProps<"/recherche">) {
       <PageHeader
         eyebrow="Recherche"
         title="Recherche d'offres"
-        subtitle="Parcourez les offres déjà trouvées pour vous par vos alertes."
+        subtitle="Parcourez les offres déjà trouvées pour vous par vos campagnes."
       />
       <OfferSearch
         offers={result.ok ? result.offers : []}

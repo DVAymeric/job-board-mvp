@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { BellRing, ChevronDown, CircleUser, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { ChevronDown, CircleUser, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,21 +25,18 @@ import { cn } from "@/lib/utils";
 // logout, le serveur le traite comme authentifié et réémet un cookie de
 // session valide, ressuscitant la session juste effacée. "/" n'est pas
 // protégée, aucun risque à la préfetcher.
-// JOB-142 : "Alertes" (ex-"Harvester") n'est plus un lien de nav principal —
-// vocabulaire de back-office pour un visiteur grand public, et la Recherche
-// est la fonctionnalité à mettre en avant. La route /harvester nécessite de
-// toute façon un compte : elle reste accessible depuis le menu Compte (voir
-// ACCOUNT_LINKS plus bas), pas supprimée.
+// JOB-142 (corrigé) : "Campagnes" (ex-"Harvester") reste un lien de nav
+// principal, visible dès l'arrivée sur le site — c'est le cœur de l'app
+// (l'utilisateur crée sa campagne, on parcourt les sites pour lui). Seul le
+// vocabulaire technique change ("Harvester" -> "Campagnes"), pas la
+// visibilité : le déplacer dans le menu Compte était une mauvaise lecture
+// du ticket d'origine.
 const LINKS = [
   { href: "/", label: "Accueil", prefetch: undefined },
   { href: "/recherche", label: "Recherche", prefetch: false },
+  { href: "/harvester", label: "Campagnes", prefetch: false },
   { href: "/board", label: "Board", prefetch: false },
   { href: "/analytics", label: "Analytics", prefetch: false },
-] as const;
-
-const ACCOUNT_LINKS = [
-  { href: "/account", label: "Mon compte", icon: CircleUser },
-  { href: "/harvester", label: "Alertes", icon: BellRing },
 ] as const;
 
 const noopSubscribe = () => () => {};
@@ -128,18 +125,15 @@ function MobileMenu({
           </nav>
           {session?.user ? (
             <div className="flex flex-col gap-1 border-t border-border pt-4">
-              {ACCOUNT_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  prefetch={false}
-                  onClick={close}
-                  className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-heading"
-                >
-                  <link.icon />
-                  {link.label}
-                </Link>
-              ))}
+              <Link
+                href="/account"
+                prefetch={false}
+                onClick={close}
+                className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-heading"
+              >
+                <CircleUser />
+                Mon compte
+              </Link>
               <form action={logoutAction}>
                 <button
                   type="submit"
@@ -265,12 +259,10 @@ export function Nav({ session }: { session: Session | null }) {
               }
             />
             <DropdownMenuContent align="end">
-              {ACCOUNT_LINKS.map((link) => (
-                <DropdownMenuItem key={link.href} render={<Link href={link.href} prefetch={false} />}>
-                  <link.icon />
-                  {link.label}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuItem render={<Link href="/account" prefetch={false} />}>
+                <CircleUser />
+                Mon compte
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <form action={logoutAction} className="contents">
                 <DropdownMenuItem

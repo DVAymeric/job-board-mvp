@@ -6,7 +6,7 @@ describe("CampaignsCard", () => {
   it("shows an empty state and a create CTA when there are no campaigns", () => {
     render(<CampaignsCard count={0} />);
     expect(screen.getByTestId("campaigns-empty")).toBeInTheDocument();
-    const link = screen.getByRole("button", { name: /créer une alerte/i });
+    const link = screen.getByRole("button", { name: /créer une campagne/i });
     expect(link).toHaveAttribute("href", "/harvester/campaigns");
   });
 
@@ -14,6 +14,6 @@ describe("CampaignsCard", () => {
     render(<CampaignsCard count={3} />);
     expect(screen.getByText("3")).toBeInTheDocument();
     expect(screen.queryByTestId("campaigns-empty")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /gérer mes alertes/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /gérer mes campagnes/i })).toBeInTheDocument();
   });
 });

@@ -46,12 +46,12 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
     <div className="space-y-4">
       <Button onClick={() => setSelected("new")}>
         <Plus className="size-3.5" />
-        Nouvelle alerte
+        Nouvelle campagne
       </Button>
 
       {campaigns.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune alerte pour le moment — créez-en une pour commencer à recevoir des offres.
+          Aucune campagne pour le moment — créez-en une pour commencer à recevoir des offres.
         </p>
       ) : (
         <ul className="space-y-2">

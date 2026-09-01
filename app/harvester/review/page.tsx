@@ -42,9 +42,9 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
   return (
     <div className="mx-auto w-full max-w-[1280px] space-y-4 p-4">
       <PageHeader
-        eyebrow="Alertes emploi"
+        eyebrow="Campagnes"
         title="Nouvelles offres"
-        subtitle="Offres trouvées par vos alertes — ajoutez-les à votre suivi ou passez."
+        subtitle="Offres trouvées par vos campagnes — ajoutez-les à votre suivi ou passez."
       />
       <HarvesterTabs reviewQueueCount={pendingOfferCount} />
       <ConnectorHealthPanel runs={connectorRuns} />

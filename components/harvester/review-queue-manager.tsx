@@ -191,7 +191,7 @@ export function ReviewQueueManager({
             <p className="max-w-md text-base text-muted-foreground">
               Aucune offre n&apos;attend votre revue pour le moment. Revenez
               après la prochaine recherche, ou lancez-en une manuellement
-              depuis vos alertes.
+              depuis vos campagnes.
             </p>
           </div>
         ) : (

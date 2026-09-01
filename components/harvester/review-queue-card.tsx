@@ -17,7 +17,7 @@ export function ReviewQueueCard({ pendingCount }: ReviewQueueCardProps) {
           </p>
         ) : (
           <p data-testid="review-queue-empty">
-            Aucune offre en attente — lancez une recherche depuis une alerte pour en trouver.
+            Aucune offre en attente — lancez une recherche depuis une campagne pour en trouver.
           </p>
         )}
         <Button

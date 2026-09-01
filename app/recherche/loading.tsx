@@ -20,7 +20,7 @@ export default function Loading() {
       <PageHeader
         eyebrow="Recherche"
         title="Recherche d'offres"
-        subtitle="Parcourez les offres déjà trouvées pour vous par vos alertes."
+        subtitle="Parcourez les offres déjà trouvées pour vous par vos campagnes."
       />
       <div aria-busy="true" aria-label="Chargement des offres" className="space-y-4">
         {/* Squelette du SearchForm : mêmes classes de disposition

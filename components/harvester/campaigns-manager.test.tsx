@@ -37,7 +37,7 @@ const campaign: Campaign = {
 describe("CampaignsManager", () => {
   it("shows an empty state when there are no campaigns", () => {
     render(<CampaignsManager initialCampaigns={[]} />);
-    expect(screen.getByText(/Aucune alerte pour le moment/)).toBeInTheDocument();
+    expect(screen.getByText(/Aucune campagne pour le moment/)).toBeInTheDocument();
   });
 
   it("lists existing campaigns with their contract types", () => {
@@ -56,9 +56,9 @@ describe("CampaignsManager", () => {
     const user = userEvent.setup();
     render(<CampaignsManager initialCampaigns={[]} />);
 
-    await user.click(screen.getByRole("button", { name: /nouvelle alerte/i }));
+    await user.click(screen.getByRole("button", { name: /nouvelle campagne/i }));
 
-    expect(screen.getByRole("heading", { name: "Nouvelle alerte" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Nouvelle campagne" })).toBeInTheDocument();
   });
 
   it("opens the edit dialog when a campaign row is clicked", async () => {
@@ -67,7 +67,7 @@ describe("CampaignsManager", () => {
 
     await user.click(screen.getByText("alternance-data-hdf"));
 
-    expect(screen.getByText("Modifier l'alerte")).toBeInTheDocument();
+    expect(screen.getByText("Modifier la campagne")).toBeInTheDocument();
   });
 
   it(
@@ -77,13 +77,13 @@ describe("CampaignsManager", () => {
       vi.mocked(createCampaign).mockResolvedValue({ ok: true, data: { campaign } });
       render(<CampaignsManager initialCampaigns={[]} />);
 
-      await user.click(screen.getByRole("button", { name: /nouvelle alerte/i }));
+      await user.click(screen.getByRole("button", { name: /nouvelle campagne/i }));
       await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
       await user.type(screen.getByLabelText("Ville"), "Lille");
-      await user.click(screen.getByRole("button", { name: "Créer l'alerte" }));
+      await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
 
       expect(await screen.findByText("alternance-data-hdf")).toBeInTheDocument();
-      expect(screen.queryByText(/Aucune alerte pour le moment/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Aucune campagne pour le moment/)).not.toBeInTheDocument();
     },
     10000
   );
@@ -97,7 +97,7 @@ describe("CampaignsManager", () => {
     await user.click(screen.getByRole("button", { name: "Supprimer" }));
     await user.click(screen.getByRole("button", { name: "Confirmer la suppression" }));
 
-    expect(await screen.findByText(/Aucune alerte pour le moment/)).toBeInTheDocument();
+    expect(await screen.findByText(/Aucune campagne pour le moment/)).toBeInTheDocument();
   });
 
   it("triggers a manual collection and shows the number of offers collected", async () => {
@@ -112,7 +112,7 @@ describe("CampaignsManager", () => {
 
     expect(triggerCampaignCollection).toHaveBeenCalledWith({ campaignId: "campaign-1" });
     // The dialog never opens for a trigger click, unlike clicking the row itself.
-    expect(screen.queryByText("Modifier l'alerte")).not.toBeInTheDocument();
+    expect(screen.queryByText("Modifier la campagne")).not.toBeInTheDocument();
   });
 
   it("shows a visible error when a connector run fails, instead of a silent server-only log (JOB-64)", async () => {

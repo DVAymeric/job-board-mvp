@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 // accessible par lien direct — voir docs/decisions/2026-09-01-cibles-decouvertes-navigation.md.
 const TABS = [
   { href: "/harvester", label: "Vue d'ensemble" },
-  { href: "/harvester/campaigns", label: "Alertes" },
+  { href: "/harvester/campaigns", label: "Campagnes" },
   { href: "/harvester/review", label: "Nouvelles offres" },
 ] as const;
 

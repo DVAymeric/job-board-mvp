@@ -1,7 +1,22 @@
 # Vocabulaire grand public pour la section Harvester (JOB-149, JOB-150)
 
 **Date** : 2026-08-31
-**Statut** : Tranché
+**Statut** : Tranché, corrigé le 2026-09-01
+
+## Correction (2026-09-01)
+
+Le lexique ci-dessous et le ticket JOB-142 (nav) ont été mal interprétés à l'exécution :
+"Alertes" a remplacé "Campagne(s)/Harvester" **et** le lien est passé du niveau principal de la
+nav au menu Compte. Or la demande d'origine était de renommer le vocabulaire technique tout en
+**gardant le lien visible tôt dans la nav principale** — c'est le cœur de l'app (l'utilisateur
+crée sa recherche, l'app parcourt de nombreux sites pour lui), pas une fonctionnalité annexe à
+ranger dans un sous-menu.
+
+Corrigé : "Alerte(s)" → **"Campagne(s)"** partout (nav, onglets, formulaire, toasts, pages
+Harvester, `/recherche`), et le lien de nav principal ("Campagnes", `/harvester`) restauré au
+même niveau que Recherche/Board/Analytics, juste après Recherche. Le reste du lexique
+(Lancer la collecte → Chercher des offres, File de revue → Nouvelles offres, Importer → Ajouter
+à mon suivi, Ignorer → Passer) n'a pas été remis en cause et reste en vigueur.
 
 ## Contexte
 
@@ -20,8 +35,8 @@ Harvester (nav, titres de page, libellés de bouton, messages d'état, toasts) a
 
 | Ancien terme | Nouveau terme |
 |---|---|
-| Harvester (nav, titres de page) | Alertes emploi (nav : "Alertes") |
-| Campagne(s) | Alerte(s) |
+| Harvester (nav, titres de page) | Campagnes (visible dans la nav principale, voir correction ci-dessus) |
+| Campagne(s) | Campagne(s) — inchangé, seul "Harvester" était du jargon |
 | Lancer la collecte | Chercher des offres |
 | File de revue | Nouvelles offres |
 | Importer / "vers le board" | Ajouter à mon suivi |

@@ -86,7 +86,7 @@ const SCHEDULE_OPTIONS = [
 ] as const;
 type ScheduleOptionValue = (typeof SCHEDULE_OPTIONS)[number]["value"] | "CUSTOM";
 
-// Une alerte existante peut porter une expression cron qui ne correspond à
+// Une campagne existante peut porter une expression cron qui ne correspond à
 // aucun des choix simplifiés ci-dessus (créée avant ce formulaire, ou par un
 // autre outil) — plutôt que de la perdre silencieusement, on la préserve
 // telle quelle sous un choix "Personnalisé" non modifiable dans cette UI.
@@ -119,7 +119,7 @@ export function CampaignFormDialog({
   );
   const [locations, setLocations] = useState<LocationInput[]>(locationsFromCampaign(existing));
   // JOB-151 : plus aucune UI n'édite les cibles Workday/SmartRecruiters
-  // (configuration technique par connecteur) — mais une alerte existante qui
+  // (configuration technique par connecteur) — mais une campagne existante qui
   // en avait déjà les conserve telles quelles, round-trippées sans perte à
   // chaque enregistrement.
   const [workdayTargets] = useState<WorkdayTargetInput[]>(workdayTargetsFromCampaign(existing));
@@ -204,10 +204,10 @@ export function CampaignFormDialog({
     }
     if (isNew) {
       onCreated(result.data.campaign);
-      toast.success("Alerte créée");
+      toast.success("Campagne créée");
     } else {
       onUpdated(result.data.campaign);
-      toast.success("Alerte mise à jour");
+      toast.success("Campagne mise à jour");
     }
   }
 
@@ -219,7 +219,7 @@ export function CampaignFormDialog({
       return false;
     }
     onDeleted(existing.id);
-    toast.success("Alerte supprimée");
+    toast.success("Campagne supprimée");
     return true;
   }
 
@@ -227,9 +227,9 @@ export function CampaignFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-full max-w-lg flex-col sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Nouvelle alerte" : "Modifier l'alerte"}</DialogTitle>
+          <DialogTitle>{isNew ? "Nouvelle campagne" : "Modifier la campagne"}</DialogTitle>
           <DialogDescription>
-            Mots-clés, zones géographiques et types de contrat visés par cette alerte.
+            Mots-clés, zones géographiques et types de contrat visés par cette campagne.
           </DialogDescription>
         </DialogHeader>
 
@@ -374,8 +374,8 @@ export function CampaignFormDialog({
                   Supprimer
                 </Button>
               }
-              title="Supprimer cette alerte ?"
-              description={`L'alerte "${existing?.slug}" et les offres déjà trouvées associées seront définitivement supprimées.`}
+              title="Supprimer cette campagne ?"
+              description={`La campagne "${existing?.slug}" et les offres déjà trouvées associées seront définitivement supprimées.`}
               onConfirm={handleDelete}
             />
           )}
@@ -385,7 +385,7 @@ export function CampaignFormDialog({
             aria-describedby={formError ? formErrorId : undefined}
           >
             {saving && <Loader2 className="animate-spin" />}
-            {isNew ? "Créer l'alerte" : "Enregistrer"}
+            {isNew ? "Créer la campagne" : "Enregistrer"}
           </Button>
         </DialogFooter>
       </DialogContent>

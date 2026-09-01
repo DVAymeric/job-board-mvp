@@ -37,7 +37,7 @@ export function OfferSearch({
    * `offers` est alors toujours vide ; ce indicateur distingue ce cas d'un
    * vrai "aucun résultat pour vos critères" pour ne jamais laisser un
    * visiteur croire que ses filtres sont trop stricts alors qu'il n'y a
-   * simplement encore aucune alerte associée à son compte.
+   * simplement encore aucune campagne associée à son compte.
    */
   signedOut?: boolean;
   /**
@@ -82,9 +82,9 @@ export function OfferSearch({
             data-testid="offer-search-signed-out"
             className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-8 text-center"
           >
-            <p className="font-heading text-lg text-heading">Créez votre alerte pour voir des offres</p>
+            <p className="font-heading text-lg text-heading">Créez votre campagne pour voir des offres</p>
             <p className="max-w-md text-base text-muted-foreground">
-              Les offres affichées ici viennent des alertes emploi que vous créez. Connectez-vous
+              Les offres affichées ici viennent des campagnes que vous créez. Connectez-vous
               ou créez un compte gratuit pour lancer la vôtre et voir ce qu&apos;elle trouve.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
