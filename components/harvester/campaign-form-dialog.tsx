@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ChipInput } from "@/components/ui/chip-input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { createCampaign, updateCampaign, deleteCampaign } from "@/app/actions/campaigns";
 import {
@@ -37,7 +38,6 @@ interface WorkdayTargetInput {
 }
 
 const EMPTY_LOCATION: LocationInput = { label: "", radiusKm: "30" };
-const EMPTY_WORKDAY_TARGET: WorkdayTargetInput = { tenant: "", site: "", dc: "" };
 
 // Le nom de ville suffit ici — lat/lng ne sont plus saisis, résolus côté serveur (géocodage,
 // JOB-59 suite). `config.locations` en base reste au format complet (avec lat/lng) : seul le
@@ -76,6 +76,26 @@ function splitCommaList(value: string): string[] {
     .filter((v) => v.length > 0);
 }
 
+// JOB-151 : la planification reste une expression cron en base (aucune
+// migration de schéma), mais un utilisateur grand public n'a jamais à en
+// écrire une — le formulaire ne propose que ces choix en langage naturel.
+const SCHEDULE_OPTIONS = [
+  { value: "NONE", label: "Manuelle uniquement", cron: undefined },
+  { value: "DAILY", label: "Tous les jours (7h)", cron: "0 7 * * *" },
+  { value: "WEEKLY", label: "Toutes les semaines (lundi 7h)", cron: "0 7 * * 1" },
+] as const;
+type ScheduleOptionValue = (typeof SCHEDULE_OPTIONS)[number]["value"] | "CUSTOM";
+
+// Une alerte existante peut porter une expression cron qui ne correspond à
+// aucun des choix simplifiés ci-dessus (créée avant ce formulaire, ou par un
+// autre outil) — plutôt que de la perdre silencieusement, on la préserve
+// telle quelle sous un choix "Personnalisé" non modifiable dans cette UI.
+function scheduleOptionFromCron(cron: string | null | undefined): ScheduleOptionValue {
+  if (!cron) return "NONE";
+  const match = SCHEDULE_OPTIONS.find((option) => option.cron === cron);
+  return match ? match.value : "CUSTOM";
+}
+
 export function CampaignFormDialog({
   campaign,
   onOpenChange,
@@ -98,11 +118,16 @@ export function CampaignFormDialog({
     (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
   );
   const [locations, setLocations] = useState<LocationInput[]>(locationsFromCampaign(existing));
-  const [workdayTargets, setWorkdayTargets] = useState<WorkdayTargetInput[]>(
-    workdayTargetsFromCampaign(existing)
+  // JOB-151 : plus aucune UI n'édite les cibles Workday/SmartRecruiters
+  // (configuration technique par connecteur) — mais une alerte existante qui
+  // en avait déjà les conserve telles quelles, round-trippées sans perte à
+  // chaque enregistrement.
+  const [workdayTargets] = useState<WorkdayTargetInput[]>(workdayTargetsFromCampaign(existing));
+  const [smartrecruiters] = useState(smartrecruitersFromCampaign(existing));
+  const [scheduleOption, setScheduleOption] = useState<ScheduleOptionValue>(
+    scheduleOptionFromCron(existing?.schedule)
   );
-  const [smartrecruiters, setSmartrecruiters] = useState(smartrecruitersFromCampaign(existing));
-  const [schedule, setSchedule] = useState(existing?.schedule ?? "");
+  const [rawSchedule] = useState(existing?.schedule ?? undefined);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const formErrorRef = useRef<HTMLDivElement>(null);
@@ -129,10 +154,6 @@ export function CampaignFormDialog({
     setLocations((prev) => prev.map((loc, i) => (i === index ? { ...loc, ...patch } : loc)));
   }
 
-  function updateWorkdayTarget(index: number, patch: Partial<WorkdayTargetInput>) {
-    setWorkdayTargets((prev) => prev.map((t, i) => (i === index ? { ...t, ...patch } : t)));
-  }
-
   function buildPayload() {
     const parsedLocations = locations
       .filter((loc) => loc.label.trim())
@@ -157,7 +178,10 @@ export function CampaignFormDialog({
             ...(smartrecruitersSlugs.length > 0 ? { smartrecruiters: smartrecruitersSlugs } : {}),
           }
         : undefined,
-      schedule: schedule.trim() || undefined,
+      schedule:
+        scheduleOption === "CUSTOM"
+          ? rawSchedule
+          : SCHEDULE_OPTIONS.find((option) => option.value === scheduleOption)?.cron,
     };
   }
 
@@ -300,83 +324,33 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-base font-medium">Cibles Workday (optionnel)</span>
-            <div className="space-y-2">
-              {workdayTargets.map((target, index) => (
-                <div key={index} className="flex flex-wrap items-center gap-1.5">
-                  <Input
-                    aria-label="Tenant Workday"
-                    value={target.tenant}
-                    onChange={(e) => updateWorkdayTarget(index, { tenant: e.target.value })}
-                    placeholder="tenant"
-                    className="w-24"
-                    disabled={saving}
-                  />
-                  <Input
-                    aria-label="Site Workday"
-                    value={target.site}
-                    onChange={(e) => updateWorkdayTarget(index, { site: e.target.value })}
-                    placeholder="site"
-                    className="w-24"
-                    disabled={saving}
-                  />
-                  <Input
-                    aria-label="Datacenter Workday"
-                    value={target.dc}
-                    onChange={(e) => updateWorkdayTarget(index, { dc: e.target.value })}
-                    placeholder="dc"
-                    className="w-20"
-                    disabled={saving}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Retirer cette cible Workday"
-                    onClick={() => setWorkdayTargets((prev) => prev.filter((_, i) => i !== index))}
-                    disabled={saving}
-                  >
-                    <X className="size-3.5" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setWorkdayTargets((prev) => [...prev, { ...EMPTY_WORKDAY_TARGET }])}
-                disabled={saving}
-              >
-                <Plus className="size-3.5" />
-                Ajouter une cible Workday
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="campaign-smartrecruiters" className="text-base font-medium">
-              Cibles SmartRecruiters (optionnel)
-            </label>
-            <Input
-              id="campaign-smartrecruiters"
-              value={smartrecruiters}
-              onChange={(e) => setSmartrecruiters(e.target.value)}
-              placeholder="MAZARS, TOTALENERGIES"
-              disabled={saving}
-            />
-          </div>
-
-          <div className="space-y-1.5">
             <label htmlFor="campaign-schedule" className="text-base font-medium">
-              Planification (optionnel)
+              Fréquence de recherche
             </label>
-            <Input
-              id="campaign-schedule"
-              value={schedule}
-              onChange={(e) => setSchedule(e.target.value)}
-              placeholder="0 7 * * * (expression cron)"
-              disabled={saving}
-            />
+            <Select
+              value={scheduleOption}
+              onValueChange={(value) => setScheduleOption((value ?? "NONE") as ScheduleOptionValue)}
+            >
+              <SelectTrigger id="campaign-schedule" className="!h-11 w-full" disabled={saving}>
+                <SelectValue>
+                  {(value: ScheduleOptionValue) =>
+                    value === "CUSTOM"
+                      ? "Personnalisé"
+                      : (SCHEDULE_OPTIONS.find((option) => option.value === value)?.label ?? value)
+                  }
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {SCHEDULE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+                {scheduleOption === "CUSTOM" && (
+                  <SelectItem value="CUSTOM">Personnalisé</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

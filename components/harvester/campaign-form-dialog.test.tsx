@@ -309,8 +309,6 @@ describe("CampaignFormDialog — édition", () => {
     expect(screen.getByLabelText("Nom (optionnel)")).toHaveValue("Data");
     expect(screen.getByRole("checkbox", { name: "Apprentissage" })).toBeChecked();
     expect(screen.getByLabelText("Ville")).toHaveValue("Lille");
-    expect(screen.getByLabelText("Tenant Workday")).toHaveValue("valeo");
-    expect(screen.getByLabelText("Cibles SmartRecruiters (optionnel)")).toHaveValue("MAZARS");
   });
 
   it("calls updateCampaign with the campaignId (no slug) and calls onUpdated on success", async () => {
@@ -395,6 +393,142 @@ describe("CampaignFormDialog — édition", () => {
 
     expect(updateCampaign).toHaveBeenCalledWith(
       expect.objectContaining({ keywords: ["data analyst"] })
+    );
+  });
+});
+
+describe("CampaignFormDialog — masquer les réglages techniques par connecteur (JOB-151)", () => {
+  it("never shows Workday target fields, SmartRecruiters targets, or a raw cron field", () => {
+    render(
+      <CampaignFormDialog
+        campaign={existingCampaign}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByLabelText("Tenant Workday")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Site Workday")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Datacenter Workday")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Cibles SmartRecruiters (optionnel)")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/expression cron/i)).not.toBeInTheDocument();
+  });
+
+  it("offers a natural-language schedule select defaulting to manual-only for a new alert", () => {
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("combobox", { name: "Fréquence de recherche" })).toHaveTextContent(
+      "Manuelle uniquement"
+    );
+  });
+
+  it("pre-selects the matching natural-language option from an existing cron expression", () => {
+    render(
+      <CampaignFormDialog
+        campaign={existingCampaign}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("combobox", { name: "Fréquence de recherche" })).toHaveTextContent(
+      "Tous les jours (7h)"
+    );
+  });
+
+  it("submits the matching cron expression for the chosen natural-language schedule", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Mots-clés"), "data analyst{Enter}");
+    await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
+    await user.type(screen.getByLabelText("Ville"), "Lille");
+
+    await user.click(screen.getByRole("combobox", { name: "Fréquence de recherche" }));
+    await user.click(await screen.findByRole("option", { name: "Toutes les semaines (lundi 7h)" }));
+
+    await user.click(screen.getByRole("button", { name: "Créer l'alerte" }));
+
+    expect(createCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ schedule: "0 7 * * 1" })
+    );
+  });
+
+  it(
+    "preserves an existing alert's Workday/SmartRecruiters targets on save, even though the form never exposes them",
+    async () => {
+      const user = userEvent.setup();
+      vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+      render(
+        <CampaignFormDialog
+          campaign={existingCampaign}
+          onOpenChange={vi.fn()}
+          onCreated={vi.fn()}
+          onUpdated={vi.fn()}
+          onDeleted={vi.fn()}
+        />
+      );
+
+      await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+      expect(updateCampaign).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targets: {
+            workday: [{ tenant: "valeo", site: "valeo_jobs", dc: "wd3" }],
+            smartrecruiters: ["MAZARS"],
+          },
+        })
+      );
+    },
+    10000
+  );
+
+  it("preserves an unrecognized existing cron expression unchanged, under a 'Personnalisé' option", async () => {
+    const user = userEvent.setup();
+    const customScheduleCampaign = { ...existingCampaign, schedule: "0 3 * * 3" };
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: customScheduleCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={customScheduleCampaign}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("combobox", { name: "Fréquence de recherche" })).toHaveTextContent(
+      "Personnalisé"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ schedule: "0 3 * * 3" })
     );
   });
 });
