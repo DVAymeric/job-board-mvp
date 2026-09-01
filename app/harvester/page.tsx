@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPendingOfferCount } from "@/lib/harvester/pending-offer-count";
-import { getPendingDiscoveredTargetCount } from "@/lib/harvester/pending-discovered-target-count";
 import { PageHeader } from "@/components/page-header";
 import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
 import { HarvesterOverview } from "@/components/harvester/harvester-overview";
@@ -10,10 +9,9 @@ export default async function HarvesterPage() {
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
-  const [campaignCount, pendingOfferCount, discoveredTargetCount] = await Promise.all([
+  const [campaignCount, pendingOfferCount] = await Promise.all([
     prisma.campaign.count({ where: { userId } }),
     getPendingOfferCount(userId),
-    getPendingDiscoveredTargetCount(userId),
   ]);
 
   return (
@@ -23,7 +21,7 @@ export default async function HarvesterPage() {
         title="Vue d'ensemble"
         subtitle="Alertes actives et nouvelles offres en attente."
       />
-      <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
+      <HarvesterTabs reviewQueueCount={pendingOfferCount} />
       <HarvesterOverview campaignCount={campaignCount} pendingOfferCount={pendingOfferCount} />
     </div>
   );

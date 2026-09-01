@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getPendingOfferCount } from "@/lib/harvester/pending-offer-count";
-import { getPendingDiscoveredTargetCount } from "@/lib/harvester/pending-discovered-target-count";
 import { PageHeader } from "@/components/page-header";
 import { HarvesterTabs } from "@/components/harvester/harvester-tabs";
 import { ReviewQueueManager } from "@/components/harvester/review-queue-manager";
@@ -16,7 +15,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
   const session = await auth();
   const userId = session?.user?.id ?? "";
 
-  const [offersPage, connectorRuns, pendingOfferCount, discoveredTargetCount, campaigns] = await Promise.all([
+  const [offersPage, connectorRuns, pendingOfferCount, campaigns] = await Promise.all([
     prisma.harvestedOffer.findMany({
       where: { userId, importedJobId: null, ignoredAt: null },
       orderBy: { firstSeenAt: "desc" },
@@ -29,7 +28,6 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
       orderBy: { startedAt: "desc" },
     }),
     getPendingOfferCount(userId),
-    getPendingDiscoveredTargetCount(userId),
     prisma.campaign.findMany({
       where: { userId },
       select: { id: true, name: true, slug: true },
@@ -48,7 +46,7 @@ export default async function HarvesterReviewPage(props: PageProps<"/harvester/r
         title="Nouvelles offres"
         subtitle="Offres trouvées par vos alertes — ajoutez-les à votre suivi ou passez."
       />
-      <HarvesterTabs reviewQueueCount={pendingOfferCount} discoveredTargetCount={discoveredTargetCount} />
+      <HarvesterTabs reviewQueueCount={pendingOfferCount} />
       <ConnectorHealthPanel runs={connectorRuns} />
       {/* key={cursor} force un remontage complet à chaque page — sans ça, useState(initialOffers)
           ne se resynchronise jamais sur un simple re-render, et si la nouvelle page est la

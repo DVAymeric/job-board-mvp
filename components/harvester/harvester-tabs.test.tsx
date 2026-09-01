@@ -42,20 +42,8 @@ describe("HarvesterTabs", () => {
     expect(screen.getByRole("link", { name: "Nouvelles offres" })).toBeInTheDocument();
   });
 
-  it("renders a link to the discovery route", () => {
+  it("does not render a link to the discovery route — no longer part of the public nav (JOB-153)", () => {
     render(<HarvesterTabs />);
-    expect(screen.getByRole("link", { name: /Cibles découvertes/ })).toHaveAttribute("href", "/harvester/discovery");
-  });
-
-  it("shows a count badge on the discovery tab when there are pending targets", () => {
-    render(<HarvesterTabs discoveredTargetCount={2} />);
-    const link = screen.getByRole("link", { name: /Cibles découvertes/ });
-    expect(link).toHaveTextContent("2");
-  });
-
-  it("does not show a count badge on the discovery tab when there are no pending targets", () => {
-    render(<HarvesterTabs discoveredTargetCount={0} />);
-    const link = screen.getByRole("link", { name: "Cibles découvertes" });
-    expect(link).not.toHaveTextContent("0");
+    expect(screen.queryByRole("link", { name: /Cibles découvertes/ })).not.toBeInTheDocument();
   });
 });

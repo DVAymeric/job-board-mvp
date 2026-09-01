@@ -5,19 +5,22 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
+// "Cibles découvertes" (JOB-153) n'est plus un onglet grand public : c'est un
+// mécanisme de configuration de sources de données (sondage Workday/
+// SmartRecruiters/Talentsoft/DigitalRecruiters), pas une fonctionnalité de
+// recherche d'emploi. La route /harvester/discovery reste fonctionnelle et
+// accessible par lien direct — voir docs/decisions/2026-09-01-cibles-decouvertes-navigation.md.
 const TABS = [
   { href: "/harvester", label: "Vue d'ensemble" },
   { href: "/harvester/campaigns", label: "Alertes" },
   { href: "/harvester/review", label: "Nouvelles offres" },
-  { href: "/harvester/discovery", label: "Cibles découvertes" },
 ] as const;
 
 interface HarvesterTabsProps {
   reviewQueueCount?: number;
-  discoveredTargetCount?: number;
 }
 
-export function HarvesterTabs({ reviewQueueCount, discoveredTargetCount }: HarvesterTabsProps) {
+export function HarvesterTabs({ reviewQueueCount }: HarvesterTabsProps) {
   const pathname = usePathname();
 
   return (
@@ -42,9 +45,6 @@ export function HarvesterTabs({ reviewQueueCount, discoveredTargetCount }: Harve
           {tab.label}
           {tab.href === "/harvester/review" && !!reviewQueueCount && (
             <Badge variant="tag">{reviewQueueCount}</Badge>
-          )}
-          {tab.href === "/harvester/discovery" && !!discoveredTargetCount && (
-            <Badge variant="tag">{discoveredTargetCount}</Badge>
           )}
         </Link>
       ))}
