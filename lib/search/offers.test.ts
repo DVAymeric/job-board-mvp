@@ -60,6 +60,15 @@ describe("getSearchableOffers", () => {
     );
   });
 
+  it("returns an empty result without querying the database for an anonymous visitor (JOB-138)", async () => {
+    const result = await getSearchableOffers("", 100);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected ok result");
+    expect(result.offers).toEqual([]);
+    expect(prisma.harvestedOffer.findMany).not.toHaveBeenCalled();
+  });
+
   it("returns a clear, non-technical error when the database call fails", async () => {
     vi.mocked(prisma.harvestedOffer.findMany).mockRejectedValue(new Error("connection refused"));
 

@@ -28,6 +28,14 @@ export async function getSearchableOffers(
   userId: string,
   take: number
 ): Promise<SearchableOffersResult> {
+  // JOB-138 : le Harvester reste un modèle par utilisateur (JOB-136) — sans
+  // identifiant, aucune offre ne peut exister pour cet appelant. Court-circuiter
+  // ici évite une requête base de données qui ne renverrait de toute façon
+  // jamais rien, plutôt que de laisser `where: { userId: "" }` filer en base.
+  if (!userId) {
+    return { ok: true, offers: [] };
+  }
+
   try {
     const harvestedOffers = await prisma.harvestedOffer.findMany({
       where: { userId, ignoredAt: null },

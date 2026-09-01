@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { SearchForm, type SearchCriteria } from "@/components/search/search-form";
 import { JobResultRow, type JobResult } from "@/components/search/job-result-row";
+import { Button } from "@/components/ui/button";
 
 export interface SearchableOffer {
   result: JobResult;
@@ -16,6 +18,7 @@ const EMPTY_CRITERIA: SearchCriteria = { keyword: "", location: "", contractType
 export function OfferSearch({
   offers,
   loadError,
+  signedOut,
 }: {
   offers: SearchableOffer[];
   /**
@@ -27,6 +30,15 @@ export function OfferSearch({
    * message, jamais tout l'arbre du composant.
    */
   loadError?: string;
+  /**
+   * JOB-138 : le Harvester reste un modèle par utilisateur (JOB-136) — un
+   * visiteur non connecté n'a par construction aucune offre personnelle.
+   * `offers` est alors toujours vide ; ce indicateur distingue ce cas d'un
+   * vrai "aucun résultat pour vos critères" pour ne jamais laisser un
+   * visiteur croire que ses filtres sont trop stricts alors qu'il n'y a
+   * simplement encore aucune alerte associée à son compte.
+   */
+  signedOut?: boolean;
 }) {
   const [criteria, setCriteria] = useState<SearchCriteria>(EMPTY_CRITERIA);
   const loadErrorRef = useRef<HTMLDivElement>(null);
@@ -52,7 +64,30 @@ export function OfferSearch({
   return (
     <div className="space-y-4">
       <SearchForm onSearch={setCriteria} />
-      {loadError ? (
+      {signedOut ? (
+        <div
+          data-testid="offer-search-signed-out"
+          className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border p-8 text-center"
+        >
+          <p className="font-heading text-lg text-heading">Créez votre alerte pour voir des offres</p>
+          <p className="max-w-md text-base text-muted-foreground">
+            Les offres affichées ici viennent des alertes emploi que vous créez. Connectez-vous
+            ou créez un compte gratuit pour lancer la vôtre et voir ce qu&apos;elle trouve.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button render={<Link href="/register" prefetch={false} />} nativeButton={false}>
+              Créer un compte gratuit
+            </Button>
+            <Button
+              variant="outline"
+              render={<Link href="/login" prefetch={false} />}
+              nativeButton={false}
+            >
+              Se connecter
+            </Button>
+          </div>
+        </div>
+      ) : loadError ? (
         <div
           ref={loadErrorRef}
           role="alert"

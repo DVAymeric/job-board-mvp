@@ -158,3 +158,53 @@ describe("OfferSearch — erreur de chargement côté serveur (JOB-116)", () => 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+describe("OfferSearch — visiteur anonyme (JOB-138)", () => {
+  it("shows an explicit sign-up message instead of the silent empty state when signed out", () => {
+    render(<OfferSearch offers={[]} signedOut />);
+
+    expect(screen.getByTestId("offer-search-signed-out")).toBeInTheDocument();
+    expect(screen.queryByText(/aucune offre ne correspond/i)).not.toBeInTheDocument();
+  });
+
+  it("offers clear actions to create an account or log in", () => {
+    render(<OfferSearch offers={[]} signedOut />);
+
+    expect(screen.getByRole("button", { name: /créer un compte gratuit/i })).toHaveAttribute(
+      "href",
+      "/register"
+    );
+    expect(screen.getByRole("button", { name: /se connecter/i })).toHaveAttribute(
+      "href",
+      "/login"
+    );
+  });
+
+  it("keeps the search form mounted and usable for a signed-out visitor", async () => {
+    const user = userEvent.setup();
+    render(<OfferSearch offers={[]} signedOut />);
+
+    const keywordInput = screen.getByLabelText(/métier|mot-clé/i);
+    await user.type(keywordInput, "développeur");
+
+    expect(keywordInput).toHaveValue("développeur");
+  });
+
+  it("prioritizes the signed-out message over a load error or results, if both were somehow passed", () => {
+    render(
+      <OfferSearch
+        offers={[]}
+        loadError="Impossible de charger vos offres pour le moment. Réessayez dans quelques instants."
+        signedOut
+      />
+    );
+
+    expect(screen.getByTestId("offer-search-signed-out")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("does not show the signed-out message for an authenticated visitor", () => {
+    render(<OfferSearch offers={[]} />);
+    expect(screen.queryByTestId("offer-search-signed-out")).not.toBeInTheDocument();
+  });
+});
