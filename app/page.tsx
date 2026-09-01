@@ -1,7 +1,6 @@
 import HomeContent from "@/components/home/home-content";
 import { TrustRow } from "@/components/home/trust-row";
 import { FeatureGrid } from "@/components/home/feature-grid";
-import { BentoSection } from "@/components/home/bento-section";
 
 // createJob programme l'enrichissement (scraping) via after() après sa
 // réponse (JOB-ASYNC-ENRICH) — ce travail continue dans la même invocation
@@ -28,17 +27,6 @@ export default function Home() {
           </h2>
         </div>
         <FeatureGrid />
-      </section>
-      <section className="mx-auto w-full max-w-6xl px-4 py-12">
-        <div className="mb-6 space-y-1">
-          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Aperçu
-          </p>
-          <h2 className="font-heading text-lg text-heading">
-            Tout votre suivi, en un board.
-          </h2>
-        </div>
-        <BentoSection />
       </section>
     </div>
   );

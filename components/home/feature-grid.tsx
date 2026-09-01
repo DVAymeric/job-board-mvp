@@ -1,8 +1,6 @@
 import { BellRing, LayoutGrid, RefreshCcw } from "lucide-react";
 
-// Reprend telles quelles les 3 fonctionnalités du mockup (JOB-123) — décision
-// JOB-101 revue : ce grid vient en complément de BentoSection (données
-// personnalisées vivantes conservées), pas en remplacement.
+// Reprend telles quelles les 3 fonctionnalités du mockup (JOB-123).
 const FEATURES = [
   {
     icon: LayoutGrid,
