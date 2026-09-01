@@ -19,6 +19,7 @@ export function OfferSearch({
   offers,
   loadError,
   signedOut,
+  initialCriteria,
 }: {
   offers: SearchableOffer[];
   /**
@@ -39,8 +40,15 @@ export function OfferSearch({
    * simplement encore aucune alerte associée à son compte.
    */
   signedOut?: boolean;
+  /**
+   * JOB-139 : critères déjà saisis sur la hero de la homepage, transmis via
+   * la query string de la redirection vers `/recherche`, pour que la
+   * recherche s'applique immédiatement plutôt que de retomber sur un
+   * formulaire vide après la navigation.
+   */
+  initialCriteria?: SearchCriteria;
 }) {
-  const [criteria, setCriteria] = useState<SearchCriteria>(EMPTY_CRITERIA);
+  const [criteria, setCriteria] = useState<SearchCriteria>(initialCriteria ?? EMPTY_CRITERIA);
   const loadErrorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,7 +71,7 @@ export function OfferSearch({
 
   return (
     <div className="space-y-4">
-      <SearchForm onSearch={setCriteria} />
+      <SearchForm onSearch={setCriteria} initialCriteria={initialCriteria} />
       {signedOut ? (
         <div
           data-testid="offer-search-signed-out"

@@ -26,6 +26,7 @@ beforeEach(() => {
   );
   vi.mocked(useRouter).mockReturnValue({
     replace: vi.fn(),
+    push: vi.fn(),
   } as unknown as ReturnType<typeof useRouter>);
 });
 
@@ -46,7 +47,7 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
       data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
     await user.type(
       screen.getByPlaceholderText(/Colle l'URL/),
       "example.com/job"
@@ -72,7 +73,7 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
       data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
     await user.type(
       screen.getByPlaceholderText(/Colle l'URL/),
       "example.com/job"
@@ -100,7 +101,7 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
       data: { id: "job-1", enrichmentStatus: "DONE" },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
 
     const card = await screen.findByTestId("created-job-card");
     expect(card).toHaveTextContent("Développeur depuis LinkedIn");
@@ -121,7 +122,7 @@ describe("Home — nouvelle candidature (vérification instantanée + enrichisse
       error: "Cette offre a déjà été enregistrée",
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
     await user.type(
       screen.getByPlaceholderText(/Colle l'URL/),
       "example.com/job"
@@ -180,7 +181,7 @@ describe("Home — bookmarklet", () => {
       data: { id: "job-1", enrichmentStatus: "DONE" },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
 
     expect(
       await screen.findByDisplayValue("https://example.com/careers/dev")
@@ -208,14 +209,14 @@ describe("Home — bookmarklet", () => {
       data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
 
     await screen.findByTestId("created-job-card");
     expect(replace).toHaveBeenCalledWith("/");
   });
 
   it("does not auto-check anything when there is no bookmarklet url", () => {
-    render(<Home />);
+    render(<Home signedIn />);
     expect(checkJobUrl).not.toHaveBeenCalled();
   });
 });
@@ -233,7 +234,7 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
       data: { found: true, job: knownJob },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
     await user.type(
       screen.getByPlaceholderText(/Colle l'URL/),
       "example.com/job"
@@ -256,7 +257,7 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
       data: { id: "job-1", enrichmentStatus: "PENDING" },
     });
 
-    render(<Home />);
+    render(<Home signedIn />);
     await user.type(
       screen.getByPlaceholderText(/Colle l'URL/),
       "example.com/job"
@@ -266,5 +267,85 @@ describe("Home — intégration visuelle des états dans la carte hero", () => {
     const panel = await screen.findByTestId("created-job-card");
     expect(panel.className).toContain("bg-card");
     expect(panel.className).toContain("border-border");
+  });
+});
+
+describe("Home — recherche comme premier geste de la hero (JOB-139)", () => {
+  it("shows a functional search form as the first interaction, ahead of the URL checker", () => {
+    render(<Home signedIn />);
+    expect(screen.getByLabelText(/métier|mot-clé/i)).toBeInTheDocument();
+  });
+
+  it("redirects to /recherche with the typed criteria in the query string on submit", async () => {
+    const user = userEvent.setup();
+    const push = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      replace: vi.fn(),
+      push,
+    } as unknown as ReturnType<typeof useRouter>);
+
+    render(<Home signedIn />);
+    await user.type(screen.getByLabelText(/métier|mot-clé/i), "Développeur");
+    await user.type(screen.getByLabelText(/ville|code postal/i), "Reims");
+    await user.click(screen.getByRole("button", { name: /rechercher/i }));
+
+    expect(push).toHaveBeenCalledTimes(1);
+    const [target] = push.mock.calls[0];
+    expect(target).toContain("/recherche?");
+    expect(target).toContain("keyword=D%C3%A9veloppeur");
+    expect(target).toContain("location=Reims");
+  });
+
+  it("redirects to a bare /recherche when no criteria were entered", async () => {
+    const user = userEvent.setup();
+    const push = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      replace: vi.fn(),
+      push,
+    } as unknown as ReturnType<typeof useRouter>);
+
+    render(<Home signedIn />);
+    await user.click(screen.getByRole("button", { name: /rechercher/i }));
+
+    expect(push).toHaveBeenCalledWith("/recherche");
+  });
+
+  it("no longer pitches pasting a URL as the main value proposition", () => {
+    render(<Home signedIn />);
+    expect(screen.queryByText(/collez une url/i)).not.toBeInTheDocument();
+  });
+});
+
+describe("Home — vérification d'URL démotée en action secondaire (JOB-139)", () => {
+  beforeEach(() => {
+    vi.mocked(checkJobUrl).mockReset();
+    vi.mocked(createJob).mockReset();
+  });
+
+  it("shows the URL checker below the search form for a signed-in visitor", () => {
+    render(<Home signedIn />);
+    expect(screen.getByPlaceholderText(/Colle l'URL/)).toBeInTheDocument();
+  });
+
+  it("shows a plain login link instead of the URL checker for an anonymous visitor", () => {
+    render(<Home signedIn={false} />);
+    expect(screen.queryByPlaceholderText(/Colle l'URL/)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /connectez-vous pour vérifier une offre/i })
+    ).toHaveAttribute("href", "/login");
+  });
+
+  it("never calls checkJobUrl for an anonymous visitor, even via the bookmarklet query string — no 'must be logged in' error can surface from the hero", async () => {
+    vi.mocked(useSearchParams).mockReturnValue(
+      new URLSearchParams({ url: "https://example.com/careers/dev" }) as ReturnType<
+        typeof useSearchParams
+      >
+    );
+
+    render(<Home signedIn={false} />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(checkJobUrl).not.toHaveBeenCalled();
+    expect(screen.queryByText(/vous devez être connecté/i)).not.toBeInTheDocument();
   });
 });

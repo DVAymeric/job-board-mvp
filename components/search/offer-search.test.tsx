@@ -208,3 +208,32 @@ describe("OfferSearch — visiteur anonyme (JOB-138)", () => {
     expect(screen.queryByTestId("offer-search-signed-out")).not.toBeInTheDocument();
   });
 });
+
+describe("OfferSearch — critères pré-remplis depuis la hero (JOB-139)", () => {
+  it("applies the initial criteria immediately, without requiring a new submission", () => {
+    render(
+      <OfferSearch
+        offers={[
+          makeOffer({ id: "1", title: "Chargé de recrutement" }),
+          makeOffer({ id: "2", title: "Développeur frontend" }),
+        ]}
+        initialCriteria={{ keyword: "développeur", location: "", contractType: "" }}
+      />
+    );
+
+    expect(screen.queryByText("Chargé de recrutement")).not.toBeInTheDocument();
+    expect(screen.getByText("Développeur frontend")).toBeInTheDocument();
+  });
+
+  it("pre-fills the search form fields from the initial criteria", () => {
+    render(
+      <OfferSearch
+        offers={[]}
+        initialCriteria={{ keyword: "développeur", location: "Reims", contractType: "" }}
+      />
+    );
+
+    expect(screen.getByLabelText(/métier|mot-clé/i)).toHaveValue("développeur");
+    expect(screen.getByLabelText(/ville|code postal/i)).toHaveValue("Reims");
+  });
+});

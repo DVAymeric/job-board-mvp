@@ -12,8 +12,8 @@ describe("HeroSection", () => {
     expect(screen.getByText(/100% gratuit/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { level: 1 })
-    ).toHaveTextContent(/repostulez/i);
-    expect(screen.getByText(/Collez une URL/i)).toBeInTheDocument();
+    ).toHaveTextContent(/offres qu.on agrège pour vous/i);
+    expect(screen.getByText(/lancez votre recherche/i)).toBeInTheDocument();
   });
 
   it("renders its children inside the hero", () => {
@@ -73,18 +73,27 @@ describe("HeroSection", () => {
     expect(contentContainer).toHaveClass("text-left");
   });
 
-  it("emphasizes 'deux fois' in the heading in italic accent style", () => {
+  it("emphasizes 'agrège pour vous' in the heading in italic accent style", () => {
     render(
       <HeroSection>
         <div>content</div>
       </HeroSection>
     );
-    const emphasis = screen.getByText("deux fois");
+    const emphasis = screen.getByText("agrège pour vous");
     expect(emphasis.tagName).toBe("EM");
     expect(emphasis).toHaveClass("italic");
   });
 
-  it("does not repeat its own reassurance line below the hero (JOB-134) — TrustRow, rendered right after in app/page.tsx, already carries that message once", () => {
+  it("does not mention pasting a URL as its main value proposition anymore (JOB-139)", () => {
+    render(
+      <HeroSection>
+        <div>content</div>
+      </HeroSection>
+    );
+    expect(screen.queryByText(/collez une url/i)).not.toBeInTheDocument();
+  });
+
+  it("does not repeat its own reassurance line below the hero (JOB-134) — HarvesterProofBar, rendered right after in app/page.tsx, already carries that message once", () => {
     render(
       <HeroSection>
         <div>content</div>

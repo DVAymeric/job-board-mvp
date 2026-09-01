@@ -35,16 +35,24 @@ export interface SearchCriteria {
 
 export function SearchForm({
   onSearch,
+  initialCriteria,
 }: {
   onSearch: (criteria: SearchCriteria) => void;
+  /**
+   * Pré-remplit les champs (JOB-139) — utilisé sur `/recherche` pour
+   * refléter les critères passés en query string depuis la recherche
+   * lancée sur la homepage, afin qu'un visiteur retrouve ce qu'il a tapé
+   * plutôt qu'un formulaire vidé après redirection.
+   */
+  initialCriteria?: SearchCriteria;
 }) {
   const keywordId = useId();
   const locationId = useId();
   const contractTypeId = useId();
 
-  const [keyword, setKeyword] = useState("");
-  const [location, setLocation] = useState("");
-  const [contractType, setContractType] = useState("");
+  const [keyword, setKeyword] = useState(initialCriteria?.keyword ?? "");
+  const [location, setLocation] = useState(initialCriteria?.location ?? "");
+  const [contractType, setContractType] = useState(initialCriteria?.contractType ?? "");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

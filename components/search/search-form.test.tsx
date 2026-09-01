@@ -42,4 +42,15 @@ describe("SearchForm", () => {
     const button = screen.getByRole("button", { name: /rechercher/i });
     expect(button.className).not.toMatch(/bg-brand-positive/);
   });
+
+  it("pre-fills its fields from initialCriteria (JOB-139)", () => {
+    render(
+      <SearchForm
+        onSearch={() => {}}
+        initialCriteria={{ keyword: "Développeur", location: "Reims", contractType: "" }}
+      />
+    );
+    expect(screen.getByLabelText(/métier|mot-clé/i)).toHaveValue("Développeur");
+    expect(screen.getByLabelText(/ville|code postal/i)).toHaveValue("Reims");
+  });
 });

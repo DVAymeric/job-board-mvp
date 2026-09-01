@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import HomeContent from "@/components/home/home-content";
 import { HarvesterProofBar } from "@/components/home/harvester-proof-bar";
 
@@ -9,10 +10,12 @@ import { HarvesterProofBar } from "@/components/home/harvester-proof-bar";
 // avant qu'il ait pu marquer la candidature DONE ou FAILED.
 export const maxDuration = 45;
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+
   return (
     <div className="bg-white">
-      <HomeContent />
+      <HomeContent signedIn={!!session?.user} />
       <section className="mx-auto w-full max-w-6xl px-4 py-12">
         <div className="mb-6 space-y-1">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">

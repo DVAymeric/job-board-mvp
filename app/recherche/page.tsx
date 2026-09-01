@@ -2,9 +2,29 @@ import { auth } from "@/auth";
 import { BOARD_JOBS_SAFETY_LIMIT } from "@/lib/constants";
 import { PageHeader } from "@/components/page-header";
 import { OfferSearch } from "@/components/search/offer-search";
+import type { SearchCriteria } from "@/components/search/search-form";
 import { getSearchableOffers } from "@/lib/search/offers";
 
-export default async function RecherchePage() {
+function firstParam(value: string | string[] | undefined): string {
+  return typeof value === "string" ? value : "";
+}
+
+// JOB-139 : la hero de la homepage redirige ici avec les critères déjà
+// saisis en query string (keyword/location/contractType) — repris tels
+// quels pour que la recherche s'applique dès l'arrivée sur la page, plutôt
+// que de faire retaper la même chose une seconde fois.
+function criteriaFromSearchParams(searchParams: Record<string, string | string[] | undefined>): SearchCriteria {
+  return {
+    keyword: firstParam(searchParams.keyword),
+    location: firstParam(searchParams.location),
+    contractType: firstParam(searchParams.contractType),
+  };
+}
+
+export default async function RecherchePage(props: PageProps<"/recherche">) {
+  const searchParams = await props.searchParams;
+  const initialCriteria = criteriaFromSearchParams(searchParams);
+
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -21,7 +41,7 @@ export default async function RecherchePage() {
           title="Recherche d'offres"
           subtitle="Parcourez les offres déjà trouvées pour vous par vos alertes."
         />
-        <OfferSearch offers={[]} signedOut />
+        <OfferSearch offers={[]} signedOut initialCriteria={initialCriteria} />
       </div>
     );
   }
@@ -42,6 +62,7 @@ export default async function RecherchePage() {
       <OfferSearch
         offers={result.ok ? result.offers : []}
         loadError={result.ok ? undefined : result.error}
+        initialCriteria={initialCriteria}
       />
     </div>
   );
