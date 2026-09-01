@@ -59,3 +59,6 @@ next-env.d.ts
 /.agents/
 /.claude/
 skills-lock.json
+
+# graphify
+/graphify-out/cache
