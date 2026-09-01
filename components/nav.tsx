@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 import { useTheme } from "next-themes";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { ChevronDown, CircleUser, LogOut, Menu, Moon, Sun, X } from "lucide-react";
+import { BellRing, ChevronDown, CircleUser, LogOut, Menu, Moon, Sun, X } from "lucide-react";
 import type { Session } from "next-auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,12 +25,21 @@ import { cn } from "@/lib/utils";
 // logout, le serveur le traite comme authentifié et réémet un cookie de
 // session valide, ressuscitant la session juste effacée. "/" n'est pas
 // protégée, aucun risque à la préfetcher.
+// JOB-142 : "Alertes" (ex-"Harvester") n'est plus un lien de nav principal —
+// vocabulaire de back-office pour un visiteur grand public, et la Recherche
+// est la fonctionnalité à mettre en avant. La route /harvester nécessite de
+// toute façon un compte : elle reste accessible depuis le menu Compte (voir
+// ACCOUNT_LINKS plus bas), pas supprimée.
 const LINKS = [
   { href: "/", label: "Accueil", prefetch: undefined },
-  { href: "/board", label: "Board", prefetch: false },
   { href: "/recherche", label: "Recherche", prefetch: false },
+  { href: "/board", label: "Board", prefetch: false },
   { href: "/analytics", label: "Analytics", prefetch: false },
-  { href: "/harvester", label: "Alertes", prefetch: false },
+] as const;
+
+const ACCOUNT_LINKS = [
+  { href: "/account", label: "Mon compte", icon: CircleUser },
+  { href: "/harvester", label: "Alertes", icon: BellRing },
 ] as const;
 
 const noopSubscribe = () => () => {};
@@ -119,15 +128,18 @@ function MobileMenu({
           </nav>
           {session?.user ? (
             <div className="flex flex-col gap-1 border-t border-border pt-4">
-              <Link
-                href="/account"
-                prefetch={false}
-                onClick={close}
-                className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-heading"
-              >
-                <CircleUser />
-                Mon compte
-              </Link>
+              {ACCOUNT_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  prefetch={false}
+                  onClick={close}
+                  className="flex min-h-11 items-center gap-2 rounded-lg px-2 text-base font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-heading"
+                >
+                  <link.icon />
+                  {link.label}
+                </Link>
+              ))}
               <form action={logoutAction}>
                 <button
                   type="submit"
@@ -253,10 +265,12 @@ export function Nav({ session }: { session: Session | null }) {
               }
             />
             <DropdownMenuContent align="end">
-              <DropdownMenuItem render={<Link href="/account" prefetch={false} />}>
-                <CircleUser />
-                Mon compte
-              </DropdownMenuItem>
+              {ACCOUNT_LINKS.map((link) => (
+                <DropdownMenuItem key={link.href} render={<Link href={link.href} prefetch={false} />}>
+                  <link.icon />
+                  {link.label}
+                </DropdownMenuItem>
+              ))}
               <DropdownMenuSeparator />
               <form action={logoutAction} className="contents">
                 <DropdownMenuItem

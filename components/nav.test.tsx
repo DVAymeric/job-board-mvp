@@ -324,6 +324,7 @@ describe("Nav — menu mobile (JOB-107)", () => {
     expect(
       within(dialog).getByRole("link", { name: /mon compte/i })
     ).toBeInTheDocument();
+    expect(within(dialog).getByRole("link", { name: /alertes/i })).toBeInTheDocument();
     expect(
       within(dialog).getByRole("button", { name: /se déconnecter/i })
     ).toBeInTheDocument();
@@ -347,11 +348,43 @@ describe("Nav — menu mobile (JOB-107)", () => {
   });
 });
 
+describe("Nav — simplification grand public, Alertes hors nav principale (JOB-142)", () => {
+  it("does not show an 'Alertes' link in the main desktop nav", () => {
+    render(<Nav session={session} />);
+    expect(screen.queryByRole("link", { name: "Alertes" })).not.toBeInTheDocument();
+  });
+
+  it("does not show an 'Alertes' link in the main nav for an anonymous visitor either", () => {
+    render(<Nav session={null} />);
+    expect(screen.queryByRole("link", { name: "Alertes" })).not.toBeInTheDocument();
+  });
+
+  it("still exposes Alertes for an authenticated user, from the account menu", async () => {
+    const user = userEvent.setup();
+    render(<Nav session={session} />);
+
+    await user.click(screen.getByRole("button", { name: /compte/i }));
+
+    const alertesItem = await screen.findByRole("menuitem", { name: /alertes/i });
+    expect(alertesItem).toHaveAttribute("href", "/harvester");
+  });
+
+  it("puts Recherche ahead of Board/Analytics in the main nav order", () => {
+    render(<Nav session={session} />);
+    const labels = screen
+      .getAllByRole("link")
+      .map((link) => link.textContent)
+      .filter((label): label is string => !!label && ["Recherche", "Board", "Analytics"].includes(label));
+    expect(labels.indexOf("Recherche")).toBeLessThan(labels.indexOf("Board"));
+    expect(labels.indexOf("Recherche")).toBeLessThan(labels.indexOf("Analytics"));
+  });
+});
+
 describe("Nav — prefetch des liens protégés (JOB-131)", () => {
   it("disables prefetch on links to protected routes", () => {
     render(<Nav session={session} />);
 
-    for (const name of ["Board", "Analytics", "Alertes"]) {
+    for (const name of ["Board", "Analytics"]) {
       expect(screen.getByRole("link", { name })).toHaveAttribute(
         "data-prefetch",
         "false"
@@ -359,7 +392,7 @@ describe("Nav — prefetch des liens protégés (JOB-131)", () => {
     }
   });
 
-  it("disables prefetch on the account link inside the menu", async () => {
+  it("disables prefetch on the account menu links (Mon compte, Alertes)", async () => {
     const user = userEvent.setup();
     render(<Nav session={session} />);
 
@@ -367,6 +400,10 @@ describe("Nav — prefetch des liens protégés (JOB-131)", () => {
     expect(
       await screen.findByRole("menuitem", { name: /mon compte/i })
     ).toHaveAttribute("data-prefetch", "false");
+    expect(screen.getByRole("menuitem", { name: /alertes/i })).toHaveAttribute(
+      "data-prefetch",
+      "false"
+    );
   });
 
   it("leaves prefetch enabled for the public home link", () => {
