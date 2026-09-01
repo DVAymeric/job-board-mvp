@@ -404,3 +404,39 @@ describe("ReviewQueueManager — tout supprimer (relancer une campagne avec de n
     expect(screen.getByText("Data Analyst")).toBeInTheDocument();
   });
 });
+
+describe("ReviewQueueManager — cohérence visuelle des filtres", () => {
+  it("shows a readable label ('Tous les contrats'), never the raw sentinel value ('ALL')", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+    const select = screen.getByRole("combobox", { name: "Filtrer par type de contrat" });
+    expect(select).toHaveTextContent("Tous les contrats");
+    expect(select).not.toHaveTextContent("ALL");
+  });
+
+  it("shows the selected contract type's own label after choosing one", async () => {
+    const user = userEvent.setup();
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Filtrer par type de contrat" }));
+    await user.click(await screen.findByRole("option", { name: "Stage" }));
+
+    expect(screen.getByRole("combobox", { name: "Filtrer par type de contrat" })).toHaveTextContent(
+      "Stage"
+    );
+  });
+
+  it("matches the height of the Ville/Rechercher text filters (h-8, default select size), instead of standing out taller", () => {
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+    const cityInput = screen.getByLabelText("Filtrer par ville");
+    const select = screen.getByRole("combobox", { name: "Filtrer par type de contrat" });
+    const searchInput = screen.getByLabelText("Rechercher un titre ou une entreprise");
+
+    // Input.tsx : h-8 est une classe Tailwind directe. Select.tsx : la taille par défaut
+    // s'exprime via l'attribut data-size="default" (h-8 appliqué par `data-[size=default]:h-8`
+    // dans select.tsx) plutôt qu'une classe `h-8` littérale sur l'élément lui-même.
+    expect(cityInput.className).toMatch(/\bh-8\b/);
+    expect(searchInput.className).toMatch(/\bh-8\b/);
+    expect(select).not.toHaveClass("!h-11");
+    expect(select).toHaveAttribute("data-size", "default");
+  });
+});

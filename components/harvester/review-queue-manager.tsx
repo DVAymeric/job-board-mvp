@@ -153,8 +153,14 @@ export function ReviewQueueManager({
             className="w-40"
           />
           <Select value={contractType} onValueChange={(value) => setContractType(value ?? CONTRACT_TYPE_ALL)}>
-            <SelectTrigger aria-label="Filtrer par type de contrat" className="!h-11 w-44">
-              <SelectValue />
+            <SelectTrigger aria-label="Filtrer par type de contrat" className="w-44">
+              <SelectValue>
+                {(value: string) =>
+                  value === CONTRACT_TYPE_ALL
+                    ? "Tous les contrats"
+                    : (CAMPAIGN_CONTRACT_TYPE_LABELS[value as keyof typeof CAMPAIGN_CONTRACT_TYPE_LABELS] ?? value)
+                }
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={CONTRACT_TYPE_ALL}>Tous les contrats</SelectItem>
