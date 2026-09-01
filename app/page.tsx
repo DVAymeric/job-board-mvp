@@ -1,6 +1,5 @@
 import HomeContent from "@/components/home/home-content";
-import { TrustRow } from "@/components/home/trust-row";
-import { FeatureGrid } from "@/components/home/feature-grid";
+import { HarvesterProofBar } from "@/components/home/harvester-proof-bar";
 
 // createJob programme l'enrichissement (scraping) via after() après sa
 // réponse (JOB-ASYNC-ENRICH) — ce travail continue dans la même invocation
@@ -14,19 +13,16 @@ export default function Home() {
   return (
     <div className="bg-white">
       <HomeContent />
-      <section className="mx-auto w-full max-w-6xl px-4 py-8">
-        <TrustRow />
-      </section>
       <section className="mx-auto w-full max-w-6xl px-4 py-12">
         <div className="mb-6 space-y-1">
           <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            Fonctionnalités
+            Le Harvester en chiffres
           </p>
           <h2 className="font-heading text-lg text-heading">
-            Tout ce qu&apos;il vous faut pour ne rien perdre de vue
+            Des offres agrégées pour vous, en continu
           </h2>
         </div>
-        <FeatureGrid />
+        <HarvesterProofBar />
       </section>
     </div>
   );
