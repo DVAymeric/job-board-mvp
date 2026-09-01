@@ -24,6 +24,16 @@ export function JobResultRow({ result }: { result: JobResult }) {
     url: result.applyUrl,
   };
 
+  // JOB-145 : audit accessibilité grand public — garder l'essentiel affiché
+  // par défaut (contrat + 1 tag maximum) pour ne pas surcharger visuellement
+  // une carte d'offre, plutôt que d'empiler tous les badges disponibles.
+  const secondaryTags = [
+    ...result.tags,
+    ...(result.beginnerFriendly ? ["Débutant accepté"] : []),
+  ];
+  const visibleSecondaryTags = secondaryTags.slice(0, 1);
+  const hiddenSecondaryTags = secondaryTags.slice(1);
+
   return (
     // JOB-109 : sous `md:` (768px), le logo/titre/meta/tags restent groupés
     // dans le bloc du haut (déjà lisible sur ~360-390px : avatar `size-13`
@@ -45,13 +55,18 @@ export function JobResultRow({ result }: { result: JobResult }) {
           </p>
           <div className="flex flex-wrap items-center gap-1.5">
             <Badge variant="tag">{result.contractType}</Badge>
-            {result.tags.map((tag) => (
+            {visibleSecondaryTags.map((tag) => (
               <Badge key={tag} variant="tag">
                 {tag}
               </Badge>
             ))}
-            {result.beginnerFriendly && (
-              <Badge variant="tag">Débutant accepté</Badge>
+            {hiddenSecondaryTags.length > 0 && (
+              <Badge
+                variant="tag"
+                aria-label={`Et ${hiddenSecondaryTags.length} de plus : ${hiddenSecondaryTags.join(", ")}`}
+              >
+                +{hiddenSecondaryTags.length}
+              </Badge>
             )}
           </div>
         </div>

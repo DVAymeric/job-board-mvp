@@ -31,7 +31,7 @@ describe("JobResultRow", () => {
   });
 
   it('shows an explicit "Débutant accepté" mention when beginnerFriendly is true', () => {
-    render(<JobResultRow result={{ ...baseResult, beginnerFriendly: true }} />);
+    render(<JobResultRow result={{ ...baseResult, tags: [], beginnerFriendly: true }} />);
     expect(screen.getByText(/Débutant accepté/i)).toBeInTheDocument();
   });
 
@@ -52,6 +52,36 @@ describe("JobResultRow", () => {
     expect(cta).toHaveAttribute("href", baseResult.applyUrl);
     expect(cta).toHaveAttribute("target", "_blank");
     expect(cta).toHaveAttribute("rel", expect.stringContaining("noopener"));
+  });
+
+  it("guarantees the Postuler CTA a 44px touch target (JOB-90, audited in JOB-145)", () => {
+    render(<JobResultRow result={baseResult} />);
+    const cta = screen.getByRole("link", { name: /postuler/i });
+    expect(cta.className).toMatch(/\bh-11\b/);
+  });
+
+  it("shows only the contract type plus one secondary tag by default, to avoid overloading the card (JOB-145)", () => {
+    render(<JobResultRow result={{ ...baseResult, tags: ["Hybride", "Temps partiel"], beginnerFriendly: true }} />);
+
+    expect(screen.getByText("CDI")).toBeInTheDocument();
+    expect(screen.getByText("Hybride")).toBeInTheDocument();
+    expect(screen.queryByText("Temps partiel")).not.toBeInTheDocument();
+    expect(screen.queryByText("Débutant accepté")).not.toBeInTheDocument();
+  });
+
+  it("summarizes the hidden extra tags in a '+N' badge with an accessible label listing them", () => {
+    render(<JobResultRow result={{ ...baseResult, tags: ["Hybride", "Temps partiel"], beginnerFriendly: true }} />);
+
+    const more = screen.getByText("+2");
+    expect(more).toHaveAttribute(
+      "aria-label",
+      "Et 2 de plus : Temps partiel, Débutant accepté"
+    );
+  });
+
+  it("does not show a '+N' badge when there is at most one secondary tag", () => {
+    render(<JobResultRow result={baseResult} />);
+    expect(screen.queryByText(/^\+\d/)).not.toBeInTheDocument();
   });
 
   it("signals interactivity on hover without relying on it alone (JOB-114)", () => {

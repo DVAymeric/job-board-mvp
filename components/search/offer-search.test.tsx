@@ -237,3 +237,11 @@ describe("OfferSearch — critères pré-remplis depuis la hero (JOB-139)", () =
     expect(screen.getByLabelText(/ville|code postal/i)).toHaveValue("Reims");
   });
 });
+
+describe("OfferSearch — annonce des résultats pour les lecteurs d'écran (JOB-145)", () => {
+  it("wraps the results area in a polite live region, so a filter change is announced without a focus change", () => {
+    render(<OfferSearch offers={[]} />);
+    const liveRegion = screen.getByText(/aucune offre ne correspond/i).closest('[aria-live="polite"]');
+    expect(liveRegion).toBeInTheDocument();
+  });
+});

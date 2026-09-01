@@ -83,7 +83,7 @@ export function SearchForm({
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="Développeur, chargé de recrutement…"
-            className="pl-8"
+            className="h-11 pl-8"
           />
         </div>
       </div>
@@ -97,6 +97,7 @@ export function SearchForm({
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           placeholder="Reims, 51100…"
+          className="h-11"
         />
       </div>
 
@@ -108,7 +109,7 @@ export function SearchForm({
           value={contractType}
           onValueChange={(value) => setContractType(value ?? "")}
         >
-          <SelectTrigger id={contractTypeId} className="w-full">
+          <SelectTrigger id={contractTypeId} className="!h-11 w-full">
             <SelectValue placeholder="Tous types" />
           </SelectTrigger>
           <SelectContent>

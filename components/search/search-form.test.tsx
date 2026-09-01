@@ -43,6 +43,14 @@ describe("SearchForm", () => {
     expect(button.className).not.toMatch(/bg-brand-positive/);
   });
 
+  it("guarantees a 44px touch target on every field, matching the submit button (JOB-90, audited in JOB-145)", () => {
+    render(<SearchForm onSearch={() => {}} />);
+    expect(screen.getByLabelText(/métier|mot-clé/i).className).toMatch(/\bh-11\b/);
+    expect(screen.getByLabelText(/ville|code postal/i).className).toMatch(/\bh-11\b/);
+    expect(screen.getByRole("combobox", { name: /type de contrat/i }).className).toMatch(/\bh-11\b/);
+    expect(screen.getByRole("button", { name: /rechercher/i }).className).toMatch(/\bh-11\b/);
+  });
+
   it("pre-fills its fields from initialCriteria (JOB-139)", () => {
     render(
       <SearchForm
