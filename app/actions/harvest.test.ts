@@ -4,6 +4,7 @@ import {
   triggerCampaignCollection,
   importHarvestedOffer,
   ignoreHarvestedOffer,
+  clearHarvestedOffers,
   getConnectorsHealth,
   __resetConnectorsHealthRateLimitsForTests,
 } from "@/app/actions/harvest";
@@ -41,7 +42,7 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     campaign: { findUnique: vi.fn() },
-    harvestedOffer: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+    harvestedOffer: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
     job: { create: vi.fn() },
   },
 }));
@@ -335,6 +336,43 @@ describe("ignoreHarvestedOffer", () => {
 
     expect(result).toEqual({ ok: true, data: null });
     expect(prisma.harvestedOffer.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("clearHarvestedOffers", () => {
+  it("returns UNAUTHENTICATED when there is no session", async () => {
+    mockUnauthenticated();
+    const result = await clearHarvestedOffers({ offerIds: ["o1"] });
+    expect(result).toMatchObject({ code: "UNAUTHENTICATED" });
+  });
+
+  it("returns VALIDATION_ERROR for an empty list of ids", async () => {
+    mockAuthedAs("clear-user-validation");
+    const result = await clearHarvestedOffers({ offerIds: [] });
+    expect(result).toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(prisma.harvestedOffer.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("hard-deletes the given offers, scoped to the current user and never-imported ones", async () => {
+    mockAuthedAs("clear-user-ok");
+    vi.mocked(prisma.harvestedOffer.deleteMany).mockResolvedValue({ count: 3 } as never);
+
+    const result = await clearHarvestedOffers({ offerIds: ["o1", "o2", "o3"] });
+
+    expect(result).toEqual({ ok: true, data: { deletedCount: 3 } });
+    expect(prisma.harvestedOffer.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ["o1", "o2", "o3"] }, userId: "clear-user-ok", importedJobId: null },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith("/harvester/review");
+  });
+
+  it("returns a clear error when the deletion fails", async () => {
+    mockAuthedAs("clear-user-fail");
+    vi.mocked(prisma.harvestedOffer.deleteMany).mockRejectedValue(new Error("db down"));
+
+    const result = await clearHarvestedOffers({ offerIds: ["o1"] });
+
+    expect(result).toMatchObject({ code: "INTERNAL_ERROR" });
   });
 });
 

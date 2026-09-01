@@ -17,6 +17,7 @@ import {
   triggerCampaignCollectionSchema,
   importHarvestedOfferSchema,
   ignoreHarvestedOfferSchema,
+  clearHarvestedOffersSchema,
 } from "@/lib/harvester/harvest-validation";
 import {
   actionError,
@@ -221,6 +222,44 @@ export async function ignoreHarvestedOffer(input: unknown): Promise<ActionResult
   } catch (error) {
     logActionError("ignoreHarvestedOffer", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible d'ignorer cette offre");
+  }
+}
+
+/**
+ * Supprime définitivement (pas un simple "Passer") un lot d'offres en
+ * attente de revue — pour un utilisateur qui relance une campagne avec de
+ * nouveaux filtres et veut repartir d'une file vide plutôt que de trier
+ * les anciennes offres au milieu des nouvelles. Contrairement à
+ * `ignoreHarvestedOffer` (exclusion permanente de la file), une offre
+ * supprimée ici n'a plus de ligne en base : si une collecte future
+ * retombe dessus (même `dedupKey`/`source`+`sourceOfferId`), elle est
+ * recréée comme une offre neuve et réapparaît dans la file de revue.
+ *
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR`, `INTERNAL_ERROR`.
+ */
+export async function clearHarvestedOffers(
+  input: unknown
+): Promise<ActionResult<{ deletedCount: number }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  const parsed = clearHarvestedOffersSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionError("VALIDATION_ERROR", firstIssueMessage(parsed.error, "Impossible de supprimer ces offres"));
+  }
+  try {
+    // importedJobId: null en garde-fou — une offre déjà ajoutée au board ne doit jamais être
+    // supprimée par cette action, même si son id apparaissait par erreur dans la liste envoyée
+    // par le client (état client périmé entre le rendu et le clic).
+    const { count } = await prisma.harvestedOffer.deleteMany({
+      where: { id: { in: parsed.data.offerIds }, userId: auth.user.id, importedJobId: null },
+    });
+
+    revalidatePath("/harvester/review");
+    return { ok: true, data: { deletedCount: count } };
+  } catch (error) {
+    logActionError("clearHarvestedOffers", error, { userId: auth.user.id });
+    return actionError("INTERNAL_ERROR", "Impossible de supprimer ces offres");
   }
 }
 

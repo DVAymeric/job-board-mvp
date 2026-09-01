@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { importHarvestedOffer, ignoreHarvestedOffer } from "@/app/actions/harvest";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
+import { importHarvestedOffer, ignoreHarvestedOffer, clearHarvestedOffers } from "@/app/actions/harvest";
 import { CAMPAIGN_CONTRACT_TYPE_LABELS } from "@/lib/harvester/campaign-validation";
 import { getSourceLabel } from "@/lib/harvester/source-labels";
 
@@ -120,36 +121,71 @@ export function ReviewQueueManager({
     removeOffer(id);
   }
 
+  // JOB : "Tout supprimer" efface la file (ou le sous-ensemble filtré) pour
+  // repartir propre après avoir relancé une campagne avec de nouveaux
+  // filtres — contrairement à "Passer", une offre supprimée ici n'est pas
+  // exclue pour toujours : si une prochaine recherche retombe dessus, elle
+  // réapparaît (suppression réelle en base, pas un simple ignoredAt).
+  async function handleClearAll(): Promise<boolean> {
+    const ids = filteredOffers.map((offer) => offer.id);
+    const result = await clearHarvestedOffers({ offerIds: ids });
+    if (!result.ok) {
+      toast.error(result.error);
+      return false;
+    }
+    const idsToRemove = new Set(ids);
+    setOffers((prev) => prev.filter((offer) => !idsToRemove.has(offer.id)));
+    toast.success(
+      `${result.data.deletedCount} offre${result.data.deletedCount > 1 ? "s" : ""} supprimée${result.data.deletedCount > 1 ? "s" : ""}`
+    );
+    return true;
+  }
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <Input
-          aria-label="Filtrer par ville"
-          placeholder="Ville..."
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className="w-40"
-        />
-        <Select value={contractType} onValueChange={(value) => setContractType(value ?? CONTRACT_TYPE_ALL)}>
-          <SelectTrigger aria-label="Filtrer par type de contrat" className="!h-11 w-44">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={CONTRACT_TYPE_ALL}>Tous les contrats</SelectItem>
-            {Object.entries(CAMPAIGN_CONTRACT_TYPE_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          aria-label="Rechercher un titre ou une entreprise"
-          placeholder="Rechercher..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-48"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Input
+            aria-label="Filtrer par ville"
+            placeholder="Ville..."
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="w-40"
+          />
+          <Select value={contractType} onValueChange={(value) => setContractType(value ?? CONTRACT_TYPE_ALL)}>
+            <SelectTrigger aria-label="Filtrer par type de contrat" className="!h-11 w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={CONTRACT_TYPE_ALL}>Tous les contrats</SelectItem>
+              {Object.entries(CAMPAIGN_CONTRACT_TYPE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            aria-label="Rechercher un titre ou une entreprise"
+            placeholder="Rechercher..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-48"
+          />
+        </div>
+
+        {filteredOffers.length > 0 && (
+          <ConfirmDeleteModal
+            trigger={
+              <Button type="button" variant="outline" size="sm">
+                Tout supprimer
+              </Button>
+            }
+            title="Supprimer ces offres ?"
+            description={`${filteredOffers.length} offre${filteredOffers.length > 1 ? "s" : ""} seront définitivement retirées de la file. Si une prochaine recherche retombe sur l'une d'elles, elle réapparaîtra ici.`}
+            onConfirm={handleClearAll}
+          />
+        )}
       </div>
 
       {campaigns.length >= 2 && (

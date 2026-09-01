@@ -13,3 +13,7 @@ export const importHarvestedOfferSchema = z.object({
 export const ignoreHarvestedOfferSchema = z.object({
   offerId: idSchema,
 });
+
+export const clearHarvestedOffersSchema = z.object({
+  offerIds: z.array(idSchema).min(1, "Aucune offre à supprimer"),
+});

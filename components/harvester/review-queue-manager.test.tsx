@@ -3,11 +3,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { HarvestedOffer } from "@prisma/client";
 import { ReviewQueueManager } from "@/components/harvester/review-queue-manager";
-import { importHarvestedOffer, ignoreHarvestedOffer } from "@/app/actions/harvest";
+import { importHarvestedOffer, ignoreHarvestedOffer, clearHarvestedOffers } from "@/app/actions/harvest";
 
 vi.mock("@/app/actions/harvest", () => ({
   importHarvestedOffer: vi.fn(),
   ignoreHarvestedOffer: vi.fn(),
+  clearHarvestedOffers: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -74,6 +75,7 @@ function makeOffer(overrides: Partial<HarvestedOffer> = {}): HarvestedOffer {
 beforeEach(() => {
   vi.mocked(importHarvestedOffer).mockReset();
   vi.mocked(ignoreHarvestedOffer).mockReset();
+  vi.mocked(clearHarvestedOffers).mockReset();
   useLinkStatusMock.mockReset();
   useLinkStatusMock.mockReturnValue({ pending: false });
 });
@@ -339,5 +341,66 @@ describe("ReviewQueueManager", () => {
       expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
       expect(screen.getByText("Dev Lille bis")).toBeInTheDocument();
     });
+  });
+});
+
+describe("ReviewQueueManager — tout supprimer (relancer une campagne avec de nouveaux filtres)", () => {
+  it("does not show a clear-all button when there are no offers", () => {
+    render(<ReviewQueueManager initialOffers={[]} nextCursor={null} />);
+    expect(screen.queryByRole("button", { name: "Tout supprimer" })).not.toBeInTheDocument();
+  });
+
+  it("asks for confirmation before deleting anything", async () => {
+    const user = userEvent.setup();
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer" }));
+
+    expect(clearHarvestedOffers).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("deletes every currently listed offer on confirmation and clears the queue", async () => {
+    const user = userEvent.setup();
+    vi.mocked(clearHarvestedOffers).mockResolvedValue({ ok: true, data: { deletedCount: 2 } });
+    const offers = [makeOffer({ id: "o1" }), makeOffer({ id: "o2", title: "Dev web" })];
+    render(<ReviewQueueManager initialOffers={offers} nextCursor={null} />);
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmer la suppression" }));
+
+    expect(clearHarvestedOffers).toHaveBeenCalledWith({ offerIds: ["o1", "o2"] });
+    expect(await screen.findByTestId("review-queue-empty-state")).toBeInTheDocument();
+  });
+
+  it("only deletes the currently filtered subset, not offers hidden by an active filter", async () => {
+    const user = userEvent.setup();
+    vi.mocked(clearHarvestedOffers).mockResolvedValue({ ok: true, data: { deletedCount: 1 } });
+    const offers = [
+      makeOffer({ id: "o1", city: "Lille" }),
+      makeOffer({ id: "o2", city: "Paris", title: "Dev web" }),
+    ];
+    render(<ReviewQueueManager initialOffers={offers} nextCursor={null} />);
+
+    await user.type(screen.getByLabelText("Filtrer par ville"), "Paris");
+    await user.click(screen.getByRole("button", { name: "Tout supprimer" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmer la suppression" }));
+
+    expect(clearHarvestedOffers).toHaveBeenCalledWith({ offerIds: ["o2"] });
+  });
+
+  it("shows an error toast and keeps the offers when deletion fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(clearHarvestedOffers).mockResolvedValue({
+      ok: false,
+      error: "Impossible de supprimer ces offres",
+      code: "INTERNAL_ERROR",
+    });
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmer la suppression" }));
+
+    expect(screen.getByText("Data Analyst")).toBeInTheDocument();
   });
 });
