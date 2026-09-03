@@ -134,3 +134,22 @@ describe("CampaignsManager", () => {
     expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("code postal"));
   });
 });
+
+describe("CampaignsManager — libellé de métier (remplace le slug technique quand présent)", () => {
+  it("shows the slug (technical, current behavior) when metiers is empty", () => {
+    render(<CampaignsManager initialCampaigns={[{ ...campaign, name: "Ma campagne" }]} />);
+    expect(screen.getByText("alternance-data-hdf")).toBeInTheDocument();
+  });
+
+  it("shows the chosen métier labels instead of the slug when metiers is set", () => {
+    render(
+      <CampaignsManager
+        initialCampaigns={[
+          { ...campaign, name: "Ma campagne", metiers: ["Data Analyst", "Data Scientist"] },
+        ]}
+      />
+    );
+    expect(screen.getByText("Data Analyst · Data Scientist")).toBeInTheDocument();
+    expect(screen.queryByText("alternance-data-hdf")).not.toBeInTheDocument();
+  });
+});

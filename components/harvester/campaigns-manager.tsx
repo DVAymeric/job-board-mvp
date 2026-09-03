@@ -68,8 +68,14 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
                 <span className="font-heading text-sm leading-snug text-heading">
                   {campaign.name ?? campaign.slug}
                 </span>
-                {campaign.name && (
-                  <span className="font-mono text-xs text-muted-foreground">{campaign.slug}</span>
+                {campaign.metiers.length > 0 ? (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {campaign.metiers.join(" · ")}
+                  </span>
+                ) : (
+                  campaign.name && (
+                    <span className="font-mono text-xs text-muted-foreground">{campaign.slug}</span>
+                  )
                 )}
                 <span className="font-mono text-xs text-muted-foreground">
                   {(campaign.contractTypes as CampaignContractType[])
