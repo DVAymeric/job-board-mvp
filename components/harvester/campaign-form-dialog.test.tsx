@@ -637,4 +637,43 @@ describe("CampaignFormDialog — métier recherché (recherche assistée sur le 
       })
     );
   });
+
+  it("removing a métier pill also removes its ROME code and keyword from the created campaign payload", async () => {
+    const user = userEvent.setup();
+    vi.mocked(searchMetiers).mockResolvedValue({
+      ok: true,
+      data: { matches: [{ libelle: "Data Analyst", romeCode: "M1403", score: 0.9 }] },
+    });
+    vi.mocked(createCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Métier recherché"), "data analy");
+    await user.click(await screen.findByRole("button", { name: "Data Analyst" }));
+    // "Retirer Data Analyst" est ambigu : selectMetier ajoute le libellé à la fois comme
+    // pastille métier ET comme mot-clé (ChipInput), qui partagent le même format
+    // d'aria-label (`Retirer ${valeur}`). La pastille métier est rendue en premier dans
+    // le DOM (section "Métier recherché" avant "Mots-clés") — [0] cible donc bien elle.
+    const [metierRemoveButton] = screen.getAllByRole("button", { name: "Retirer Data Analyst" });
+    await user.click(metierRemoveButton);
+    await user.click(screen.getByRole("checkbox", { name: "Apprentissage" }));
+    await user.type(screen.getByLabelText("Ville"), "Lille");
+    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+
+    expect(createCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metiers: [],
+        romeCodes: [],
+        keywords: [],
+      })
+    );
+  });
 });

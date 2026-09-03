@@ -127,6 +127,7 @@ export function CampaignFormDialog({
   const [metierSuggestions, setMetierSuggestions] = useState<MetierMatch[]>([]);
   const [metierSearching, setMetierSearching] = useState(false);
   const [metierNotFound, setMetierNotFound] = useState<string | null>(null);
+  const [metierRomeCodes, setMetierRomeCodes] = useState<Record<string, string[]>>({});
   const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
     (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
   );
@@ -183,6 +184,11 @@ export function CampaignFormDialog({
   function selectMetier(match: MetierMatch) {
     setMetiers((prev) => (prev.includes(match.libelle) ? prev : [...prev, match.libelle]));
     setRomeCodes((prev) => (prev.includes(match.romeCode) ? prev : [...prev, match.romeCode]));
+    setMetierRomeCodes((prev) => {
+      const codes = prev[match.libelle] ?? [];
+      if (codes.includes(match.romeCode)) return prev;
+      return { ...prev, [match.libelle]: [...codes, match.romeCode] };
+    });
     setKeywords((prev) =>
       prev.some((k) => k.toLowerCase() === match.libelle.toLowerCase()) ? prev : [...prev, match.libelle]
     );
@@ -193,6 +199,13 @@ export function CampaignFormDialog({
 
   function removeMetier(libelle: string) {
     setMetiers((prev) => prev.filter((m) => m !== libelle));
+    const removedCodes = metierRomeCodes[libelle] ?? [];
+    const remainingSelections = { ...metierRomeCodes };
+    delete remainingSelections[libelle];
+    const stillUsedCodes = new Set(Object.values(remainingSelections).flat());
+    setRomeCodes((prev) => prev.filter((code) => !removedCodes.includes(code) || stillUsedCodes.has(code)));
+    setMetierRomeCodes(remainingSelections);
+    setKeywords((prev) => prev.filter((k) => k.toLowerCase() !== libelle.toLowerCase()));
   }
 
   function updateLocation(index: number, patch: Partial<LocationInput>) {
@@ -332,32 +345,37 @@ export function CampaignFormDialog({
                 autoComplete="off"
                 disabled={saving}
               />
-              {(metierSearching || metierSuggestions.length > 0 || metierNotFound) && (
-                <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover shadow-panel">
-                  {metierSearching ? (
-                    <p className="p-2 text-sm text-muted-foreground">Recherche...</p>
-                  ) : metierSuggestions.length > 0 ? (
-                    <ul>
-                      {metierSuggestions.map((match) => (
-                        <li key={`${match.libelle}-${match.romeCode}`}>
-                          <button
-                            type="button"
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => selectMetier(match)}
-                            className="block w-full px-3 py-2 text-left text-base hover:bg-muted"
-                          >
-                            {match.libelle}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="p-2 text-sm text-muted-foreground">
-                      Aucun métier trouvé pour « {metierNotFound} ».
-                    </p>
-                  )}
-                </div>
-              )}
+              {/* Annonce l'apparition des suggestions / du message "aucun résultat" — sans
+                  ceci, une personne au lecteur d'écran n'a aucun moyen de savoir qu'une
+                  recherche vient d'aboutir (même pattern que offer-search.tsx, JOB-145). */}
+              <div aria-live="polite">
+                {(metierSearching || metierSuggestions.length > 0 || metierNotFound) && (
+                  <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover shadow-panel">
+                    {metierSearching ? (
+                      <p className="p-2 text-sm text-muted-foreground">Recherche...</p>
+                    ) : metierSuggestions.length > 0 ? (
+                      <ul>
+                        {metierSuggestions.map((match) => (
+                          <li key={`${match.libelle}-${match.romeCode}`}>
+                            <button
+                              type="button"
+                              onMouseDown={(e) => e.preventDefault()}
+                              onClick={() => selectMetier(match)}
+                              className="block w-full px-3 py-2 text-left text-base hover:bg-muted"
+                            >
+                              {match.libelle}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="p-2 text-sm text-muted-foreground">
+                        Aucun métier trouvé pour « {metierNotFound} ».
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
