@@ -137,8 +137,11 @@ qu'un utilisateur se pose) :
   ROME brut — cohérent avec l'objectif grand public).
 - Sélection d'un résultat : ajoute son libellé à `metiers` (pastille, retirable comme les
   pastilles de mots-clés existantes), ajoute son `romeCode` à `romeCodes` si absent, ajoute
-  son libellé (en minuscules, cohérent avec le style des mots-clés déjà en base) à
-  `keywords` si absent.
+  son libellé tel quel (casse du référentiel, ex. "Data Analyst") à `keywords` si absent
+  (comparaison insensible à la casse pour éviter un doublon) — la casse ne change rien au
+  matching, `matchesKeywords` (query-filter.ts) est déjà insensible à la casse ; la garder
+  telle quelle évite un texte différent entre la pastille "Métier recherché" et le mot-clé
+  correspondant.
 - Aucune correspondance : message "Aucun métier trouvé pour « ... »" sous le champ,
   formulaire non bloqué — l'utilisateur peut continuer avec mots-clés/ROME manuels comme
   aujourd'hui (aucune régression du chemin existant).
