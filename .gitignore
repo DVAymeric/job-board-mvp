@@ -60,5 +60,8 @@ next-env.d.ts
 /.claude/
 skills-lock.json
 
+# Espaces de travail isolés (superpowers:using-git-worktrees)
+/.worktrees/
+
 # graphify
 /graphify-out/cache
