@@ -10,6 +10,7 @@ import {
   deleteCampaignSchema,
   updateCampaignSchema,
 } from "@/lib/harvester/campaign-validation";
+import { searchRomeReferentiel, type MetierMatch } from "@/lib/harvester/rome-search";
 import { resolveLocations } from "@/lib/harvester/geocoding";
 import { slugifyKeywords } from "@/lib/harvester/campaign-slug";
 import { storedCampaignTargets } from "@/lib/harvester/campaign-config";
@@ -45,6 +46,20 @@ export async function listCampaigns(): Promise<ActionResult<{ campaigns: Campaig
     logActionError("listCampaigns", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible de charger les campagnes");
   }
+}
+
+/**
+ * Recherche floue de métiers sur le référentiel ROME officiel, pour le champ "Métier
+ * recherché" du formulaire de campagne — ne modifie rien, retourne des candidats que
+ * l'utilisateur choisit explicitement côté client.
+ *
+ * @errors `UNAUTHENTICATED`.
+ */
+export async function searchMetiers(query: string): Promise<ActionResult<{ matches: MetierMatch[] }>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  return { ok: true, data: { matches: searchRomeReferentiel(query) } };
 }
 
 /**
