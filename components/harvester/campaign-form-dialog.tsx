@@ -160,8 +160,6 @@ export function CampaignFormDialog({
   useEffect(() => {
     const trimmed = metierQuery.trim();
     if (trimmed.length < 2) {
-      setMetierSuggestions([]);
-      setMetierNotFound(null);
       return;
     }
     const timeout = setTimeout(async () => {
@@ -321,7 +319,14 @@ export function CampaignFormDialog({
               <Input
                 id="campaign-metier"
                 value={metierQuery}
-                onChange={(e) => setMetierQuery(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setMetierQuery(value);
+                  if (value.trim().length < 2) {
+                    setMetierSuggestions([]);
+                    setMetierNotFound(null);
+                  }
+                }}
                 onBlur={() => setTimeout(() => setMetierSuggestions([]), 150)}
                 placeholder="Data Analyst, Développeur web..."
                 autoComplete="off"
