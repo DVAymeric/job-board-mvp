@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ChipInput } from "@/components/ui/chip-input";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
-import { createCampaign, updateCampaign, deleteCampaign } from "@/app/actions/campaigns";
+import { createCampaign, updateCampaign, deleteCampaign, searchMetiers } from "@/app/actions/campaigns";
+import type { MetierMatch } from "@/lib/harvester/rome-search";
 import {
   CAMPAIGN_CONTRACT_TYPES,
   CAMPAIGN_CONTRACT_TYPE_LABELS,
@@ -38,6 +40,11 @@ interface WorkdayTargetInput {
 }
 
 const EMPTY_LOCATION: LocationInput = { label: "", radiusKm: "30" };
+
+// Plus long que SEARCH_DEBOUNCE_MS (200ms, components/board/board.tsx) — celui-ci déclenche un
+// appel réseau à une Server Action, pas un simple filtre en mémoire ; limite le nombre
+// d'appels serveur pendant la frappe.
+const METIER_SEARCH_DEBOUNCE_MS = 300;
 
 // Le nom de ville suffit ici — lat/lng ne sont plus saisis, résolus côté serveur (géocodage,
 // JOB-59 suite). `config.locations` en base reste au format complet (avec lat/lng) : seul le
@@ -114,6 +121,12 @@ export function CampaignFormDialog({
 
   const [name, setName] = useState(existing?.name ?? "");
   const [keywords, setKeywords] = useState<string[]>(existing?.keywords ?? []);
+  const [romeCodes, setRomeCodes] = useState<string[]>(existing?.romeCodes ?? []);
+  const [metiers, setMetiers] = useState<string[]>(existing?.metiers ?? []);
+  const [metierQuery, setMetierQuery] = useState("");
+  const [metierSuggestions, setMetierSuggestions] = useState<MetierMatch[]>([]);
+  const [metierSearching, setMetierSearching] = useState(false);
+  const [metierNotFound, setMetierNotFound] = useState<string | null>(null);
   const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
     (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
   );
@@ -144,10 +157,44 @@ export function CampaignFormDialog({
     }
   }, [formError]);
 
+  useEffect(() => {
+    const trimmed = metierQuery.trim();
+    if (trimmed.length < 2) {
+      setMetierSuggestions([]);
+      setMetierNotFound(null);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      setMetierSearching(true);
+      const result = await searchMetiers(trimmed);
+      setMetierSearching(false);
+      if (result.ok) {
+        setMetierSuggestions(result.data.matches);
+        setMetierNotFound(result.data.matches.length === 0 ? trimmed : null);
+      }
+    }, METIER_SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timeout);
+  }, [metierQuery]);
+
   function toggleContractType(type: CampaignContractType) {
     setContractTypes((prev) =>
       prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
+  }
+
+  function selectMetier(match: MetierMatch) {
+    setMetiers((prev) => (prev.includes(match.libelle) ? prev : [...prev, match.libelle]));
+    setRomeCodes((prev) => (prev.includes(match.romeCode) ? prev : [...prev, match.romeCode]));
+    setKeywords((prev) =>
+      prev.some((k) => k.toLowerCase() === match.libelle.toLowerCase()) ? prev : [...prev, match.libelle]
+    );
+    setMetierQuery("");
+    setMetierSuggestions([]);
+    setMetierNotFound(null);
+  }
+
+  function removeMetier(libelle: string) {
+    setMetiers((prev) => prev.filter((m) => m !== libelle));
   }
 
   function updateLocation(index: number, patch: Partial<LocationInput>) {
@@ -170,6 +217,8 @@ export function CampaignFormDialog({
     return {
       name: name.trim() || undefined,
       keywords,
+      romeCodes,
+      metiers,
       contractTypes,
       locations: parsedLocations,
       targets: hasTargets
@@ -245,6 +294,66 @@ export function CampaignFormDialog({
               placeholder="Data"
               disabled={saving}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="campaign-metier" className="text-base font-medium">
+              Métier recherché
+            </label>
+            {metiers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {metiers.map((metier) => (
+                  <Badge key={metier} variant="tag" className="gap-1">
+                    {metier}
+                    <button
+                      type="button"
+                      onClick={() => removeMetier(metier)}
+                      aria-label={`Retirer ${metier}`}
+                      className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <div className="relative">
+              <Input
+                id="campaign-metier"
+                value={metierQuery}
+                onChange={(e) => setMetierQuery(e.target.value)}
+                onBlur={() => setTimeout(() => setMetierSuggestions([]), 150)}
+                placeholder="Data Analyst, Développeur web..."
+                autoComplete="off"
+                disabled={saving}
+              />
+              {(metierSearching || metierSuggestions.length > 0 || metierNotFound) && (
+                <div className="absolute z-10 mt-1 w-full rounded-lg border border-border bg-popover shadow-panel">
+                  {metierSearching ? (
+                    <p className="p-2 text-sm text-muted-foreground">Recherche...</p>
+                  ) : metierSuggestions.length > 0 ? (
+                    <ul>
+                      {metierSuggestions.map((match) => (
+                        <li key={`${match.libelle}-${match.romeCode}`}>
+                          <button
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => selectMetier(match)}
+                            className="block w-full px-3 py-2 text-left text-base hover:bg-muted"
+                          >
+                            {match.libelle}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="p-2 text-sm text-muted-foreground">
+                      Aucun métier trouvé pour « {metierNotFound} ».
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1.5">
