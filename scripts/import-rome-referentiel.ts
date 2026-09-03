@@ -39,9 +39,10 @@ function findEntry(zipPath: string, prefix: string): string {
 
 function extractJson<T>(zipPath: string, entryName: string): T[] {
   const raw = execFileSync("unzip", ["-p", zipPath, entryName], { maxBuffer: 64 * 1024 * 1024 });
-  // Source en windows-1252 (vérifié en inspectant l'archive) — le fichier produit ci-dessous
-  // est réécrit en UTF-8 standard.
-  const text = new TextDecoder("windows-1252").decode(raw);
+  // Source en ISO-8859-15 (Latin-9) — confirmé en recoupant les entrées connues "œ/Œ"
+  // (ex. "manœuvre", "Œnologue"), corrompues en "½/¼" sous une lecture windows-1252.
+  // Le fichier produit ci-dessous est réécrit en UTF-8 standard.
+  const text = new TextDecoder("iso-8859-15").decode(raw);
   return JSON.parse(text) as T[];
 }
 
