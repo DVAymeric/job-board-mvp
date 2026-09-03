@@ -30,7 +30,6 @@ const campaign: Campaign = {
   metiers: [],
   contractTypes: ["APPRENTISSAGE", "PROFESSIONNALISATION"],
   schedule: null,
-  order: 0,
   config: { locations: [{ label: "Lille", lat: 50.63, lng: 3.05, radiusKm: 30 }] },
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
