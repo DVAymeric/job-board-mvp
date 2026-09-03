@@ -27,6 +27,14 @@ vi.mock("next/link", async (importOriginal) => {
   };
 });
 
+// JOB-155 : le filtre par campagne navigue désormais (`router.push`) au lieu de filtrer
+// `initialOffers` en mémoire — le serveur applique le filtre à la requête Prisma, en amont de
+// la pagination (voir app/harvester/review/page.tsx).
+const { routerPushMock } = vi.hoisted(() => ({ routerPushMock: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: routerPushMock }),
+}));
+
 function makeOffer(overrides: Partial<HarvestedOffer> = {}): HarvestedOffer {
   return {
     id: "offer-1",
@@ -76,6 +84,7 @@ beforeEach(() => {
   vi.mocked(importHarvestedOffer).mockReset();
   vi.mocked(ignoreHarvestedOffer).mockReset();
   vi.mocked(clearHarvestedOffers).mockReset();
+  routerPushMock.mockReset();
   useLinkStatusMock.mockReset();
   useLinkStatusMock.mockReturnValue({ pending: false });
 });
@@ -298,44 +307,80 @@ describe("ReviewQueueManager", () => {
       expect(screen.getByRole("button", { name: "dev-paris" })).toBeInTheDocument();
     });
 
-    it("filters offers to a single selected campaign", async () => {
+    // JOB-155 : le filtre par campagne navigue vers `/harvester/review?campaigns=...` — c'est
+    // au serveur (app/harvester/review/page.tsx) d'appliquer ce filtre à la requête Prisma, en
+    // amont de la pagination. `initialOffers` ici représente déjà la page renvoyée par le
+    // serveur pour la sélection courante, pas un jeu complet à filtrer en mémoire.
+    it("navigates to the campaign-scoped URL when selecting a single campaign pill", async () => {
       const user = userEvent.setup();
-      const offers = [
-        makeOffer({ id: "o1", campaignId: "campaign-1" }),
-        makeOffer({ id: "o2", campaignId: "campaign-2", title: "Dev web" }),
-      ];
-      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+      render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} campaigns={campaigns} />);
 
       await user.click(screen.getByRole("button", { name: "Data Lille" }));
 
-      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
-      expect(screen.queryByText("Dev web")).not.toBeInTheDocument();
+      expect(routerPushMock).toHaveBeenCalledWith("/harvester/review?campaigns=campaign-1");
     });
 
-    it("selecting multiple campaign pills unions their offers", async () => {
+    it("unions campaigns in the URL when a second pill is selected without deselecting the first", async () => {
       const user = userEvent.setup();
-      const offers = [
-        makeOffer({ id: "o1", campaignId: "campaign-1" }),
-        makeOffer({ id: "o2", campaignId: "campaign-2", title: "Dev web" }),
-      ];
-      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+      render(
+        <ReviewQueueManager
+          initialOffers={[makeOffer()]}
+          nextCursor={null}
+          campaigns={campaigns}
+          activeCampaignIds={["campaign-1"]}
+        />
+      );
 
-      await user.click(screen.getByRole("button", { name: "Data Lille" }));
       await user.click(screen.getByRole("button", { name: "dev-paris" }));
 
-      expect(screen.getByText("Data Analyst")).toBeInTheDocument();
-      expect(screen.getByText("Dev web")).toBeInTheDocument();
+      expect(routerPushMock).toHaveBeenCalledWith("/harvester/review?campaigns=campaign-1%2Ccampaign-2");
     });
 
-    it("combines the campaign filter (OR within category) with the city filter (AND across categories)", async () => {
+    it("navigates back to the unfiltered URL when deselecting the only active campaign", async () => {
+      const user = userEvent.setup();
+      render(
+        <ReviewQueueManager
+          initialOffers={[makeOffer()]}
+          nextCursor={null}
+          campaigns={campaigns}
+          activeCampaignIds={["campaign-1"]}
+        />
+      );
+
+      await user.click(screen.getByRole("button", { name: "Data Lille" }));
+
+      expect(routerPushMock).toHaveBeenCalledWith("/harvester/review");
+    });
+
+    it("highlights the pills for the campaigns currently active in the URL", () => {
+      render(
+        <ReviewQueueManager
+          initialOffers={[makeOffer()]}
+          nextCursor={null}
+          campaigns={campaigns}
+          activeCampaignIds={["campaign-2"]}
+        />
+      );
+
+      expect(screen.getByRole("button", { name: "dev-paris" })).toHaveClass("bg-primary");
+      expect(screen.getByRole("button", { name: "Data Lille" })).not.toHaveClass("bg-primary");
+    });
+
+    it("still combines the (server-scoped) offers with the client-side city filter", async () => {
       const user = userEvent.setup();
       const offers = [
         makeOffer({ id: "o1", campaignId: "campaign-1", city: "Lille" }),
         makeOffer({ id: "o2", campaignId: "campaign-1", city: "Paris", title: "Dev Lille bis" }),
       ];
-      render(<ReviewQueueManager initialOffers={offers} nextCursor={null} campaigns={campaigns} />);
+      render(
+        <ReviewQueueManager
+          initialOffers={offers}
+          nextCursor={null}
+          campaigns={campaigns}
+          activeCampaignIds={["campaign-1"]}
+        />
+      );
 
-      await user.click(screen.getByRole("button", { name: "Data Lille" }));
       await user.type(screen.getByLabelText("Filtrer par ville"), "Paris");
 
       expect(screen.queryByText("Data Analyst")).not.toBeInTheDocument();
@@ -358,6 +403,29 @@ describe("ReviewQueueManager — tout supprimer (relancer une campagne avec de n
 
     expect(clearHarvestedOffers).not.toHaveBeenCalled();
     expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  // JOB-163 : "1 offre seront..." — désaccord sujet/verbe visible dès qu'une seule offre est
+  // concernée par la suppression.
+  it("agrees the confirmation text with a single offer ('1 offre sera', not 'seront')", async () => {
+    const user = userEvent.setup();
+    render(<ReviewQueueManager initialOffers={[makeOffer()]} nextCursor={null} />);
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("1 offre sera définitivement retirée de la file.");
+  });
+
+  it("agrees the confirmation text with several offers ('2 offres seront')", async () => {
+    const user = userEvent.setup();
+    const offers = [makeOffer({ id: "o1" }), makeOffer({ id: "o2", title: "Dev web" })];
+    render(<ReviewQueueManager initialOffers={offers} nextCursor={null} />);
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer" }));
+
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog).toHaveTextContent("2 offres seront définitivement retirées de la file.");
   });
 
   it("deletes every currently listed offer on confirmation and clears the queue", async () => {

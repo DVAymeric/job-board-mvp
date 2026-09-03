@@ -24,6 +24,7 @@ const existingCampaign: Campaign = {
   keywords: ["data analyst"],
   contractTypes: ["APPRENTISSAGE"],
   schedule: "0 7 * * *",
+  order: 0,
   config: {
     locations: [{ label: "Lille", lat: 50.630951, lng: 3.045391, radiusKm: 30 }],
     targets: { workday: [{ tenant: "valeo", site: "valeo_jobs", dc: "wd3" }], smartrecruiters: ["MAZARS"] },
@@ -105,6 +106,62 @@ describe("CampaignFormDialog — création", () => {
     await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
 
     expect(createCampaign).toHaveBeenCalledWith(expect.objectContaining({ name: "Data" }));
+  });
+
+  // JOB-158 : le bouton bloquait déjà tant qu'aucun type de contrat ou aucune localisation
+  // n'était renseigné, mais rien ne l'annonçait dans le formulaire — trouvé en audit QA.
+  it("tells the user that a contract type and a location are required (JOB-158)", () => {
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Au moins un type de contrat est requis.")).toBeInTheDocument();
+    expect(screen.getByText("Au moins une localisation est requise.")).toBeInTheDocument();
+  });
+
+  // JOB-160 : trouvé en audit QA — un code ROME au mauvais format ou un rayon à 0 étaient
+  // acceptés sans avertissement jusqu'au clic sur "Créer la campagne" (bandeau générique, sans
+  // lien visuel avec le champ fautif).
+  it("flags an invalid ROME code as soon as it is added, before any submit attempt (JOB-160)", async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Codes ROME (optionnel)"), "ZZ9999,");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Format invalide (ZZ9999)");
+  });
+
+  it("flags a zero radius as soon as a city is entered, before any submit attempt (JOB-160)", async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Ville"), "Marseille");
+    await user.clear(screen.getByLabelText("Rayon (km)"));
+    await user.type(screen.getByLabelText("Rayon (km)"), "0");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Rayon invalide");
   });
 
   it("disables the submit button until at least one contract type is set", async () => {
@@ -394,6 +451,141 @@ describe("CampaignFormDialog — édition", () => {
     expect(updateCampaign).toHaveBeenCalledWith(
       expect.objectContaining({ keywords: ["data analyst"] })
     );
+  });
+
+  it("pre-fills a chip per existing code ROME (JOB-153)", () => {
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, romeCodes: ["M1403", "M1805"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("M1403")).toBeInTheDocument();
+    expect(screen.getByText("M1805")).toBeInTheDocument();
+  });
+
+  it("supports adding several codes ROME and saves them all", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, romeCodes: [] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.type(screen.getByLabelText("Codes ROME (optionnel)"), "M1403,M1805,");
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ romeCodes: ["M1403", "M1805"] })
+    );
+  });
+
+  it("removes a single code ROME chip without touching the others", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, romeCodes: ["M1403", "M1805"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Retirer M1805" }));
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ romeCodes: ["M1403"] })
+    );
+  });
+
+  it("clears all keyword chips at once via \"Tout supprimer\", then saves an empty list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, keywords: ["data analyst", "BI"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer les mots-clés" }));
+
+    expect(screen.queryByText("data analyst")).not.toBeInTheDocument();
+    expect(screen.queryByText("BI")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(expect.objectContaining({ keywords: [] }));
+  });
+
+  it("does not show \"Tout supprimer\" when there are no keywords", () => {
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, keywords: [] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Tout supprimer les mots-clés" })).not.toBeInTheDocument();
+  });
+
+  it("clears all code ROME chips at once via \"Tout supprimer\", then saves an empty list", async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateCampaign).mockResolvedValue({ ok: true, data: { campaign: existingCampaign } });
+
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, romeCodes: ["M1403", "M1805"] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Tout supprimer les codes ROME" }));
+
+    expect(screen.queryByText("M1403")).not.toBeInTheDocument();
+    expect(screen.queryByText("M1805")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Enregistrer" }));
+
+    expect(updateCampaign).toHaveBeenCalledWith(expect.objectContaining({ romeCodes: [] }));
+  });
+
+  it("does not show \"Tout supprimer\" when there are no codes ROME", () => {
+    render(
+      <CampaignFormDialog
+        campaign={{ ...existingCampaign, romeCodes: [] }}
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Tout supprimer les codes ROME" })).not.toBeInTheDocument();
   });
 });
 

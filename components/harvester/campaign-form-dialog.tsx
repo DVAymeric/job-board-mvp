@@ -39,6 +39,12 @@ interface WorkdayTargetInput {
 
 const EMPTY_LOCATION: LocationInput = { label: "", radiusKm: "30" };
 
+// JOB-160 : même format que romeCodeSchema (lib/harvester/campaign-validation.ts), dupliqué ici
+// pour un retour visuel immédiat à l'ajout — auparavant un code au mauvais format n'était
+// rejeté qu'au clic sur "Créer la campagne", via un bandeau générique sans lien visuel avec le
+// chip fautif.
+const ROME_CODE_PATTERN = /^[A-Za-z]\d{4}$/;
+
 // Le nom de ville suffit ici — lat/lng ne sont plus saisis, résolus côté serveur (géocodage,
 // JOB-59 suite). `config.locations` en base reste au format complet (avec lat/lng) : seul le
 // label et le rayon sont ré-affichables tels quels dans le formulaire.
@@ -98,12 +104,18 @@ function scheduleOptionFromCron(cron: string | null | undefined): ScheduleOption
 
 export function CampaignFormDialog({
   campaign,
+  duplicateFrom,
   onOpenChange,
   onCreated,
   onUpdated,
   onDeleted,
 }: {
   campaign: Campaign | null | "new";
+  // Ne s'applique qu'avec campaign === "new" : pré-remplit les champs à partir
+  // d'une campagne existante (bouton "Dupliquer") sans en faire la cible de
+  // l'enregistrement — handleSave/handleDelete restent basés sur `existing`,
+  // toujours null ici, donc la sauvegarde crée bien une nouvelle campagne.
+  duplicateFrom?: Campaign | null;
   onOpenChange: (open: boolean) => void;
   onCreated: (campaign: Campaign) => void;
   onUpdated: (campaign: Campaign) => void;
@@ -111,29 +123,38 @@ export function CampaignFormDialog({
 }) {
   const isNew = campaign === "new";
   const existing = isNew ? null : campaign;
+  const prefillSource = isNew ? (duplicateFrom ?? null) : existing;
 
-  const [name, setName] = useState(existing?.name ?? "");
-  const [keywords, setKeywords] = useState<string[]>(existing?.keywords ?? []);
-  const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
-    (existing?.contractTypes as CampaignContractType[] | undefined) ?? []
+  const [name, setName] = useState(
+    isNew && duplicateFrom
+      ? duplicateFrom.name
+        ? `${duplicateFrom.name} (copie)`
+        : ""
+      : (existing?.name ?? "")
   );
-  const [locations, setLocations] = useState<LocationInput[]>(locationsFromCampaign(existing));
+  const [keywords, setKeywords] = useState<string[]>(prefillSource?.keywords ?? []);
+  const [romeCodes, setRomeCodes] = useState<string[]>(prefillSource?.romeCodes ?? []);
+  const [contractTypes, setContractTypes] = useState<CampaignContractType[]>(
+    (prefillSource?.contractTypes as CampaignContractType[] | undefined) ?? []
+  );
+  const [locations, setLocations] = useState<LocationInput[]>(locationsFromCampaign(prefillSource));
   // JOB-151 : plus aucune UI n'édite les cibles Workday/SmartRecruiters
   // (configuration technique par connecteur) — mais une campagne existante qui
   // en avait déjà les conserve telles quelles, round-trippées sans perte à
   // chaque enregistrement.
-  const [workdayTargets] = useState<WorkdayTargetInput[]>(workdayTargetsFromCampaign(existing));
-  const [smartrecruiters] = useState(smartrecruitersFromCampaign(existing));
+  const [workdayTargets] = useState<WorkdayTargetInput[]>(workdayTargetsFromCampaign(prefillSource));
+  const [smartrecruiters] = useState(smartrecruitersFromCampaign(prefillSource));
   const [scheduleOption, setScheduleOption] = useState<ScheduleOptionValue>(
-    scheduleOptionFromCron(existing?.schedule)
+    scheduleOptionFromCron(prefillSource?.schedule)
   );
-  const [rawSchedule] = useState(existing?.schedule ?? undefined);
+  const [rawSchedule] = useState(prefillSource?.schedule ?? undefined);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const formErrorRef = useRef<HTMLDivElement>(null);
   const formErrorId = "campaign-form-error";
 
   const open = campaign !== null;
+  const invalidRomeCodes = romeCodes.filter((code) => !ROME_CODE_PATTERN.test(code));
 
   // Déplace le focus vers le message d'erreur à chaque échec de soumission,
   // pour qu'il soit annoncé immédiatement (JOB-116) — le toast Sonner reste
@@ -170,6 +191,7 @@ export function CampaignFormDialog({
     return {
       name: name.trim() || undefined,
       keywords,
+      romeCodes,
       contractTypes,
       locations: parsedLocations,
       targets: hasTargets
@@ -227,7 +249,9 @@ export function CampaignFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[85vh] w-full max-w-lg flex-col sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isNew ? "Nouvelle campagne" : "Modifier la campagne"}</DialogTitle>
+          <DialogTitle>
+            {isNew ? (duplicateFrom ? "Dupliquer la campagne" : "Nouvelle campagne") : "Modifier la campagne"}
+          </DialogTitle>
           <DialogDescription>
             Mots-clés, zones géographiques et types de contrat visés par cette campagne.
           </DialogDescription>
@@ -248,9 +272,23 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="campaign-keywords" className="text-base font-medium">
-              Mots-clés
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="campaign-keywords" className="text-base font-medium">
+                Mots-clés
+              </label>
+              {keywords.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  disabled={saving}
+                  onClick={() => setKeywords([])}
+                  aria-label="Tout supprimer les mots-clés"
+                >
+                  Tout supprimer
+                </Button>
+              )}
+            </div>
             <ChipInput
               id="campaign-keywords"
               values={keywords}
@@ -258,6 +296,48 @@ export function CampaignFormDialog({
               placeholder="data analyst, BI"
               disabled={saving}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="campaign-rome-codes" className="text-base font-medium">
+                Codes ROME (optionnel)
+              </label>
+              {romeCodes.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  disabled={saving}
+                  onClick={() => setRomeCodes([])}
+                  aria-label="Tout supprimer les codes ROME"
+                >
+                  Tout supprimer
+                </Button>
+              )}
+            </div>
+            <ChipInput
+              id="campaign-rome-codes"
+              values={romeCodes}
+              onChange={setRomeCodes}
+              placeholder="M1403, M1805"
+              disabled={saving}
+            />
+            {/* JOB-153 : catégories officielles France Travail — un métier peut relever de
+                plusieurs codes, d'où le multi-valeurs comme pour les mots-clés. Affine surtout
+                les résultats La Bonne Alternance/France Travail, qui filtrent par ROME côté
+                serveur (les autres connecteurs n'en tiennent pas compte). */}
+            <p className="text-sm text-muted-foreground">
+              Catégories de métier officielles France Travail (ex. M1403) — un même métier peut en
+              couvrir plusieurs. Réduit le bruit des résultats La Bonne Alternance et France
+              Travail.
+            </p>
+            {invalidRomeCodes.length > 0 && (
+              <p role="alert" className="text-sm text-destructive">
+                Format invalide ({invalidRomeCodes.join(", ")}) — attendu : une lettre suivie de 4
+                chiffres, ex. M1403.
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -275,41 +355,63 @@ export function CampaignFormDialog({
                 </label>
               ))}
             </div>
+            {/* JOB-158 : contrairement aux codes ROME ("(optionnel)"), rien ne signalait ce champ
+                comme requis — le bouton "Créer la campagne" restait grisé sans explication tant
+                qu'aucune case n'était cochée. */}
+            <p className="text-sm text-muted-foreground">Au moins un type de contrat est requis.</p>
           </div>
 
           <div className="space-y-1.5">
             <span className="text-base font-medium">Localisations</span>
+            {/* JOB-158 : même logique que pour les types de contrat — la localisation est déjà
+                requise côté serveur (validée à la soumission), mais rien ne l'annonçait avant. */}
+            <p className="text-sm text-muted-foreground">Au moins une localisation est requise.</p>
             <div className="space-y-2">
-              {locations.map((loc, index) => (
-                <div key={index} className="flex flex-wrap items-center gap-1.5">
-                  <Input
-                    aria-label="Ville"
-                    value={loc.label}
-                    onChange={(e) => updateLocation(index, { label: e.target.value })}
-                    placeholder="Lille"
-                    className="w-32"
-                    disabled={saving}
-                  />
-                  <Input
-                    aria-label="Rayon (km)"
-                    value={loc.radiusKm}
-                    onChange={(e) => updateLocation(index, { radiusKm: e.target.value })}
-                    placeholder="Rayon km"
-                    className="w-20"
-                    disabled={saving}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Retirer cette localisation"
-                    onClick={() => setLocations((prev) => prev.filter((_, i) => i !== index))}
-                    disabled={saving || locations.length <= 1}
-                  >
-                    <X className="size-3.5" />
-                  </Button>
-                </div>
-              ))}
+              {locations.map((loc, index) => {
+                // JOB-160 : un rayon invalide n'est signalé qu'une fois la ville renseignée —
+                // sinon la ligne vide par défaut ("", "30") afficherait une fausse erreur avant
+                // même que l'utilisateur ait commencé à remplir le formulaire.
+                const radiusValue = Number(loc.radiusKm);
+                const hasInvalidRadius = loc.label.trim().length > 0 && !(radiusValue > 0);
+                return (
+                  <div key={index} className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Input
+                        aria-label="Ville"
+                        value={loc.label}
+                        onChange={(e) => updateLocation(index, { label: e.target.value })}
+                        placeholder="Lille"
+                        className="w-32"
+                        disabled={saving}
+                      />
+                      <Input
+                        aria-label="Rayon (km)"
+                        value={loc.radiusKm}
+                        onChange={(e) => updateLocation(index, { radiusKm: e.target.value })}
+                        placeholder="Rayon km"
+                        className="w-20"
+                        disabled={saving}
+                        aria-invalid={hasInvalidRadius}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label="Retirer cette localisation"
+                        onClick={() => setLocations((prev) => prev.filter((_, i) => i !== index))}
+                        disabled={saving || locations.length <= 1}
+                      >
+                        <X className="size-3.5" />
+                      </Button>
+                    </div>
+                    {hasInvalidRadius && (
+                      <p role="alert" className="text-sm text-destructive">
+                        Rayon invalide — doit être un nombre de kilomètres supérieur à 0.
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
               <Button
                 type="button"
                 variant="outline"

@@ -257,6 +257,30 @@ describe("fetchFranceTravailOffers", () => {
     await expect(iterate()).rejects.toThrow(/HTTP 500/);
   });
 
+  // JOB-153 : le message d'erreur générique ("HTTP 400") masquait la vraie raison (le message
+  // JSON renvoyé par l'API, ex. la limite de 7 mots-clés) — ni les logs serveur ni le toast
+  // affiché dans campaigns-manager.tsx n'exposaient de quoi déboguer sans reproduire la requête
+  // en direct.
+  it("includes the API's own error body in the thrown message, not just the status code", async () => {
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ codeHttp: 400, message: "Format du paramètre « motsCles » incorrect." }),
+        { status: 400 }
+      );
+    });
+
+    const iterate = async () => {
+      for await (const _item of fetchFranceTravailOffers(query, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+        // drain
+      }
+    };
+    await expect(iterate()).rejects.toThrow(/motsCles.*incorrect/);
+  });
+
   it("yields zero items and does not throw when the search response is 204 No Content", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
@@ -284,13 +308,62 @@ describe("fetchFranceTravailOffers", () => {
       searchUrl = url;
       return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
     });
-    const keywordsQuery: HarvestQuery = { ...query, keywords: ["data analyst", "BI"] };
+    const keywordsQuery: HarvestQuery = { ...query, romeCodes: [], keywords: ["data analyst", "BI"] };
 
     for await (const _item of fetchFranceTravailOffers(keywordsQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
       // drain
     }
 
     expect(new URL(searchUrl).searchParams.get("motsCles")).toBe("data analyst,BI");
+  });
+
+  // JOB-157 : trouvé en audit QA — une campagne avec ROME M1403 + mot-clé "data analyst"
+  // renvoyait 0 résultat France Travail alors que la même recherche sans ROME en renvoyait.
+  // L'API traite codeROME et motsCles comme un ET, pas un OU entre critères de contenu :
+  // envoyer les deux surcontraint la recherche au lieu de la préciser.
+  it("omits motsCles when the campaign also has ROME codes — codeROME stays exclusive (JOB-157)", async () => {
+    let searchUrl = "";
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      searchUrl = url;
+      return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
+    });
+    const keywordsAndRomeQuery: HarvestQuery = { ...query, romeCodes: ["M1403"], keywords: ["data analyst"] };
+
+    for await (const _item of fetchFranceTravailOffers(keywordsAndRomeQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      // drain
+    }
+
+    expect(new URL(searchUrl).searchParams.get("codeROME")).toBe("M1403");
+    expect(new URL(searchUrl).searchParams.has("motsCles")).toBe(false);
+  });
+
+  // JOB-153 : l'API rejette motsCles avec un 400 ("7 mots-clé au maximum séparés par des
+  // virgules") au-delà de 7 valeurs — vérifié en direct sur une vraie campagne à 11 mots-clés.
+  // Le filtre centralisé (offerMatchesQuery) revalide de toute façon tous les mots-clés de la
+  // campagne après coup, donc n'envoyer que les 7 premiers à l'API ne relâche rien côté résultat
+  // final, seulement le pré-filtre réseau.
+  it("caps motsCles at the API's 7-keyword maximum, silently dropping the rest", async () => {
+    let searchUrl = "";
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      searchUrl = url;
+      return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
+    });
+    const manyKeywords = ["SQL", "Python", "Power BI", "Tableau", "Looker", "reporting", "KPI", "storytelling", "segmentation"];
+    const keywordsQuery: HarvestQuery = { ...query, romeCodes: [], keywords: manyKeywords };
+
+    for await (const _item of fetchFranceTravailOffers(keywordsQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      // drain
+    }
+
+    expect(new URL(searchUrl).searchParams.get("motsCles")).toBe("SQL,Python,Power BI,Tableau,Looker,reporting,KPI");
   });
 
   it("omits the motsCles parameter when the campaign has no keywords", async () => {

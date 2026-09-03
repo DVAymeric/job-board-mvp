@@ -8,6 +8,7 @@ import { requireUser } from "@/lib/auth/session";
 import {
   createCampaignSchema,
   deleteCampaignSchema,
+  reorderCampaignsSchema,
   updateCampaignSchema,
 } from "@/lib/harvester/campaign-validation";
 import { resolveLocations } from "@/lib/harvester/geocoding";
@@ -38,7 +39,7 @@ export async function listCampaigns(): Promise<ActionResult<{ campaigns: Campaig
   try {
     const campaigns = await prisma.campaign.findMany({
       where: { userId: auth.user.id },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     });
     return { ok: true, data: { campaigns } };
   } catch (error) {
@@ -193,5 +194,43 @@ export async function deleteCampaign(input: unknown): Promise<ActionResult<null>
   } catch (error) {
     logActionError("deleteCampaign", error, { userId: auth.user.id });
     return actionError("INTERNAL_ERROR", "Impossible de supprimer cette campagne");
+  }
+}
+
+/**
+ * Persiste un nouvel ordre d'affichage pour les campagnes de l'utilisateur
+ * courant, après un glisser-déposer dans l'onglet Campagnes (même pattern
+ * que reorderJobs pour le Board).
+ *
+ * @param input.orderedIds IDs des campagnes dans leur nouvel ordre — chaque
+ * id doit appartenir à l'utilisateur courant, sinon la transaction échoue
+ * entière (aucune mise à jour partielle).
+ * @errors `UNAUTHENTICATED`, `VALIDATION_ERROR` (liste vide), `INTERNAL_ERROR`.
+ */
+export async function reorderCampaigns(input: unknown): Promise<ActionResult<null>> {
+  const auth = await requireUser();
+  if (!auth.ok) return auth;
+
+  const parsed = reorderCampaignsSchema.safeParse(input);
+  if (!parsed.success) {
+    return actionError(
+      "VALIDATION_ERROR",
+      firstIssueMessage(parsed.error, "Impossible de réordonner les campagnes")
+    );
+  }
+  try {
+    await prisma.$transaction(
+      parsed.data.orderedIds.map((id, index) =>
+        prisma.campaign.update({
+          where: campaignOwnerWhere(id, auth.user.id),
+          data: { order: index },
+        })
+      )
+    );
+    revalidatePath("/harvester/campaigns");
+    return { ok: true, data: null };
+  } catch (error) {
+    logActionError("reorderCampaigns", error, { userId: auth.user.id });
+    return actionError("INTERNAL_ERROR", "Impossible de réordonner les campagnes");
   }
 }

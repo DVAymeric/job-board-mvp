@@ -1,11 +1,11 @@
 # Graph Report - job-board-mvp  (2026-09-02)
 
 ## Corpus Check
-- 417 files · ~152,301 words
+- 417 files · ~161,855 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1658 nodes · 3809 edges · 131 communities (75 shown, 56 thin omitted)
+- 1658 nodes · 3809 edges · 131 communities (76 shown, 55 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 33 edges (avg confidence: 0.75)
 - Token cost: 0 input · 0 output
 
@@ -68,12 +68,11 @@
 - devDependencies
 - class-variance-authority
 - tabs.tsx
-- analytics-empty-state.tsx
+- analytics.ts
 - labonnealternance/client.ts
-- @axe-core/playwright
+- eslint
 - scripts
 - badge.tsx
-- @base-ui/react
 - lib/csv-export.ts
 - InMemorySlidingWindowRateLimiter
 - dependencies
@@ -93,6 +92,7 @@
 - manifest.ts
 - instrumentation.ts
 - normalized-offer.ts
+- cheerio
 - clsx
 - @dnd-kit/sortable
 - eslint.config.mjs
@@ -170,7 +170,7 @@
 - **Fusion des schémas Harvester → Prisma : Campaign, HarvestedOffer, ConnectorRun** — docs_superpowers_plans_20260818_job40_campaign_model, docs_superpowers_plans_20260818_job40_harvestedoffer_model, docs_superpowers_plans_20260818_job40_connectorrun_model [EXTRACTED 1.00]
 - **Portage progressif de job-harvester vers job-board-mvp** — job_harvester_origin_repo, docs_decision_pas_de_serveur_hono_decision, docs_decision_scheduling_harvester_decision, docs_superpowers_plans_20260818_job40_campaign_model, docs_superpowers_plans_20260830_decouverte_discovertargets [INFERRED 0.85]
 
-## Communities (131 total, 56 thin omitted)
+## Communities (131 total, 55 thin omitted)
 
 ### Community 0 - "bento-card.tsx"
 Cohesion: 0.05
@@ -281,8 +281,8 @@ Cohesion: 0.15
 Nodes (11): ContactsSection(), handleAdd(), StatusTimeline(), Dialog(), DialogContent(), DialogDescription(), DialogFooter(), DialogHeader() (+3 more)
 
 ### Community 27 - "analytics/page.tsx"
-Cohesion: 0.22
-Nodes (10): AnalyticsPage(), buildInterviewSentence(), FunnelChart(), stages, computeMostActiveMonth(), computeStatusFunnel(), FunnelStage, MostActiveMonth (+2 more)
+Cohesion: 0.26
+Nodes (6): AnalyticsPage(), AnalyticsEmptyState(), computeMostActiveMonth(), computeStatusFunnel(), computeFollowUpSummary(), computeStatusCounts()
 
 ### Community 28 - "welcometothejungle/client.ts"
 Cohesion: 0.11
@@ -362,11 +362,15 @@ Nodes (5): handleExportIcs(), buildInterviewIcs(), escapeIcsText(), IcsJob, toIc
 
 ### Community 50 - "devDependencies"
 Cohesion: 0.15
-Nodes (13): eslint, jsdom, devDependencies, eslint, jsdom, @types/node, @types/react-dom, typescript (+5 more)
+Nodes (13): @axe-core/playwright, jsdom, devDependencies, @axe-core/playwright, jsdom, @types/node, @types/react-dom, typescript (+5 more)
 
 ### Community 52 - "tabs.tsx"
 Cohesion: 0.48
 Nodes (4): Tabs(), TabsList(), TabsPanel(), TabsTab()
+
+### Community 53 - "analytics.ts"
+Cohesion: 0.43
+Nodes (5): buildInterviewSentence(), FunnelChart(), stages, FunnelStage, MostActiveMonth
 
 ### Community 54 - "labonnealternance/client.ts"
 Cohesion: 0.15
@@ -390,7 +394,7 @@ Nodes (3): InMemorySlidingWindowRateLimiter, RateLimiter, RateLimitResult
 
 ### Community 62 - "dependencies"
 Cohesion: 0.29
-Nodes (7): cheerio, lucide-react, next-themes, dependencies, cheerio, lucide-react, next-themes
+Nodes (7): @base-ui/react, lucide-react, next-themes, dependencies, @base-ui/react, lucide-react, next-themes
 
 ### Community 63 - "board.tsx"
 Cohesion: 0.09
@@ -439,7 +443,7 @@ Nodes (4): Contexte, Devenir de "Cibles découvertes" pour la navigation grand p
 ## Knowledge Gaps
 - **433 isolated node(s):** `baseCampaignInput`, `geocodedLille`, `validInput`, `PLATFORM_TO_TARGETS_KEY`, `{ afterTasks }` (+428 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **56 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

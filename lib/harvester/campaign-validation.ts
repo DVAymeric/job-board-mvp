@@ -28,12 +28,22 @@ const campaignLocationInputSchema = z.object({
   radiusKm: z.number().positive("Rayon invalide"),
 });
 
+// Une lettre (A-N, U) + 4 chiffres — format officiel des codes ROME France Travail (ex. M1403).
+// Normalisé en majuscules avant validation (JOB-153) : sans ça, une saisie "m1403" échouerait
+// silencieusement à filtrer côté La Bonne Alternance/France Travail (les deux comparent la
+// valeur telle quelle) sans jamais remonter d'erreur explicite à l'utilisateur.
+const romeCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z]\d{4}$/, "Code ROME invalide (format attendu : une lettre suivie de 4 chiffres, ex. M1403)");
+
 // L'identifiant (slug) n'est plus saisi par l'utilisateur — généré côté serveur à partir des
 // mots-clés (slugifyKeywords) à la création, puis jamais modifié (campaigns.ts).
 const campaignFieldsSchema = {
   // Nom d'affichage optionnel, distinct du slug technique — voir prisma/schema.prisma.
   name: z.string().trim().min(1).optional(),
-  romeCodes: z.array(z.string().trim().min(1)).default([]),
+  romeCodes: z.array(romeCodeSchema).default([]),
   keywords: z.array(z.string().trim().min(1)).default([]),
   contractTypes: z.array(z.enum(CAMPAIGN_CONTRACT_TYPES)).min(1, "Au moins un type de contrat"),
   locations: z.array(campaignLocationInputSchema).min(1, "Au moins une localisation"),
@@ -50,4 +60,8 @@ export const updateCampaignSchema = z.object({
 
 export const deleteCampaignSchema = z.object({
   campaignId: campaignIdSchema,
+});
+
+export const reorderCampaignsSchema = z.object({
+  orderedIds: z.array(campaignIdSchema).min(1, "Liste vide"),
 });

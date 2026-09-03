@@ -12,7 +12,11 @@ export default async function HarvesterCampaignsPage() {
   const [campaigns, pendingOfferCount] = await Promise.all([
     prisma.campaign.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      // Doit rester aligné avec listCampaigns() (app/actions/campaigns.ts) — sans le tri par
+      // `order`, chaque rechargement de la page (ex. changement d'onglet) réaffichait les
+      // campagnes dans leur ordre de création, annulant silencieusement tout glisser-déposer
+      // (JOB-153, suite).
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
     }),
     getPendingOfferCount(userId),
   ]);

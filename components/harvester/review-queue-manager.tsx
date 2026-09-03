@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import type { HarvestedOffer } from "@prisma/client";
 import { toast } from "sonner";
@@ -59,20 +60,43 @@ export function ReviewQueueManager({
   initialOffers,
   nextCursor,
   campaigns = [],
+  activeCampaignIds = [],
 }: {
   initialOffers: HarvestedOffer[];
   nextCursor: string | null;
   campaigns?: { id: string; name: string | null; slug: string }[];
+  // JOB-155 : liste des campagnes actuellement sélectionnées, reflétée dans l'URL
+  // (`?campaigns=id1,id2`) et appliquée à la requête Prisma côté serveur — pas un filtre
+  // client sur `initialOffers`, qui n'est déjà que la page courante (voir page.tsx).
+  activeCampaignIds?: string[];
 }) {
+  const router = useRouter();
   const [offers, setOffers] = useState(initialOffers);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [city, setCity] = useState("");
   const [contractType, setContractType] = useState(CONTRACT_TYPE_ALL);
   const [search, setSearch] = useState("");
-  const [selectedCampaignIds, setSelectedCampaignIds] = useState<Set<string>>(new Set());
   // JOB-117 : reflète le useLinkStatus du lien "Page suivante" — voir
   // NextPagePendingBridge plus haut.
   const [isPaginating, setIsPaginating] = useState(false);
+
+  const selectedCampaignIds = useMemo(() => new Set(activeCampaignIds), [activeCampaignIds]);
+
+  // JOB-155 : le filtre par campagne se combine en ET avec les filtres ville/contrat/recherche,
+  // qui restent purement client-side sur la page déjà scopée par campagne côté serveur.
+  function navigateToCampaignSelection(nextSelected: Set<string>) {
+    const params = new URLSearchParams();
+    if (nextSelected.size > 0) params.set("campaigns", Array.from(nextSelected).join(","));
+    const query = params.toString();
+    router.push(`/harvester/review${query ? `?${query}` : ""}`);
+  }
+
+  function toggleCampaign(campaignId: string) {
+    const next = new Set(selectedCampaignIds);
+    if (next.has(campaignId)) next.delete(campaignId);
+    else next.add(campaignId);
+    navigateToCampaignSelection(next);
+  }
 
   const filteredOffers = useMemo(() => {
     return offers.filter((offer) => {
@@ -82,10 +106,9 @@ export function ReviewQueueManager({
         const haystack = `${offer.title} ${offer.companyName}`.toLowerCase();
         if (!haystack.includes(search.toLowerCase())) return false;
       }
-      if (selectedCampaignIds.size > 0 && !selectedCampaignIds.has(offer.campaignId)) return false;
       return true;
     });
-  }, [offers, city, contractType, search, selectedCampaignIds]);
+  }, [offers, city, contractType, search]);
 
   function removeOffer(id: string) {
     setOffers((prev) => prev.filter((o) => o.id !== id));
@@ -188,7 +211,7 @@ export function ReviewQueueManager({
               </Button>
             }
             title="Supprimer ces offres ?"
-            description={`${filteredOffers.length} offre${filteredOffers.length > 1 ? "s" : ""} seront définitivement retirées de la file. Si une prochaine recherche retombe sur l'une d'elles, elle réapparaîtra ici.`}
+            description={`${filteredOffers.length} offre${filteredOffers.length > 1 ? "s" : ""} ${filteredOffers.length > 1 ? "seront" : "sera"} définitivement retirée${filteredOffers.length > 1 ? "s" : ""} de la file. Si une prochaine recherche retombe sur l'une d'elles, elle réapparaîtra ici.`}
             onConfirm={handleClearAll}
           />
         )}
@@ -204,14 +227,7 @@ export function ReviewQueueManager({
                 type="button"
                 variant={selected ? "default" : "outline"}
                 size="xs"
-                onClick={() =>
-                  setSelectedCampaignIds((prev) => {
-                    const next = new Set(prev);
-                    if (selected) next.delete(campaign.id);
-                    else next.add(campaign.id);
-                    return next;
-                  })
-                }
+                onClick={() => toggleCampaign(campaign.id)}
               >
                 {campaign.name ?? campaign.slug}
               </Button>
@@ -303,7 +319,15 @@ export function ReviewQueueManager({
 
       {nextCursor && (
         <Button
-          render={<Link href={`/harvester/review?cursor=${nextCursor}`} prefetch={false} />}
+          render={
+            <Link
+              href={`/harvester/review?${new URLSearchParams({
+                cursor: nextCursor,
+                ...(activeCampaignIds.length > 0 ? { campaigns: activeCampaignIds.join(",") } : {}),
+              }).toString()}`}
+              prefetch={false}
+            />
+          }
           nativeButton={false}
           variant="outline"
           disabled={isPaginating}

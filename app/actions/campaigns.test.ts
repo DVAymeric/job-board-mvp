@@ -5,6 +5,7 @@ import {
   createCampaign,
   updateCampaign,
   deleteCampaign,
+  reorderCampaigns,
 } from "@/app/actions/campaigns";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,7 @@ vi.mock("@/lib/auth/session", () => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     campaign: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -70,6 +72,7 @@ beforeEach(() => {
   vi.mocked(prisma.campaign.create).mockReset();
   vi.mocked(prisma.campaign.update).mockReset();
   vi.mocked(prisma.campaign.delete).mockReset();
+  vi.mocked(prisma.$transaction).mockReset();
   vi.mocked(resolveLocations).mockReset();
 });
 
@@ -115,6 +118,29 @@ describe("createCampaign", () => {
 
     expect(result).toMatchObject({ code: "VALIDATION_ERROR" });
     expect(prisma.campaign.create).not.toHaveBeenCalled();
+  });
+
+  // JOB-153 : sans validation de format, un code ROME mal saisi (mauvaise longueur, pas de
+  // chiffres...) échouait silencieusement à filtrer côté La Bonne Alternance/France Travail —
+  // aucune erreur ne remontait jamais à l'utilisateur pour le signaler.
+  it("returns VALIDATION_ERROR for a malformed ROME code", async () => {
+    mockAuthedAs("user-1");
+    const result = await createCampaign({ ...validInput, romeCodes: ["not-a-rome-code"] });
+    expect(result).toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(prisma.campaign.create).not.toHaveBeenCalled();
+  });
+
+  it("normalizes a lowercase ROME code to uppercase before saving", async () => {
+    mockAuthedAs("user-1");
+    mockGeocodingSuccess();
+    const created = { id: "c1", userId: "user-1", slug: "data-analyst" };
+    vi.mocked(prisma.campaign.create).mockResolvedValue(created as never);
+
+    await createCampaign({ ...validInput, romeCodes: ["m1403"] });
+
+    expect(prisma.campaign.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ romeCodes: ["M1403"] }) })
+    );
   });
 
   it("creates the campaign with a slug generated from the keywords and geocoded locations nested under config", async () => {
@@ -302,5 +328,47 @@ describe("deleteCampaign", () => {
     expect(prisma.campaign.delete).toHaveBeenCalledWith({
       where: { id_userId: { id: "c1", userId: "user-1" } },
     });
+  });
+});
+
+describe("reorderCampaigns", () => {
+  it("returns VALIDATION_ERROR for an empty list", async () => {
+    mockAuthedAs("user-1");
+    const result = await reorderCampaigns({ orderedIds: [] });
+    expect(result).toMatchObject({ code: "VALIDATION_ERROR" });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("scopes each update to the owning user, persisting position as index order", async () => {
+    mockAuthedAs("user-1");
+    vi.mocked(prisma.$transaction).mockImplementation(async (ops: unknown) =>
+      Promise.all(ops as Promise<unknown>[])
+    );
+    vi.mocked(prisma.campaign.update).mockResolvedValue({} as never);
+
+    const result = await reorderCampaigns({ orderedIds: ["c2", "c1", "c3"] });
+
+    expect(result).toEqual({ ok: true, data: null });
+    expect(prisma.campaign.update).toHaveBeenNthCalledWith(1, {
+      where: { id_userId: { id: "c2", userId: "user-1" } },
+      data: { order: 0 },
+    });
+    expect(prisma.campaign.update).toHaveBeenNthCalledWith(2, {
+      where: { id_userId: { id: "c1", userId: "user-1" } },
+      data: { order: 1 },
+    });
+    expect(prisma.campaign.update).toHaveBeenNthCalledWith(3, {
+      where: { id_userId: { id: "c3", userId: "user-1" } },
+      data: { order: 2 },
+    });
+  });
+
+  it("returns INTERNAL_ERROR without partially applying the new order when the transaction fails", async () => {
+    mockAuthedAs("user-1");
+    vi.mocked(prisma.$transaction).mockRejectedValue(new Error("db down"));
+
+    const result = await reorderCampaigns({ orderedIds: ["c1", "c2"] });
+
+    expect(result).toMatchObject({ code: "INTERNAL_ERROR" });
   });
 });

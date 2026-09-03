@@ -94,16 +94,28 @@ async function getAccessToken(options: FranceTravailClientOptions, forceRefresh 
   return request;
 }
 
+// JOB-153 : l'API rejette `motsCles` avec un 400 au-delà de 7 valeurs ("7 mots-clé au maximum
+// séparés par des virgules") — vérifié en direct. Une campagne avec plus de mots-clés faisait
+// donc échouer l'intégralité de la recherche France Travail, silencieusement (le message
+// d'erreur ne montrait que le code HTTP, jamais la raison — voir aussi le corps de réponse
+// inclus dans le throw ci-dessous). Tronquer plutôt que refuser : le filtre centralisé
+// (offerMatchesQuery) revalide de toute façon tous les mots-clés de la campagne après coup, donc
+// n'envoyer que les 7 premiers à l'API ne relâche rien côté résultat final.
+const FRANCE_TRAVAIL_MAX_KEYWORDS = 7;
+
 function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes" | "keywords">): URL {
   const url = new URL(SEARCH_URL);
-  if (query.romeCodes.length > 0) {
-    url.searchParams.set("codeROME", query.romeCodes.join(","));
-  }
   // JOB-59 (suite) : le formulaire de campagne ne demande plus de code ROME — motsCles devient
   // le filtre de contenu principal envoyé à l'API (codeROME reste prioritaire quand fourni,
   // ex. import YAML legacy — voir lib/harvester/campaign-config.ts).
-  if (query.keywords.length > 0) {
-    url.searchParams.set("motsCles", query.keywords.join(","));
+  // JOB-157 : les deux étaient envoyés simultanément — l'API traite codeROME et motsCles comme
+  // un ET, pas un OU, donc un code ROME légitime combiné à des mots-clés qui ne recoupent pas
+  // exactement son intitulé officiel renvoie 0 résultat. codeROME doit donc rester exclusif de
+  // motsCles, jamais cumulé.
+  if (query.romeCodes.length > 0) {
+    url.searchParams.set("codeROME", query.romeCodes.join(","));
+  } else if (query.keywords.length > 0) {
+    url.searchParams.set("motsCles", query.keywords.slice(0, FRANCE_TRAVAIL_MAX_KEYWORDS).join(","));
   }
   const departement = extractDepartement(query.location.label);
   if (!departement) {
@@ -170,7 +182,12 @@ export async function* fetchFranceTravailOffers(query: HarvestQuery, options: Fr
       return;
     }
     if (!response.ok) {
-      throw new Error(`francetravail search failed: HTTP ${response.status}`);
+      // JOB-153 : le corps de réponse porte la vraie raison de l'échec (ex. le message JSON de
+      // l'API pour un paramètre invalide) — sans lui, seul le code HTTP remontait jusqu'au
+      // ConnectorRun et au toast utilisateur (campaigns-manager.tsx), impossible à déboguer sans
+      // reproduire la requête en direct.
+      const bodyText = await response.text().catch(() => "");
+      throw new Error(`francetravail search failed: HTTP ${response.status}${bodyText ? ` — ${bodyText}` : ""}`);
     }
     const bodyJson = await response.json();
     const parsed = FranceTravailSearchResponseSchema.parse(bodyJson);

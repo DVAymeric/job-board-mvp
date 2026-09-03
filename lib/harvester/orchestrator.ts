@@ -53,6 +53,13 @@ function buildHarvestQueryForLocation(
 // effectif même quand plusieurs campagnes déclenchent runCampaign() indépendamment.
 const sharedGuardedFetch = createRateLimitedFetch(fetch);
 
+// JOB-159 : trouvé en audit QA — une campagne large (mot-clé générique, tous types de contrat,
+// grand rayon) pouvait déverser des centaines d'offres non triées en un seul run, sans plafond
+// ni tri de pertinence, rendant la file de revue inexploitable. Plafond par connecteur et par
+// run (pas par campagne globale) : une campagne à plusieurs connecteurs reste donc bornée
+// connecteur par connecteur, plutôt que par un total arbitraire réparti entre eux.
+const MAX_NORMALIZED_OFFERS_PER_RUN = 200;
+
 export interface RunSummary {
   runId: string;
   rawCount: number;
@@ -137,6 +144,7 @@ export async function runCampaign(
 
     try {
       for await (const raw of connector.fetch(query, { fetchImpl: guardedFetch, env })) {
+        if (normalizedCount >= MAX_NORMALIZED_OFFERS_PER_RUN) break;
         rawCount += 1;
         try {
           const normalized = connector.normalize(raw);

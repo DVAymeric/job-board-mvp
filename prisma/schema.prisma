@@ -187,6 +187,10 @@ model Campaign {
   keywords      String[]
   contractTypes OfferContractType[]
   schedule      String?
+  // Ordre d'affichage dans l'onglet Campagnes (glisser-déposer) — même
+  // convention que Job.order : défaut 0 pour toutes les campagnes existantes,
+  // départagé par createdAt desc tant qu'aucun tri manuel n'a eu lieu.
+  order         Int                 @default(0)
   // Configuration hétérogène par connecteur (locations, targets par source) —
   // voir le format d'origine dans job-harvester/config/campaigns.yaml. Reste
   // en Json car la forme varie par connecteur et n'est jamais filtrée en SQL.

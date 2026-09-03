@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useState, type ClipboardEvent, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,10 @@ function addValue(values: string[], raw: string): string[] {
   const isDuplicate = values.some((v) => v.toLowerCase() === trimmed.toLowerCase());
   if (isDuplicate) return values;
   return [...values, trimmed];
+}
+
+function addValues(values: string[], raw: string): string[] {
+  return raw.split(/[,\n]+/).reduce(addValue, values);
 }
 
 // Pastilles + champ de saisie libre (JOB-147) — remplace un `Input` texte à
@@ -61,6 +65,18 @@ export function ChipInput({
     if (draft.trim()) commitDraft();
   }
 
+  // Un collage d'une liste "Python, R, Scala" ne déclenche pas les `keydown`
+  // virgule/Entrée gérés ci-dessus (le texte est inséré d'un bloc) : sans ce
+  // handler, toute la liste collée devenait un unique mot-clé.
+  function handlePaste(event: ClipboardEvent<HTMLInputElement>) {
+    const text = event.clipboardData.getData("text");
+    if (!/[,\n]/.test(text)) return;
+    event.preventDefault();
+    const next = addValues(values, draft + text);
+    if (next !== values) onChange(next);
+    setDraft("");
+  }
+
   return (
     <div
       className={cn(
@@ -88,6 +104,7 @@ export function ChipInput({
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         onBlur={handleBlur}
         placeholder={values.length === 0 ? placeholder : undefined}
         disabled={disabled}

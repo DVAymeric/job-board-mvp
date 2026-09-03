@@ -180,6 +180,52 @@ describe("runCampaign", () => {
     expect(receivedFetchImpl).toBeDefined();
     expect(receivedFetchImpl).not.toBe(fetch);
   });
+
+  // JOB-159 : trouvé en audit QA — une campagne large sans plafond ni tri de pertinence pouvait
+  // déverser des centaines d'offres non triées en un seul run.
+  it("stops persisting past MAX_NORMALIZED_OFFERS_PER_RUN offers for a single connector run (JOB-159)", async () => {
+    const campaign = await makeCampaign();
+    const rawOffers: RawOffer[] = Array.from({ length: 250 }, (_, i) => ({
+      source: "fake",
+      payload: { id: `offer-${i}`, url: `https://example.com/jobs/${i}` },
+    }));
+    let fetchedCount = 0;
+    const floodingConnector: Connector = {
+      id: "flooding",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) {
+          fetchedCount += 1;
+          yield raw;
+        }
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        // Ville (texte) distincte par offre pour qu'isFuzzyDuplicate — qui compare d'abord la
+        // ville en égalité stricte — ne fusionne pas les 250 offres fixture en une seule ligne
+        // et masque le plafond qu'on veut isoler ici. lat/lng restent ceux de la localisation
+        // "Lille" de la campagne pour continuer à passer le filtre de géolocalisation (niveau 1
+        // de la cascade, JOB-75/77), indépendant du texte de la ville.
+        return makeOffer(payload.id, payload.url, {
+          location: { label: payload.id, city: payload.id, lat: 50.63, lng: 3.05 },
+        });
+      },
+      async healthCheck() {
+        return { connectorId: "flooding", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, floodingConnector, prisma, {});
+
+    expect(summary.normalizedCount).toBe(200);
+    expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(200);
+    // Le générateur async doit produire l'offre suivante avant que la boucle ne puisse constater
+    // le plafond et s'arrêter (protocole itérateur) — au plus 201 offres tirées du connecteur,
+    // jamais les 250 disponibles : la collecte réseau elle-même s'arrête tôt, pas seulement
+    // l'écriture en base.
+    expect(fetchedCount).toBeLessThanOrEqual(201);
+  });
 });
 
 describe("runCampaign — post-filtre centralisé (JOB-73)", () => {

@@ -1,22 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Plus, Play } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus } from "lucide-react";
+import {
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Campaign } from "@prisma/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CampaignFormDialog } from "@/components/harvester/campaign-form-dialog";
+import { CampaignRow } from "@/components/harvester/campaign-row";
 import { triggerCampaignCollection } from "@/app/actions/harvest";
-import { CAMPAIGN_CONTRACT_TYPE_LABELS, type CampaignContractType } from "@/lib/harvester/campaign-validation";
+import { reorderCampaigns } from "@/app/actions/campaigns";
 
 export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campaign[] }) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [selected, setSelected] = useState<Campaign | null | "new">(null);
+  const [duplicateFrom, setDuplicateFrom] = useState<Campaign | null>(null);
   const [triggeringId, setTriggeringId] = useState<string | null>(null);
+  // JOB-161 : `triggeringId` (state) ne désactive le bouton qu'au prochain rendu — un double-clic
+  // rapproché peut donc partir deux fois avant que React ait eu la chance de committer le
+  // premier `setTriggeringId`. Cette ref est lue et écrite de façon synchrone, avant tout
+  // `await`, donc le deuxième clic la trouve déjà posée quel que soit l'état de rendu.
+  const triggeringCampaignIdsRef = useRef<Set<string>>(new Set());
+
+  function closeDialog() {
+    setSelected(null);
+    setDuplicateFrom(null);
+  }
+
+  // Même config de sensors que le Board (JOB-108) : MouseSensor à distance
+  // (évite qu'un simple clic sur la poignée déclenche un drag) + TouchSensor
+  // à délai (laisse le scroll tactile natif s'amorcer avant d'activer le drag).
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = campaigns.findIndex((c) => c.id === active.id);
+    const newIndex = campaigns.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const previousCampaigns = campaigns;
+    const reordered = arrayMove(campaigns, oldIndex, newIndex);
+    setCampaigns(reordered);
+
+    const result = await reorderCampaigns({ orderedIds: reordered.map((c) => c.id) });
+    if (!result.ok) {
+      setCampaigns(previousCampaigns);
+      toast.error(result.error);
+    }
+  }
 
   async function handleTrigger(campaignId: string) {
+    // JOB-161 : bail out synchrone, avant le premier `await` — un deuxième clic tiré pendant la
+    // fenêtre où `disabled` n'a pas encore été commité par React ne déclenche pas de deuxième
+    // collecte pour la même campagne.
+    if (triggeringCampaignIdsRef.current.has(campaignId)) return;
+    triggeringCampaignIdsRef.current.add(campaignId);
     setTriggeringId(campaignId);
     const result = await triggerCampaignCollection({ campaignId });
+    triggeringCampaignIdsRef.current.delete(campaignId);
     setTriggeringId(null);
     if (!result.ok) {
       toast.error(result.error);
@@ -54,60 +109,49 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
           Aucune campagne pour le moment — créez-en une pour commencer à recevoir des offres.
         </p>
       ) : (
-        <ul className="space-y-2">
-          {campaigns.map((campaign) => (
-            <li
-              key={campaign.id}
-              className="flex items-center justify-between gap-2 rounded-lg border border-border p-3 transition-colors hover:bg-muted"
-            >
-              <button
-                type="button"
-                onClick={() => setSelected(campaign)}
-                className="flex min-w-0 flex-1 flex-col gap-1 text-left"
-              >
-                <span className="font-heading text-sm leading-snug text-heading">
-                  {campaign.name ?? campaign.slug}
-                </span>
-                {campaign.name && (
-                  <span className="font-mono text-xs text-muted-foreground">{campaign.slug}</span>
-                )}
-                <span className="font-mono text-xs text-muted-foreground">
-                  {(campaign.contractTypes as CampaignContractType[])
-                    .map((type) => CAMPAIGN_CONTRACT_TYPE_LABELS[type])
-                    .join(" · ") || "Aucun type de contrat"}
-                </span>
-              </button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={triggeringId === campaign.id}
-                onClick={() => handleTrigger(campaign.id)}
-              >
-                {triggeringId === campaign.id ? <Loader2 className="animate-spin" /> : <Play className="size-3.5" />}
-                Chercher des offres
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={campaigns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-2">
+              {campaigns.map((campaign) => (
+                <CampaignRow
+                  key={campaign.id}
+                  campaign={campaign}
+                  triggering={triggeringId === campaign.id}
+                  onOpen={setSelected}
+                  onDuplicate={(campaign) => {
+                    setDuplicateFrom(campaign);
+                    setSelected("new");
+                  }}
+                  onTrigger={handleTrigger}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
 
       <CampaignFormDialog
-        key={selected === "new" ? "new" : (selected?.id ?? "none")}
+        key={
+          selected === "new"
+            ? (duplicateFrom ? `new-duplicate-${duplicateFrom.id}` : "new")
+            : (selected?.id ?? "none")
+        }
         campaign={selected}
+        duplicateFrom={duplicateFrom}
         onOpenChange={(open) => {
-          if (!open) setSelected(null);
+          if (!open) closeDialog();
         }}
         onCreated={(campaign) => {
           setCampaigns((prev) => [campaign, ...prev]);
-          setSelected(null);
+          closeDialog();
         }}
         onUpdated={(campaign) => {
           setCampaigns((prev) => prev.map((c) => (c.id === campaign.id ? campaign : c)));
-          setSelected(null);
+          closeDialog();
         }}
         onDeleted={(id) => {
           setCampaigns((prev) => prev.filter((c) => c.id !== id));
-          setSelected(null);
+          closeDialog();
         }}
       />
     </div>

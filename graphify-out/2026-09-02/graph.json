@@ -726,32 +726,6 @@
       "norm_label": "jobcontracttype"
     },
     {
-      "label": "FunnelStage",
-      "file_type": "code",
-      "source_file": "lib/analytics.ts",
-      "source_location": "L3",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "lib_analytics_funnelstage",
-      "community": 27,
-      "community_name": "analytics/page.tsx",
-      "norm_label": "funnelstage"
-    },
-    {
-      "label": "MostActiveMonth",
-      "file_type": "code",
-      "source_file": "lib/analytics.ts",
-      "source_location": "L41",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "id": "lib_analytics_mostactivemonth",
-      "community": 27,
-      "community_name": "analytics/page.tsx",
-      "norm_label": "mostactivemonth"
-    },
-    {
       "label": "WttjClientOptions",
       "file_type": "code",
       "source_file": "lib/harvester/connectors/welcometothejungle/client.ts",
@@ -1283,6 +1257,32 @@
       "community": 48,
       "community_name": "ics.ts",
       "norm_label": "icsjob"
+    },
+    {
+      "label": "FunnelStage",
+      "file_type": "code",
+      "source_file": "lib/analytics.ts",
+      "source_location": "L3",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "lib_analytics_funnelstage",
+      "community": 53,
+      "community_name": "analytics.ts",
+      "norm_label": "funnelstage"
+    },
+    {
+      "label": "MostActiveMonth",
+      "file_type": "code",
+      "source_file": "lib/analytics.ts",
+      "source_location": "L41",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "id": "lib_analytics_mostactivemonth",
+      "community": 53,
+      "community_name": "analytics.ts",
+      "norm_label": "mostactivemonth"
     },
     {
       "label": "LbaClientOptions",
@@ -4843,28 +4843,16 @@
       "norm_label": "analyticspage()"
     },
     {
-      "label": "buildInterviewSentence()",
+      "label": "AnalyticsEmptyState()",
       "file_type": "code",
-      "source_file": "components/analytics/funnel-chart.tsx",
-      "source_location": "L11",
+      "source_file": "components/analytics/analytics-empty-state.tsx",
+      "source_location": "L12",
       "_callable": true,
       "_origin": "ast",
-      "id": "components_analytics_funnel_chart_buildinterviewsentence",
+      "id": "components_analytics_analytics_empty_state_analyticsemptystate",
       "community": 27,
       "community_name": "analytics/page.tsx",
-      "norm_label": "buildinterviewsentence()"
-    },
-    {
-      "label": "FunnelChart()",
-      "file_type": "code",
-      "source_file": "components/analytics/funnel-chart.tsx",
-      "source_location": "L26",
-      "_callable": true,
-      "_origin": "ast",
-      "id": "components_analytics_funnel_chart_funnelchart",
-      "community": 27,
-      "community_name": "analytics/page.tsx",
-      "norm_label": "funnelchart()"
+      "norm_label": "analyticsemptystate()"
     },
     {
       "label": "computeMostActiveMonth()",
@@ -7375,16 +7363,28 @@
       "norm_label": "example()"
     },
     {
-      "label": "AnalyticsEmptyState()",
+      "label": "buildInterviewSentence()",
       "file_type": "code",
-      "source_file": "components/analytics/analytics-empty-state.tsx",
-      "source_location": "L12",
+      "source_file": "components/analytics/funnel-chart.tsx",
+      "source_location": "L11",
       "_callable": true,
       "_origin": "ast",
-      "id": "components_analytics_analytics_empty_state_analyticsemptystate",
+      "id": "components_analytics_funnel_chart_buildinterviewsentence",
       "community": 53,
-      "community_name": "analytics-empty-state.tsx",
-      "norm_label": "analyticsemptystate()"
+      "community_name": "analytics.ts",
+      "norm_label": "buildinterviewsentence()"
+    },
+    {
+      "label": "FunnelChart()",
+      "file_type": "code",
+      "source_file": "components/analytics/funnel-chart.tsx",
+      "source_location": "L26",
+      "_callable": true,
+      "_origin": "ast",
+      "id": "components_analytics_funnel_chart_funnelchart",
+      "community": 53,
+      "community_name": "analytics.ts",
+      "norm_label": "funnelchart()"
     },
     {
       "label": ".healthCheck()",
@@ -13671,48 +13671,26 @@
       "norm_label": "analytics/page.tsx"
     },
     {
-      "label": "funnel-chart.tsx",
+      "label": "analytics-empty-state.tsx",
       "file_type": "code",
-      "source_file": "components/analytics/funnel-chart.tsx",
+      "source_file": "components/analytics/analytics-empty-state.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "components_analytics_funnel_chart",
+      "id": "components_analytics_analytics_empty_state",
       "community": 27,
       "community_name": "analytics/page.tsx",
-      "norm_label": "funnel-chart.tsx"
+      "norm_label": "analytics-empty-state.tsx"
     },
     {
-      "label": "funnel-chart.test.tsx",
+      "label": "analytics-empty-state.test.tsx",
       "file_type": "code",
-      "source_file": "components/analytics/funnel-chart.test.tsx",
+      "source_file": "components/analytics/analytics-empty-state.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "components_analytics_funnel_chart_test",
+      "id": "components_analytics_analytics_empty_state_test",
       "community": 27,
       "community_name": "analytics/page.tsx",
-      "norm_label": "funnel-chart.test.tsx"
-    },
-    {
-      "label": "stages",
-      "file_type": "code",
-      "source_file": "components/analytics/funnel-chart.test.tsx",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "components_analytics_funnel_chart_test_stages",
-      "community": 27,
-      "community_name": "analytics/page.tsx",
-      "norm_label": "stages"
-    },
-    {
-      "label": "analytics.ts",
-      "file_type": "code",
-      "source_file": "lib/analytics.ts",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "lib_analytics",
-      "community": 27,
-      "community_name": "analytics/page.tsx",
-      "norm_label": "analytics.ts"
+      "norm_label": "analytics-empty-state.test.tsx"
     },
     {
       "label": "analytics.test.ts",
@@ -15959,15 +15937,15 @@
       "norm_label": "devdependencies"
     },
     {
-      "label": "eslint",
+      "label": "@axe-core/playwright",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L59",
+      "source_location": "L47",
       "_origin": "ast",
-      "id": "package_devdependencies_eslint",
+      "id": "package_devdependencies_axe_core_playwright",
       "community": 50,
       "community_name": "devDependencies",
-      "norm_label": "eslint"
+      "norm_label": "@axe-core/playwright"
     },
     {
       "label": "jsdom",
@@ -16025,15 +16003,15 @@
       "norm_label": "@vitejs/plugin-react"
     },
     {
-      "label": "eslint",
+      "label": "@axe-core/playwright",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L59",
+      "source_location": "L47",
       "_origin": "ast",
-      "id": "eslint",
+      "id": "axe_core_playwright",
       "community": 50,
       "community_name": "devDependencies",
-      "norm_label": "eslint"
+      "norm_label": "@axe-core/playwright"
     },
     {
       "label": "jsdom",
@@ -16135,26 +16113,48 @@
       "norm_label": "tabs.test.tsx"
     },
     {
-      "label": "analytics-empty-state.tsx",
+      "label": "funnel-chart.tsx",
       "file_type": "code",
-      "source_file": "components/analytics/analytics-empty-state.tsx",
+      "source_file": "components/analytics/funnel-chart.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "components_analytics_analytics_empty_state",
+      "id": "components_analytics_funnel_chart",
       "community": 53,
-      "community_name": "analytics-empty-state.tsx",
-      "norm_label": "analytics-empty-state.tsx"
+      "community_name": "analytics.ts",
+      "norm_label": "funnel-chart.tsx"
     },
     {
-      "label": "analytics-empty-state.test.tsx",
+      "label": "funnel-chart.test.tsx",
       "file_type": "code",
-      "source_file": "components/analytics/analytics-empty-state.test.tsx",
+      "source_file": "components/analytics/funnel-chart.test.tsx",
       "source_location": "L1",
       "_origin": "ast",
-      "id": "components_analytics_analytics_empty_state_test",
+      "id": "components_analytics_funnel_chart_test",
       "community": 53,
-      "community_name": "analytics-empty-state.tsx",
-      "norm_label": "analytics-empty-state.test.tsx"
+      "community_name": "analytics.ts",
+      "norm_label": "funnel-chart.test.tsx"
+    },
+    {
+      "label": "stages",
+      "file_type": "code",
+      "source_file": "components/analytics/funnel-chart.test.tsx",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "components_analytics_funnel_chart_test_stages",
+      "community": 53,
+      "community_name": "analytics.ts",
+      "norm_label": "stages"
+    },
+    {
+      "label": "analytics.ts",
+      "file_type": "code",
+      "source_file": "lib/analytics.ts",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "lib_analytics",
+      "community": 53,
+      "community_name": "analytics.ts",
+      "norm_label": "analytics.ts"
     },
     {
       "label": "labonnealternance/client.ts",
@@ -16256,26 +16256,26 @@
       "norm_label": "timed-health-check.test.ts"
     },
     {
-      "label": "@axe-core/playwright",
+      "label": "eslint",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L47",
+      "source_location": "L59",
       "_origin": "ast",
-      "id": "package_devdependencies_axe_core_playwright",
+      "id": "package_devdependencies_eslint",
       "community": 55,
-      "community_name": "@axe-core/playwright",
-      "norm_label": "@axe-core/playwright"
+      "community_name": "eslint",
+      "norm_label": "eslint"
     },
     {
-      "label": "@axe-core/playwright",
+      "label": "eslint",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L47",
+      "source_location": "L59",
       "_origin": "ast",
-      "id": "axe_core_playwright",
+      "id": "eslint",
       "community": 55,
-      "community_name": "@axe-core/playwright",
-      "norm_label": "@axe-core/playwright"
+      "community_name": "eslint",
+      "norm_label": "eslint"
     },
     {
       "label": "scripts",
@@ -16520,28 +16520,6 @@
       "norm_label": "status-badge.test.tsx"
     },
     {
-      "label": "@base-ui/react",
-      "file_type": "code",
-      "source_file": "package.json",
-      "source_location": "L18",
-      "_origin": "ast",
-      "id": "package_dependencies_base_ui_react",
-      "community": 58,
-      "community_name": "@base-ui/react",
-      "norm_label": "@base-ui/react"
-    },
-    {
-      "label": "@base-ui/react",
-      "file_type": "concept",
-      "source_file": "package.json",
-      "source_location": "L18",
-      "_origin": "ast",
-      "id": "base_ui_react",
-      "community": 58,
-      "community_name": "@base-ui/react",
-      "norm_label": "@base-ui/react"
-    },
-    {
       "label": "lib/csv-export.ts",
       "file_type": "code",
       "source_file": "lib/csv-export.ts",
@@ -16608,15 +16586,15 @@
       "norm_label": "dependencies"
     },
     {
-      "label": "cheerio",
+      "label": "@base-ui/react",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L18",
       "_origin": "ast",
-      "id": "package_dependencies_cheerio",
+      "id": "package_dependencies_base_ui_react",
       "community": 62,
       "community_name": "dependencies",
-      "norm_label": "cheerio"
+      "norm_label": "@base-ui/react"
     },
     {
       "label": "lucide-react",
@@ -16641,15 +16619,15 @@
       "norm_label": "next-themes"
     },
     {
-      "label": "cheerio",
+      "label": "@base-ui/react",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L18",
       "_origin": "ast",
-      "id": "cheerio",
+      "id": "base_ui_react",
       "community": 62,
       "community_name": "dependencies",
-      "norm_label": "cheerio"
+      "norm_label": "@base-ui/react"
     },
     {
       "label": "lucide-react",
@@ -18167,6 +18145,28 @@
       "community": 81,
       "community_name": "normalized-offer.ts",
       "norm_label": "prisma"
+    },
+    {
+      "label": "cheerio",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "package_dependencies_cheerio",
+      "community": 83,
+      "community_name": "cheerio",
+      "norm_label": "cheerio"
+    },
+    {
+      "label": "cheerio",
+      "file_type": "concept",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "_origin": "ast",
+      "id": "cheerio",
+      "community": 83,
+      "community_name": "cheerio",
+      "norm_label": "cheerio"
     },
     {
       "label": "clsx",
@@ -21530,7 +21530,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "app/harvester/campaigns/page.tsx",
-      "source_location": "L21",
+      "source_location": "L17",
       "weight": 1.0,
       "_origin": "ast",
       "source": "app_harvester_campaigns_page_harvestercampaignspage",

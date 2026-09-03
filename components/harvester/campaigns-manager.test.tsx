@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { Campaign } from "@prisma/client";
 import { CampaignsManager } from "@/components/harvester/campaigns-manager";
@@ -29,6 +29,7 @@ const campaign: Campaign = {
   keywords: [],
   contractTypes: ["APPRENTISSAGE", "PROFESSIONNALISATION"],
   schedule: null,
+  order: 0,
   config: { locations: [{ label: "Lille", lat: 50.63, lng: 3.05, radiusKm: 30 }] },
   createdAt: new Date("2026-01-01"),
   updatedAt: new Date("2026-01-01"),
@@ -112,6 +113,99 @@ describe("CampaignsManager", () => {
 
     expect(triggerCampaignCollection).toHaveBeenCalledWith({ campaignId: "campaign-1" });
     // The dialog never opens for a trigger click, unlike clicking the row itself.
+    expect(screen.queryByText("Modifier la campagne")).not.toBeInTheDocument();
+  });
+
+  // JOB-161 : `disabled={triggering}` seul ne suffit pas — un deuxième clic tiré avant que React
+  // ait commité le premier `setTriggeringId` passait encore au travers, déclenchant deux
+  // collectes pour la même campagne. Deux `fireEvent.click` synchrones (sans attendre entre les
+  // deux, contrairement à `userEvent.click`) reproduisent cette fenêtre de course.
+  it("does not trigger a second collection when clicked twice before the first request settles (JOB-161)", async () => {
+    // Ce fichier ne réinitialise jamais triggerCampaignCollection entre les tests (pas de
+    // beforeEach) — mockClear() ici isole le compteur d'appels des tests précédents, sans
+    // changer leur comportement.
+    vi.mocked(triggerCampaignCollection).mockClear();
+    let resolveTrigger: (value: Awaited<ReturnType<typeof triggerCampaignCollection>>) => void;
+    vi.mocked(triggerCampaignCollection).mockReturnValue(
+      new Promise((resolve) => {
+        resolveTrigger = resolve;
+      })
+    );
+    render(<CampaignsManager initialCampaigns={[campaign]} />);
+
+    const button = screen.getByRole("button", { name: "Chercher des offres" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(triggerCampaignCollection).toHaveBeenCalledTimes(1);
+
+    resolveTrigger!({
+      ok: true,
+      data: { runs: [{ runId: "r1", rawCount: 0, normalizedCount: 0, rejectedCount: 0, filteredCount: 0, ok: true }] },
+    });
+    await waitFor(() => expect(button).not.toBeDisabled());
+  });
+
+  it("opens a pre-filled 'new campaign' dialog from 'Dupliquer', keeping it a create (not an edit)", async () => {
+    const user = userEvent.setup();
+    render(
+      <CampaignsManager
+        initialCampaigns={[{ ...campaign, name: "Data", keywords: ["data analyst", "BI"] }]}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Dupliquer Data" }));
+
+    expect(screen.getByRole("heading", { name: "Dupliquer la campagne" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Nom (optionnel)")).toHaveValue("Data (copie)");
+    expect(screen.getByText("data analyst")).toBeInTheDocument();
+    expect(screen.getByText("BI")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ville")).toHaveValue("Lille");
+    expect(screen.getByRole("checkbox", { name: "Apprentissage" })).toBeChecked();
+    // The dialog acts as a create, not an edit — no delete option for a not-yet-saved duplicate.
+    expect(screen.queryByRole("button", { name: "Supprimer" })).not.toBeInTheDocument();
+  });
+
+  it("submits a duplicated campaign as a new campaign via createCampaign, not updateCampaign", async () => {
+    const user = userEvent.setup();
+    vi.mocked(createCampaign).mockResolvedValue({
+      ok: true,
+      data: { campaign: { ...campaign, id: "campaign-2", slug: "alternance-data-hdf-2" } },
+    });
+    render(
+      <CampaignsManager
+        initialCampaigns={[{ ...campaign, name: "Data", keywords: ["data analyst"] }]}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Dupliquer Data" }));
+    await user.click(screen.getByRole("button", { name: "Créer la campagne" }));
+
+    expect(createCampaign).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Data (copie)", keywords: ["data analyst"] })
+    );
+    expect(await screen.findByText("alternance-data-hdf-2")).toBeInTheDocument();
+  });
+
+  it("shows a drag handle to reorder each campaign, to the right of 'Chercher des offres' (JOB-153)", () => {
+    render(<CampaignsManager initialCampaigns={[{ ...campaign, name: "Data" }]} />);
+
+    const handle = screen.getByRole("button", { name: "Réordonner Data" });
+    const search = screen.getByRole("button", { name: "Chercher des offres" });
+    expect(handle).toBeInTheDocument();
+    // DOM order in this row is: name/open, Dupliquer, Chercher des offres, poignée —
+    // confirms the handle sits after (to the right of) the search button.
+    expect(
+      search.compareDocumentPosition(handle) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it("does not open the edit dialog when clicking the drag handle", async () => {
+    const user = userEvent.setup();
+    render(<CampaignsManager initialCampaigns={[campaign]} />);
+
+    await user.click(screen.getByRole("button", { name: /Réordonner/ }));
+
     expect(screen.queryByText("Modifier la campagne")).not.toBeInTheDocument();
   });
 

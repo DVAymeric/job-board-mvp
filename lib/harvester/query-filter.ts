@@ -25,10 +25,22 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+// `\b` ne reconnaît que [A-Za-z0-9_] comme caractère de mot — une lettre accentuée (é, è...) n'en
+// fait pas partie, donc une fausse limite de mot apparaît entre une lettre ASCII et la lettre
+// accentuée qui la suit (ex. "r|éalise"). Un mot-clé court comme "R" matchait ainsi la quasi-
+// totalité des offres en français ("réalise", "réception", "rémunération"...). En dépouillant les
+// accents des deux côtés avant de construire la regex, `\b` retombe sur des mots ASCII complets et
+// matche en plus les variantes avec/sans accent (JOB-153).
+function stripDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
 function matchesKeywords(offer: NormalizedOffer, keywords: string[]): boolean {
   if (keywords.length === 0) return true;
-  const haystack = `${offer.title}\n${offer.descriptionText}`;
-  return keywords.some((keyword) => new RegExp(`\\b${escapeRegExp(keyword)}\\b`, "i").test(haystack));
+  const haystack = stripDiacritics(`${offer.title}\n${offer.descriptionText}`);
+  return keywords.some((keyword) =>
+    new RegExp(`\\b${escapeRegExp(stripDiacritics(keyword))}\\b`, "i").test(haystack)
+  );
 }
 
 export interface AcceptableLocation {
@@ -55,11 +67,7 @@ function cityFromLabel(label: string): string {
 
 // Même idiome de repli accents/casse que normalizeCompanyName (lib/harvester/company-name.ts).
 function normalizeCityName(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
+  return stripDiacritics(name).toLowerCase().trim();
 }
 
 const EARTH_RADIUS_KM = 6371;

@@ -221,6 +221,41 @@ describe("offerMatchesQuery — keywords", () => {
     const offer = makeOffer({ title: "Développeur C++", descriptionText: "" });
     expect(() => offerMatchesQuery(offer, makeQuery({ keywords: ["c++"] }), [])).not.toThrow();
   });
+
+  // JOB-153 : `\b` ne reconnaît que [A-Za-z0-9_] comme caractère de mot — une lettre accentuée
+  // (é, è...) n'en fait pas partie, donc une fausse limite de mot apparaît entre une lettre ASCII
+  // et la lettre accentuée qui la suit. Le mot-clé "R" matchait ainsi "réalise", "réception",
+  // "rémunération"... c'est-à-dire quasiment toute offre en français (mesuré : 90% des offres
+  // d'une vraie campagne ne matchaient QUE via ce faux positif).
+  it("ne matche pas un mot-clé d'une lettre à l'intérieur d'un mot accentué (ex. 'R' dans 'réalise')", () => {
+    const offer = makeOffer({
+      title: "Fleuriste",
+      descriptionText: "Conçoit et réalise des compositions florales pour des réceptions.",
+    });
+    expect(offerMatchesQuery(offer, makeQuery({ keywords: ["R"] }), [])).toEqual({
+      matches: false,
+      reason: "keywords",
+    });
+  });
+
+  it("matche toujours un mot-clé d'une lettre quand il apparaît réellement comme mot isolé", () => {
+    const offer = makeOffer({ title: "Formation R pour l'analyse de données", descriptionText: "" });
+    expect(offerMatchesQuery(offer, makeQuery({ keywords: ["R"] }), [])).toEqual({ matches: true });
+  });
+
+  it("matche un mot-clé accentué même si l'offre orthographie le mot sans accent", () => {
+    const offer = makeOffer({ title: "Poste en modelisation de donnees", descriptionText: "" });
+    expect(offerMatchesQuery(offer, makeQuery({ keywords: ["modélisation"] }), [])).toEqual({
+      matches: true,
+    });
+  });
+
+  it("matche un mot-clé sans accent même si l'offre orthographie le mot avec accent", () => {
+    const offer = makeOffer({ title: "Poste en modélisation de données", descriptionText: "" });
+    expect(offerMatchesQuery(offer, makeQuery({ keywords: ["modelisation"] }), [])).toEqual({
+      matches: true,
+    });
+  });
 });
 
 describe("offerMatchesQuery — location", () => {

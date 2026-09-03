@@ -123,4 +123,43 @@ describe("ChipInput", () => {
     render(<Controlled placeholder="data analyst, BI" />);
     expect(screen.getByPlaceholderText("data analyst, BI")).toBeInTheDocument();
   });
+
+  it("splits a pasted comma-separated list into one chip per value", async () => {
+    const user = userEvent.setup();
+    render(<Controlled />);
+
+    await user.click(screen.getByRole("textbox"));
+    await user.paste("Python, R, Scala, Java, SQL");
+
+    expect(screen.getByText("Python")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.getByText("Scala")).toBeInTheDocument();
+    expect(screen.getByText("Java")).toBeInTheDocument();
+    expect(screen.getByText("SQL")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toHaveValue("");
+  });
+
+  it("splits a pasted newline-separated list into one chip per value", async () => {
+    const user = userEvent.setup();
+    render(<Controlled />);
+
+    await user.click(screen.getByRole("textbox"));
+    await user.paste("Python\nR\nScala");
+
+    expect(screen.getByText("Python")).toBeInTheDocument();
+    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.getByText("Scala")).toBeInTheDocument();
+  });
+
+  it("merges a pasted list with an existing draft and skips duplicates", async () => {
+    const user = userEvent.setup();
+    render(<Controlled initial={["Python"]} />);
+
+    await user.type(screen.getByRole("textbox"), "Go");
+    await user.paste(", Python, Rust");
+
+    expect(screen.getAllByText("Python")).toHaveLength(1);
+    expect(screen.getByText("Go")).toBeInTheDocument();
+    expect(screen.getByText("Rust")).toBeInTheDocument();
+  });
 });
