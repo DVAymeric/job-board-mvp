@@ -132,6 +132,7 @@ describe("createCampaign", () => {
         slug: "data-analyst",
         romeCodes: ["M1403"],
         keywords: ["data analyst"],
+        metiers: [],
         contractTypes: ["APPRENTISSAGE"],
         config: { locations: [geocodedLille] },
       },
@@ -196,6 +197,7 @@ describe("updateCampaign", () => {
       data: {
         romeCodes: ["M1403"],
         keywords: ["data analyst"],
+        metiers: [],
         contractTypes: ["APPRENTISSAGE"],
         config: { locations: [geocodedLille] },
       },

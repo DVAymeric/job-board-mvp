@@ -22,8 +22,10 @@ const existingCampaign: Campaign = {
   name: "Data",
   romeCodes: ["M1403", "M1805"],
   keywords: ["data analyst"],
+  metiers: [],
   contractTypes: ["APPRENTISSAGE"],
   schedule: "0 7 * * *",
+  order: 0,
   config: {
     locations: [{ label: "Lille", lat: 50.630951, lng: 3.045391, radiusKm: 30 }],
     targets: { workday: [{ tenant: "valeo", site: "valeo_jobs", dc: "wd3" }], smartrecruiters: ["MAZARS"] },

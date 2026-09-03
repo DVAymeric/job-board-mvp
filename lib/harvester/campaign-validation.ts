@@ -35,6 +35,7 @@ const campaignFieldsSchema = {
   name: z.string().trim().min(1).optional(),
   romeCodes: z.array(z.string().trim().min(1)).default([]),
   keywords: z.array(z.string().trim().min(1)).default([]),
+  metiers: z.array(z.string().trim().min(1)).default([]),
   contractTypes: z.array(z.enum(CAMPAIGN_CONTRACT_TYPES)).min(1, "Au moins un type de contrat"),
   locations: z.array(campaignLocationInputSchema).min(1, "Au moins une localisation"),
   targets: HarvestTargetsSchema.optional(),
