@@ -185,18 +185,14 @@ model Campaign {
   name          String?
   romeCodes     String[]
   keywords      String[]
-  contractTypes OfferContractType[]
-  schedule      String?
-  // Ordre d'affichage dans l'onglet Campagnes (glisser-déposer) — même
-  // convention que Job.order : défaut 0 pour toutes les campagnes existantes,
-  // départagé par createdAt desc tant qu'aucun tri manuel n'a eu lieu.
-  order         Int                 @default(0)
   // Libellés de métier choisis par l'utilisateur via la recherche assistée sur le référentiel
   // ROME (ex. "Data Analyst") — affichage uniquement (CampaignRow), pas une source de vérité
   // pour le filtrage : celui-ci reste porté par romeCodes/keywords ci-dessus, déjà branchés
   // dans l'orchestrateur. Peut diverger de romeCodes/keywords si l'utilisateur les modifie
   // ensuite manuellement — acceptable, comme `name` peut diverger de `slug`.
   metiers       String[]            @default([])
+  contractTypes OfferContractType[]
+  schedule      String?
   // Configuration hétérogène par connecteur (locations, targets par source) —
   // voir le format d'origine dans job-harvester/config/campaigns.yaml. Reste
   // en Json car la forme varie par connecteur et n'est jamais filtrée en SQL.
