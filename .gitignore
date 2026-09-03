@@ -63,5 +63,8 @@ skills-lock.json
 # Espaces de travail isolés (superpowers:using-git-worktrees)
 /.worktrees/
 
+# Artefacts de suivi Subagent-Driven Development (superpowers)
+/.superpowers/
+
 # graphify
 /graphify-out/cache

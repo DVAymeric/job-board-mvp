@@ -10,5 +10,7 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./vitest.integration.setup.ts"],
     include: ["**/*.integration.test.ts"],
+    // See vitest.config.mts for why .worktrees/ must be excluded.
+    exclude: ["**/node_modules/**", ".worktrees/**"],
   },
 });

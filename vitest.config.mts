@@ -17,7 +17,11 @@ export default defineConfig({
     // Integration tests need a live Postgres (docker-compose, JOB-82) and run
     // separately via `npm run test:integration` — see vitest.integration.config.mts.
     // e2e/ uses @playwright/test's own runner (`npm run test:e2e`), not Vitest.
-    exclude: ["**/node_modules/**", "**/*.integration.test.ts", "e2e/**"],
+    // .worktrees/ holds full nested checkouts (superpowers:using-git-worktrees) — without this,
+    // running the suite from the main checkout also discovers and re-runs every worktree's own
+    // copy of every test file, doubling counts and causing jsdom/window collisions between the
+    // two concurrent copies of the same suite.
+    exclude: ["**/node_modules/**", "**/*.integration.test.ts", "e2e/**", ".worktrees/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

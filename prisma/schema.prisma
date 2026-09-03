@@ -185,6 +185,12 @@ model Campaign {
   name          String?
   romeCodes     String[]
   keywords      String[]
+  // Libellés de métier choisis par l'utilisateur via la recherche assistée sur le référentiel
+  // ROME (ex. "Data Analyst") — affichage uniquement (CampaignRow), pas une source de vérité
+  // pour le filtrage : celui-ci reste porté par romeCodes/keywords ci-dessus, déjà branchés
+  // dans l'orchestrateur. Peut diverger de romeCodes/keywords si l'utilisateur les modifie
+  // ensuite manuellement — acceptable, comme `name` peut diverger de `slug`.
+  metiers       String[]            @default([])
   contractTypes OfferContractType[]
   schedule      String?
   // Ordre d'affichage dans l'onglet Campagnes (glisser-déposer) — même

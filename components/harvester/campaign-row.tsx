@@ -47,8 +47,14 @@ export function CampaignRow({
         className="flex min-w-0 flex-1 flex-col gap-1 text-left"
       >
         <span className="font-heading text-sm leading-snug text-heading">{displayName}</span>
-        {campaign.name && (
-          <span className="font-mono text-xs text-muted-foreground">{campaign.slug}</span>
+        {campaign.metiers.length > 0 ? (
+          <span className="font-mono text-xs text-muted-foreground">
+            {campaign.metiers.join(" · ")}
+          </span>
+        ) : (
+          campaign.name && (
+            <span className="font-mono text-xs text-muted-foreground">{campaign.slug}</span>
+          )
         )}
         <span className="font-mono text-xs text-muted-foreground">
           {(campaign.contractTypes as CampaignContractType[])

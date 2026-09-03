@@ -6,6 +6,7 @@ import {
   updateCampaign,
   deleteCampaign,
   reorderCampaigns,
+  searchMetiers,
 } from "@/app/actions/campaigns";
 import { requireUser } from "@/lib/auth/session";
 import { prisma } from "@/lib/prisma";
@@ -158,6 +159,7 @@ describe("createCampaign", () => {
         slug: "data-analyst",
         romeCodes: ["M1403"],
         keywords: ["data analyst"],
+        metiers: [],
         contractTypes: ["APPRENTISSAGE"],
         config: { locations: [geocodedLille] },
       },
@@ -222,6 +224,7 @@ describe("updateCampaign", () => {
       data: {
         romeCodes: ["M1403"],
         keywords: ["data analyst"],
+        metiers: [],
         contractTypes: ["APPRENTISSAGE"],
         config: { locations: [geocodedLille] },
       },
@@ -370,5 +373,30 @@ describe("reorderCampaigns", () => {
     const result = await reorderCampaigns({ orderedIds: ["c1", "c2"] });
 
     expect(result).toMatchObject({ code: "INTERNAL_ERROR" });
+  });
+});
+
+describe("searchMetiers", () => {
+  it("requires authentication", async () => {
+    mockUnauthenticated();
+    const result = await searchMetiers("data analyst");
+    expect(result.ok).toBe(false);
+  });
+
+  it("returns matches for an authenticated user", async () => {
+    mockAuthedAs("user-1");
+    const result = await searchMetiers("data scientist");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.matches.length).toBeGreaterThan(0);
+      expect(result.data.matches.some((m) => m.romeCode === "M1405")).toBe(true);
+    }
+  });
+
+  it("returns an empty match list for a query too short to search, without erroring", async () => {
+    mockAuthedAs("user-1");
+    const result = await searchMetiers("d");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.data.matches).toEqual([]);
   });
 });

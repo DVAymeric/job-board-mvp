@@ -12,6 +12,7 @@
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:e2e": "playwright test",
     "import-harvester-campaigns": "tsx scripts/import-harvester-campaigns.ts",
+    "import-rome-referentiel": "tsx scripts/import-rome-referentiel.ts",
     "seed:dev": "tsx scripts/seed-dev-data.ts"
   },
   "dependencies": {
