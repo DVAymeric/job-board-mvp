@@ -64,6 +64,10 @@ export interface RunSummary {
   runId: string;
   rawCount: number;
   normalizedCount: number;
+  // Sous-ensemble de normalizedCount réellement visible dans la file de revue après cet
+  // upsert (importedJobId:null && ignoredAt:null) — une offre déjà ignorée ou déjà importée
+  // que le run retrouve est comptée dans normalizedCount mais pas ici (JOB-165).
+  pendingCount: number;
   rejectedCount: number;
   filteredCount: number;
   ok: boolean;
@@ -77,12 +81,14 @@ export interface RunSummary {
  * recalculé (exactDedupKeyFromSource), pas l'uuid Prisma de la ligne existante — on garde donc
  * cet uuid à part pour cibler l'update.
  */
+// Retourne `true` si l'offre est visible dans la file de revue après l'upsert
+// (importedJobId:null && ignoredAt:null) — utilisé pour RunSummary.pendingCount (JOB-165).
 async function upsertOffer(
   prisma: PrismaClient,
   userId: string,
   campaignId: string,
   normalized: NormalizedOffer,
-): Promise<void> {
+): Promise<boolean> {
   const exactMatchRow = await prisma.harvestedOffer.findFirst({
     where: {
       userId,
@@ -95,7 +101,7 @@ async function upsertOffer(
       where: { id: exactMatchRow.id },
       data: normalizedOfferToHarvestedOfferData(merged, userId, campaignId),
     });
-    return;
+    return exactMatchRow.importedJobId === null && exactMatchRow.ignoredAt === null;
   }
 
   const candidates = await prisma.harvestedOffer.findMany({ where: { userId } });
@@ -106,10 +112,11 @@ async function upsertOffer(
       where: { id: fuzzyMatchRow.id },
       data: normalizedOfferToHarvestedOfferData(merged, userId, campaignId),
     });
-    return;
+    return fuzzyMatchRow.importedJobId === null && fuzzyMatchRow.ignoredAt === null;
   }
 
   await prisma.harvestedOffer.create({ data: normalizedOfferToHarvestedOfferData(normalized, userId, campaignId) });
+  return true;
 }
 
 export async function runCampaign(
@@ -128,6 +135,7 @@ export async function runCampaign(
   const startedAt = new Date();
   let rawCount = 0;
   let normalizedCount = 0;
+  let pendingCount = 0;
   let rejectedCount = 0;
   let filteredCount = 0;
   let unresolvedLocationCount = 0;
@@ -165,7 +173,8 @@ export async function runCampaign(
             continue;
           }
           normalizedCount += 1;
-          await upsertOffer(prisma, campaign.userId, campaign.id, normalized);
+          const isPending = await upsertOffer(prisma, campaign.userId, campaign.id, normalized);
+          if (isPending) pendingCount += 1;
         } catch {
           rejectedCount += 1;
         }
@@ -200,7 +209,7 @@ export async function runCampaign(
     },
   });
 
-  return { runId: run.id, rawCount, normalizedCount, rejectedCount, filteredCount, ok, errorMessage };
+  return { runId: run.id, rawCount, normalizedCount, pendingCount, rejectedCount, filteredCount, ok, errorMessage };
 }
 
 export async function runCampaignAcrossConnectors(

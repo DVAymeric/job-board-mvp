@@ -43,7 +43,7 @@ describe("GET /api/cron/harvest", () => {
       { id: "c2", schedule: "0 7 * * *" },
     ] as never);
     vi.mocked(runCampaignAcrossConnectors).mockResolvedValue([
-      { runId: "r1", rawCount: 5, normalizedCount: 4, rejectedCount: 1, filteredCount: 0, ok: true },
+      { runId: "r1", rawCount: 5, normalizedCount: 4, pendingCount: 4, rejectedCount: 1, filteredCount: 0, ok: true },
     ]);
 
     const response = await GET(makeRequest("Bearer test-secret"));
@@ -58,7 +58,7 @@ describe("GET /api/cron/harvest", () => {
     vi.mocked(prisma.campaign.findMany).mockResolvedValue([{ id: "c1", schedule: "0 7 * * *" }, { id: "c2", schedule: "0 7 * * *" }] as never);
     vi.mocked(runCampaignAcrossConnectors)
       .mockRejectedValueOnce(new Error("boom"))
-      .mockResolvedValueOnce([{ runId: "r2", rawCount: 1, normalizedCount: 1, rejectedCount: 0, filteredCount: 0, ok: true }]);
+      .mockResolvedValueOnce([{ runId: "r2", rawCount: 1, normalizedCount: 1, pendingCount: 1, rejectedCount: 0, filteredCount: 0, ok: true }]);
 
     const response = await GET(makeRequest("Bearer test-secret"));
 

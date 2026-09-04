@@ -106,7 +106,7 @@ describe("CampaignsManager", () => {
     const user = userEvent.setup();
     vi.mocked(triggerCampaignCollection).mockResolvedValue({
       ok: true,
-      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 3, rejectedCount: 2, filteredCount: 0, ok: true }] },
+      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 3, pendingCount: 3, rejectedCount: 2, filteredCount: 0, ok: true }] },
     });
     render(<CampaignsManager initialCampaigns={[campaign]} />);
 
@@ -142,9 +142,41 @@ describe("CampaignsManager", () => {
 
     resolveTrigger!({
       ok: true,
-      data: { runs: [{ runId: "r1", rawCount: 0, normalizedCount: 0, rejectedCount: 0, filteredCount: 0, ok: true }] },
+      data: { runs: [{ runId: "r1", rawCount: 0, normalizedCount: 0, pendingCount: 0, rejectedCount: 0, filteredCount: 0, ok: true }] },
     });
     await waitFor(() => expect(button).not.toBeDisabled());
+  });
+
+  // JOB-165 : une campagne relancée peut retrouver des offres déjà ignorées — normalizedCount
+  // les compte (elles ont bien matché la recherche) mais elles restent, à raison, hors de la
+  // file de revue. Le toast ne doit annoncer que pendingCount (offres réellement nouvelles),
+  // sinon l'utilisateur croit avoir des offres en attente qui n'existent pas.
+  it("shows 'aucune nouvelle offre' when a run only re-matches already-ignored offers (JOB-165)", async () => {
+    const user = userEvent.setup();
+    const { toast } = await import("sonner");
+    vi.mocked(triggerCampaignCollection).mockResolvedValue({
+      ok: true,
+      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 2, pendingCount: 0, rejectedCount: 0, filteredCount: 3, ok: true }] },
+    });
+    render(<CampaignsManager initialCampaigns={[campaign]} />);
+
+    await user.click(screen.getByRole("button", { name: "Chercher des offres" }));
+
+    expect(toast.success).toHaveBeenCalledWith("Recherche terminée, aucune nouvelle offre");
+  });
+
+  it("counts only pendingCount, not normalizedCount, in the 'offres trouvées' toast (JOB-165)", async () => {
+    const user = userEvent.setup();
+    const { toast } = await import("sonner");
+    vi.mocked(triggerCampaignCollection).mockResolvedValue({
+      ok: true,
+      data: { runs: [{ runId: "r1", rawCount: 5, normalizedCount: 3, pendingCount: 1, rejectedCount: 0, filteredCount: 2, ok: true }] },
+    });
+    render(<CampaignsManager initialCampaigns={[campaign]} />);
+
+    await user.click(screen.getByRole("button", { name: "Chercher des offres" }));
+
+    expect(toast.success).toHaveBeenCalledWith("1 offre trouvée");
   });
 
   it("opens a pre-filled 'new campaign' dialog from 'Dupliquer', keeping it a create (not an edit)", async () => {
@@ -217,7 +249,7 @@ describe("CampaignsManager", () => {
       ok: true,
       data: {
         runs: [
-          { runId: "r1", rawCount: 0, normalizedCount: 0, rejectedCount: 0, filteredCount: 0, ok: false, errorMessage: "France Travail : impossible d'extraire un code postal de la localisation \"Lille\"" },
+          { runId: "r1", rawCount: 0, normalizedCount: 0, pendingCount: 0, rejectedCount: 0, filteredCount: 0, ok: false, errorMessage: "France Travail : impossible d'extraire un code postal de la localisation \"Lille\"" },
         ],
       },
     });

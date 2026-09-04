@@ -77,7 +77,10 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
       toast.error(result.error);
       return;
     }
-    const offersCollected = result.data.runs.reduce((sum, run) => sum + run.normalizedCount, 0);
+    // pendingCount (pas normalizedCount) : une offre déjà ignorée ou déjà importée que le run
+    // retrouve est comptée dans normalizedCount mais reste, à raison, hors de la file de revue —
+    // le toast ne doit annoncer que les offres réellement nouvelles à trier (JOB-165).
+    const offersCollected = result.data.runs.reduce((sum, run) => sum + run.pendingCount, 0);
     // JOB-64 : un run par connecteur peut échouer individuellement (ex. localisation sans code
     // postal exploitable, refusée explicitement côté France Travail) sans que la Server Action
     // elle-même échoue — sans ceci, l'utilisateur ne voyait qu'un succès générique alors qu'un

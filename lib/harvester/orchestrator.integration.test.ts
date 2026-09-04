@@ -430,6 +430,67 @@ describe("runCampaign — locationScoped connectors", () => {
   });
 });
 
+describe("runCampaign — pendingCount (offres visibles dans la file de revue)", () => {
+  it("compte une offre neuve dans pendingCount", async () => {
+    const campaign = await makeCampaign();
+    const rawOffers: RawOffer[] = [{ source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } }];
+    const fakeConnector: Connector = {
+      id: "fake",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) yield raw;
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url);
+      },
+      async healthCheck() {
+        return { connectorId: "fake", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, fakeConnector, prisma, {});
+
+    expect(summary).toMatchObject({ normalizedCount: 1, pendingCount: 1 });
+  });
+
+  // Reproduit JOB-165 : une campagne relancée retrouve une offre déjà ignorée par
+  // l'utilisateur — upsertOffer met à jour la ligne existante sans jamais toucher
+  // `ignoredAt`, donc l'offre reste (à raison) hors de la file de revue. Mais le run la
+  // comptait quand même dans normalizedCount, d'où un toast "1 offre trouvée" trompeur
+  // alors qu'aucune offre neuve n'attend l'utilisateur.
+  it("ne compte pas une offre déjà ignorée retrouvée par un nouveau run dans pendingCount", async () => {
+    const campaign = await makeCampaign();
+    const rawOffers: RawOffer[] = [{ source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } }];
+    const fakeConnector: Connector = {
+      id: "fake",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        for (const raw of rawOffers) yield raw;
+      },
+      normalize(raw) {
+        const payload = raw.payload as { id: string; url: string };
+        return makeOffer(payload.id, payload.url);
+      },
+      async healthCheck() {
+        return { connectorId: "fake", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    await runCampaign(campaign, fakeConnector, prisma, {});
+    const existing = await prisma.harvestedOffer.findFirstOrThrow({ where: { campaignId: campaign.id } });
+    await prisma.harvestedOffer.update({ where: { id: existing.id }, data: { ignoredAt: new Date() } });
+
+    const summary = await runCampaign(campaign, fakeConnector, prisma, {});
+
+    expect(summary).toMatchObject({ normalizedCount: 1, pendingCount: 0 });
+    const stillIgnored = await prisma.harvestedOffer.findUniqueOrThrow({ where: { id: existing.id } });
+    expect(stillIgnored.ignoredAt).not.toBeNull();
+  });
+});
+
 describe("runCampaignAcrossConnectors", () => {
   it("runs only the connectors that support the campaign and returns one summary each", async () => {
     const campaign = await makeCampaign();
