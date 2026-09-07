@@ -28,4 +28,16 @@ describe("isBlockPageTitle", () => {
   it("does not flag a real job title that merely contains a similar word", () => {
     expect(isBlockPageTitle("Ingénieur sécurité réseau — accès et pare-feu")).toBe(false);
   });
+
+  it("recognizes common French block/challenge titles (JOB-173)", () => {
+    expect(isBlockPageTitle("Accès refusé")).toBe(true);
+    expect(isBlockPageTitle("Accès non autorisé")).toBe(true);
+    expect(isBlockPageTitle("Vérification en cours...")).toBe(true);
+    expect(isBlockPageTitle("Un instant...")).toBe(true);
+  });
+
+  it("does not flag a real job title that starts with a word used in a French block pattern", () => {
+    expect(isBlockPageTitle("Accès applicatif — Administrateur systèmes H/F")).toBe(false);
+    expect(isBlockPageTitle("Vérification qualité — Technicien de contrôle")).toBe(false);
+  });
 });

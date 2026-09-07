@@ -11,7 +11,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-const EMPTY = { title: null, companyName: null, descriptionText: null };
+const EMPTY = { title: null, companyName: null, descriptionText: null, status: "error" };
 
 describe("fetchMetadataViaHttp", () => {
   beforeEach(() => {
@@ -33,6 +33,7 @@ describe("fetchMetadataViaHttp", () => {
       title: "Développeur Backend",
       companyName: null,
       descriptionText: null,
+      status: "ok",
     });
   });
 
@@ -56,15 +57,15 @@ describe("fetchMetadataViaHttp", () => {
     );
   });
 
-  it("returns empty metadata when the response is not ok", async () => {
+  it("reports status: 'notFound' on a 404 (JOB-172)", async () => {
     vi.mocked(safeFetch).mockResolvedValue({ ok: false, status: 404 } as Response);
 
     const result = await fetchMetadataViaHttp("https://example.com/job");
 
-    expect(result).toEqual(EMPTY);
+    expect(result).toEqual({ ...EMPTY, status: "notFound" });
   });
 
-  it("returns empty metadata when safeFetch resolves to null (blocked target)", async () => {
+  it("returns empty metadata (status: 'error') when safeFetch resolves to null (our own SSRF guard, not the target's anti-bot block)", async () => {
     vi.mocked(safeFetch).mockResolvedValue(null as unknown as Response);
 
     const result = await fetchMetadataViaHttp("https://example.com/job");
@@ -81,11 +82,11 @@ describe("fetchMetadataViaHttp", () => {
   });
 
   it.each([401, 403, 429, 503])(
-    "flags status %i as a likely anti-bot block when logging the non-ok response",
+    "flags status %i as a likely anti-bot block, both in the log and the returned status (JOB-172)",
     async (status) => {
       vi.mocked(safeFetch).mockResolvedValue({ ok: false, status } as Response);
 
-      await fetchMetadataViaHttp("https://example.com/job");
+      const result = await fetchMetadataViaHttp("https://example.com/job");
 
       expect(logger.warn).toHaveBeenCalledWith(
         "scraper.fetch_not_ok",
@@ -95,6 +96,7 @@ describe("fetchMetadataViaHttp", () => {
           likelyAntiBotBlock: true,
         })
       );
+      expect(result.status).toBe("blocked");
     }
   );
 
@@ -107,6 +109,18 @@ describe("fetchMetadataViaHttp", () => {
       "scraper.fetch_not_ok",
       expect.objectContaining({ status: 404, likelyAntiBotBlock: false })
     );
+  });
+
+  it("reports status: 'blocked' when the page is a 200 OK anti-bot interstitial (JOB-172)", async () => {
+    vi.mocked(safeFetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => `<title>Just a moment...</title>`,
+    } as Response);
+
+    const result = await fetchMetadataViaHttp("https://example.com/job");
+
+    expect(result).toEqual({ title: null, companyName: null, descriptionText: null, status: "blocked" });
   });
 
   it("logs when the page is fetched successfully but no title could be extracted", async () => {

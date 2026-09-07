@@ -65,7 +65,7 @@ describe("geocodeCity", () => {
   // Bug réel constaté en direct (campagne "Data", villes saisies sans code postal) : la BAN
   // renvoie un `label` municipal sans code postal ("Amiens"), mais fournit `postcode`
   // séparément dans la même réponse ("80000") — jusqu'ici ignoré. France Travail dérive son
-  // département en cherchant un code postal à 5 chiffres DANS le label (extractDepartement,
+  // département en cherchant un code postal à 5 chiffres DANS le label (departmentFromLabel,
   // query-filter.ts) ; sans lui, la campagne échoue en direct avec "impossible d'extraire un
   // code postal... recherche nationale non bornée refusée" (JOB-64) pour CHAQUE ville saisie
   // via le formulaire (qui ne demande qu'un nom de ville depuis JOB-59).

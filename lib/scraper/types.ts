@@ -1,7 +1,14 @@
+// JOB-172 : "ok" (métadonnées trouvées ou légitimement absentes), "blocked" (page de blocage
+// anti-bot détectée, 200 OK inclus), "notFound" (offre supprimée, 404), "error" (réseau, garde
+// SSRF, ou tout autre statut HTTP non-ok) — jusqu'ici ces quatre cas convergeaient tous vers le
+// même résultat vide, indiscernables pour l'appelant.
+export type ScrapeStatus = "ok" | "blocked" | "notFound" | "error";
+
 export type ScrapedJobMetadata = {
   title: string | null;
   companyName: string | null;
   descriptionText: string | null;
+  status: ScrapeStatus;
 };
 
 /**
@@ -14,8 +21,8 @@ export type ScrapeContext = {
   userId?: string;
 };
 
-export const EMPTY_SCRAPED_METADATA: ScrapedJobMetadata = {
-  title: null,
-  companyName: null,
-  descriptionText: null,
-};
+export function emptyScrapedMetadata(status: ScrapeStatus): ScrapedJobMetadata {
+  return { title: null, companyName: null, descriptionText: null, status };
+}
+
+export const EMPTY_SCRAPED_METADATA: ScrapedJobMetadata = emptyScrapedMetadata("error");

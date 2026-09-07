@@ -3,7 +3,7 @@ import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-he
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { FranceTravailSearchResponseSchema } from "@/lib/harvester/connectors/francetravail/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
-import { extractDepartement } from "@/lib/harvester/query-filter";
+import { departmentFromLabel } from "@/lib/harvester/query-filter";
 
 // Domaines fixes/codés en dur (jamais dérivés d'une entrée utilisateur ou d'une page scrapée) —
 // le garde SSRF de lib/safe-fetch.ts protège contre un tout autre profil de risque (redirection
@@ -117,7 +117,7 @@ function buildSearchUrl(query: Pick<HarvestQuery, "location" | "romeCodes" | "ke
   } else if (query.keywords.length > 0) {
     url.searchParams.set("motsCles", query.keywords.slice(0, FRANCE_TRAVAIL_MAX_KEYWORDS).join(","));
   }
-  const departement = extractDepartement(query.location.label);
+  const departement = departmentFromLabel(query.location.label);
   if (!departement) {
     // JOB-64 (suite de JOB-23) : sans code postal dans le label de localisation, la recherche
     // deviendrait nationale au lieu d'être géo-filtrée. Un simple log serveur passait inaperçu

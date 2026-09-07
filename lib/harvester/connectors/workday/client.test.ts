@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { fetchWorkdayOffers, checkWorkdayHealth } from "@/lib/harvester/connectors/workday/client";
+import { logger } from "@/lib/logger";
 
 const query: HarvestQuery = {
   campaignId: "test",
@@ -82,14 +83,80 @@ describe("fetchWorkdayOffers", () => {
     expect(results).toHaveLength(25);
   });
 
-  it("throws when the search request is not ok", async () => {
-    const fetchImpl = vi.fn<typeof fetch>(async () => new Response("nope", { status: 500 }));
-    const iterate = async () => {
-      for await (const _item of fetchWorkdayOffers(query, { fetchImpl })) {
-        // drain
+  it("logs a warning when MAX_LIST_PAGES is reached with more results still available (JOB-166)", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/jobs")) {
+        // Full pages forever, total far beyond what MAX_LIST_PAGES × LIST_PAGE_SIZE can reach.
+        const jobPostings = Array.from({ length: 20 }, (_, i) => ({ title: `Alternant ${i}`, externalPath: `/job/x_${i}` }));
+        return new Response(JSON.stringify({ total: 100_000, jobPostings }), { status: 200 });
       }
+      return new Response(detailResponseBody, { status: 200 });
+    });
+
+    for await (const _item of fetchWorkdayOffers(query, { fetchImpl })) {
+      // drain
+    }
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      "harvester.workday.pagination_cap_reached",
+      expect.objectContaining({ tenant: "valeo", site: "valeo_jobs" }),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("skips the target (does not throw) when the search request is not ok (JOB-169)", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const fetchImpl = vi.fn<typeof fetch>(async () => new Response("nope", { status: 500 }));
+
+    const results: unknown[] = [];
+    for await (const item of fetchWorkdayOffers(query, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "harvester.workday.target_skipped",
+      expect.objectContaining({ tenant: "valeo", reason: expect.stringContaining("HTTP 500") }),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("isolates a failing tenant instead of aborting the whole campaign (JOB-169)", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const twoTenantsQuery: HarvestQuery = {
+      ...query,
+      targets: {
+        workday: [
+          { tenant: "broken", site: "broken_jobs", dc: "wd3" },
+          { tenant: "valeo", site: "valeo_jobs", dc: "wd3" },
+        ],
+      },
     };
-    await expect(iterate()).rejects.toThrow(/HTTP 500/);
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("broken.wd3")) {
+        throw new Error("network down");
+      }
+      if (url.endsWith("/jobs")) {
+        return new Response(searchResponseBody, { status: 200 });
+      }
+      return new Response(detailResponseBody, { status: 200 });
+    });
+
+    const results: unknown[] = [];
+    for await (const item of fetchWorkdayOffers(twoTenantsQuery, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ target: { tenant: "valeo" } });
+    expect(warnSpy).toHaveBeenCalledWith(
+      "harvester.workday.target_skipped",
+      expect.objectContaining({ tenant: "broken", site: "broken_jobs" }),
+    );
+    warnSpy.mockRestore();
   });
 
   it("searches with \"stage\" instead of the hardcoded \"alternance\" term when contractTypes is [\"stage\"] (JOB-74)", async () => {

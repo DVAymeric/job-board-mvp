@@ -3,6 +3,7 @@ import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import type { ContractType } from "@/lib/harvester/normalized-offer";
 import { SmartRecruitersSearchResponseSchema } from "@/lib/harvester/connectors/smartrecruiters/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
+import { logger } from "@/lib/logger";
 
 export const SMARTRECRUITERS_CONNECTOR_ID = "smartrecruiters";
 const BASE_URL = "https://api.smartrecruiters.com/v1/companies";
@@ -69,17 +70,26 @@ export async function* fetchSmartRecruitersOffers(
   const fetchImpl = options.fetchImpl ?? fetch;
   const companies = query.targets?.smartrecruiters ?? [];
   for (const company of companies) {
-    const list = await fetchPostingsList(company, fetchImpl);
-    for (const item of list) {
-      const listing = item as { id?: string; name?: string };
-      if (!listing.id || !matchesContractTypes(listing.name ?? "", query.contractTypes)) continue;
-      const detail = await fetchPostingDetail(company, listing.id, fetchImpl);
-      // JOB-34 (job-harvester) : `company` (le slug de l'entreprise ciblée) n'apparaît dans
-      // aucun champ de la réponse de détail elle-même — sans lui, normalize.ts ne peut pas
-      // reconstruire une URL de repli valide (`/v1/companies/{company}/postings/{id}`) si
-      // l'API omet un jour `applyUrl`/`postingUrl`. On l'injecte donc dans le payload
-      // composite, comme le connecteur workday le fait déjà avec `target`.
-      yield { company, detail };
+    // JOB-168 : une entreprise en échec (timeout, renommée, supprimée) ne doit pas priver la
+    // campagne des offres des autres entreprises ciblées dans le même run.
+    try {
+      const list = await fetchPostingsList(company, fetchImpl);
+      for (const item of list) {
+        const listing = item as { id?: string; name?: string };
+        if (!listing.id || !matchesContractTypes(listing.name ?? "", query.contractTypes)) continue;
+        const detail = await fetchPostingDetail(company, listing.id, fetchImpl);
+        // JOB-34 (job-harvester) : `company` (le slug de l'entreprise ciblée) n'apparaît dans
+        // aucun champ de la réponse de détail elle-même — sans lui, normalize.ts ne peut pas
+        // reconstruire une URL de repli valide (`/v1/companies/{company}/postings/{id}`) si
+        // l'API omet un jour `applyUrl`/`postingUrl`. On l'injecte donc dans le payload
+        // composite, comme le connecteur workday le fait déjà avec `target`.
+        yield { company, detail };
+      }
+    } catch (error) {
+      logger.warn("harvester.smartrecruiters.target_skipped", {
+        company,
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

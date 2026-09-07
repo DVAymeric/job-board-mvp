@@ -384,6 +384,25 @@ describe("fetchFranceTravailOffers", () => {
     expect(new URL(searchUrl).searchParams.has("motsCles")).toBe(false);
   });
 
+  it("sends the full 3-digit DOM/TOM departement code instead of a truncated 2-digit prefix (JOB-167)", async () => {
+    const reunionQuery: HarvestQuery = { ...query, location: { ...query.location, label: "Saint-Denis 97400" } };
+    let searchUrl = "";
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("access_token")) {
+        return new Response(tokenResponseBody, { status: 200 });
+      }
+      searchUrl = url;
+      return new Response(JSON.stringify({ resultats: [] }), { status: 200 });
+    });
+
+    for await (const _item of fetchFranceTravailOffers(reunionQuery, { clientId: "cid", clientSecret: "csecret", fetchImpl })) {
+      // drain
+    }
+
+    expect(new URL(searchUrl).searchParams.get("departement")).toBe("974");
+  });
+
   it("throws an explicit error instead of falling back to an unbounded national search when the location label has no postal code (JOB-64, suite de JOB-23)", async () => {
     const noPostalCodeQuery: HarvestQuery = { ...query, location: { ...query.location, label: "Lille" } };
     const fetchImpl = vi.fn<typeof fetch>(async (input) => {

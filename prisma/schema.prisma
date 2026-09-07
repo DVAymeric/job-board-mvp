@@ -314,6 +314,16 @@ model DiscoveryProbe {
   @@unique([companySlug, platform])
 }
 
+// Verrou anti double-exécution du cron de collecte (JOB-177) : une seule ligne (id fixe),
+// acquise par create() (échoue sur la contrainte @id si déjà prise par une exécution en cours) et
+// relâchée par delete en fin de run, succès ou échec. Un in-memory lock ne suffirait pas ici : le
+// cron peut tourner sur des instances serverless distinctes qui ne partagent pas leur mémoire — la
+// même raison qui rend le rate limiter de app/actions/harvest.ts non fiable à l'échelle (JOB-178).
+model CronLock {
+  id        String   @id
+  startedAt DateTime @default(now())
+}
+
 // File de revue par utilisateur : une cible trouvée par le sondage global doit être approuvée
 // avant de rejoindre config.targets des campagnes de CET utilisateur.
 model DiscoveredTarget {

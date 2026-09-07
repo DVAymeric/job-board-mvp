@@ -2,7 +2,7 @@ import type { Browser } from "playwright-core";
 import { isDisallowedFetchTarget } from "@/lib/url";
 import { extractJobMetadataFromHtml } from "@/lib/scraper/html-parser";
 import {
-  EMPTY_SCRAPED_METADATA,
+  emptyScrapedMetadata,
   type ScrapeContext,
   type ScrapedJobMetadata,
 } from "@/lib/scraper/types";
@@ -40,7 +40,7 @@ export async function fetchMetadataViaPlaywright(
   context?: ScrapeContext
 ): Promise<ScrapedJobMetadata> {
   if (isDisallowedFetchTarget(url)) {
-    return EMPTY_SCRAPED_METADATA;
+    return emptyScrapedMetadata("error");
   }
 
   const logFields = { url, ...(context?.userId ? { userId: context.userId } : {}) };
@@ -67,12 +67,12 @@ export async function fetchMetadataViaPlaywright(
     // page.url() plutôt que le paramètre url : reflète l'URL après
     // d'éventuelles redirections (le site de destination réel importe pour
     // choisir la règle de découpage titre/entreprise).
-    const metadata = extractJobMetadataFromHtml(html, page.url());
-    logger.info("scraper.playwright_ok", { ...logFields, titleFound: !!metadata.title });
-    return metadata;
+    const { blocked, ...metadata } = extractJobMetadataFromHtml(html, page.url());
+    logger.info("scraper.playwright_ok", { ...logFields, titleFound: !!metadata.title, blocked });
+    return { ...metadata, status: blocked ? "blocked" : "ok" };
   } catch {
     logger.warn("scraper.playwright_error", logFields);
-    return EMPTY_SCRAPED_METADATA;
+    return emptyScrapedMetadata("error");
   } finally {
     await browser?.close();
   }

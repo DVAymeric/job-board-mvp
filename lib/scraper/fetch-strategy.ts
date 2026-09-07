@@ -1,7 +1,7 @@
 import { safeFetch } from "@/lib/safe-fetch";
 import { extractJobMetadataFromHtml } from "@/lib/scraper/html-parser";
 import {
-  EMPTY_SCRAPED_METADATA,
+  emptyScrapedMetadata,
   type ScrapeContext,
   type ScrapedJobMetadata,
 } from "@/lib/scraper/types";
@@ -39,11 +39,13 @@ export async function fetchMetadataViaHttp(
           likelyAntiBotBlock: ANTI_BOT_STATUS_CODES.has(response.status),
           ...(context?.userId ? { userId: context.userId } : {}),
         });
+        if (response.status === 404) return emptyScrapedMetadata("notFound");
+        if (ANTI_BOT_STATUS_CODES.has(response.status)) return emptyScrapedMetadata("blocked");
       }
-      return EMPTY_SCRAPED_METADATA;
+      return emptyScrapedMetadata("error");
     }
     const html = await response.text();
-    const metadata = extractJobMetadataFromHtml(html, url);
+    const { blocked, ...metadata } = extractJobMetadataFromHtml(html, url);
     const logFields = {
       url,
       status: response.status,
@@ -53,11 +55,13 @@ export async function fetchMetadataViaHttp(
       // Sert de base au taux de succès Cheerio-seul vs fallback Playwright
       // (JOB-65) : compter scraper.fetch_ok vs scraper.playwright_fallback_triggered.
       logger.info("scraper.fetch_ok", logFields);
+    } else if (blocked) {
+      logger.warn("scraper.blocked_page_detected", logFields);
     } else {
       logger.info("scraper.no_title_found", logFields);
     }
-    return metadata;
+    return { ...metadata, status: blocked ? "blocked" : "ok" };
   } catch {
-    return EMPTY_SCRAPED_METADATA;
+    return emptyScrapedMetadata("error");
   }
 }

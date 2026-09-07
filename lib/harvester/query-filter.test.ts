@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import {
-  extractDepartement,
   departmentFromLabel,
   haversineDistanceKm,
   resolveLocationVerdict,
@@ -52,17 +51,6 @@ const LENS_LAT = 50.4331;
 const LENS_LNG = 2.8319;
 const MARSEILLE_LAT = 43.2965;
 const MARSEILLE_LNG = 5.3698;
-
-describe("extractDepartement", () => {
-  it("extrait les 2 premiers chiffres d'un code postal présent dans le label", () => {
-    expect(extractDepartement("Lille 59000")).toBe("59");
-    expect(extractDepartement("Paris 75001")).toBe("75");
-  });
-
-  it("retourne undefined si aucun code postal n'est présent", () => {
-    expect(extractDepartement("Lille")).toBeUndefined();
-  });
-});
 
 describe("departmentFromLabel", () => {
   it("extrait un département via departmentFromPostalCode (gère les DOM à 3 chiffres)", () => {

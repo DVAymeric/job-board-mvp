@@ -16,7 +16,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-const EMPTY = { title: null, companyName: null, descriptionText: null };
+const EMPTY = { title: null, companyName: null, descriptionText: null, status: "ok" as const };
 
 describe("scrapeJobMetadata", () => {
   beforeEach(() => {
@@ -30,6 +30,7 @@ describe("scrapeJobMetadata", () => {
       title: "Développeur Backend",
       companyName: "Acme",
       descriptionText: null,
+      status: "ok" as const,
     };
     vi.mocked(fetchMetadataViaHttp).mockResolvedValue(metadata);
 
@@ -46,6 +47,7 @@ describe("scrapeJobMetadata", () => {
       title: "Développeur Backend",
       companyName: "Acme",
       descriptionText: null,
+      status: "ok" as const,
     };
     vi.mocked(fetchMetadataViaPlaywright).mockResolvedValue(playwrightResult);
 
@@ -98,7 +100,8 @@ describe("scrapeJobMetadata", () => {
         title: "Développeur Backend",
         companyName: "Acme",
         descriptionText: null,
-      });
+        status: "ok" as const,
+    });
 
       await scrapeJobMetadata("https://example.com/job", { userId: "user-1" });
 
@@ -120,7 +123,8 @@ describe("scrapeJobMetadata", () => {
         title: "Développeur Backend",
         companyName: null,
         descriptionText: null,
-      });
+        status: "ok" as const,
+    });
 
       await scrapeJobMetadata("https://example.com/job");
 

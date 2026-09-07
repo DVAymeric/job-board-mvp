@@ -101,6 +101,7 @@ export async function resolveScrapedMetadata(
     title: null,
     companyName: null,
     descriptionText: null,
+    status: "error",
   };
   if (!parsed.success) {
     return empty;

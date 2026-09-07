@@ -23,6 +23,7 @@ export function extractJobMetadataFromHtml(
   title: string | null;
   companyName: string | null;
   descriptionText: string | null;
+  blocked: boolean;
 } {
   const $ = cheerio.load(html);
   const titleCandidate = extractMetaContent($, "og:title") ?? extractTitleTag($);
@@ -31,8 +32,8 @@ export function extractJobMetadataFromHtml(
   // compris à l'issue du fallback Playwright, lui aussi détectable comme
   // navigateur headless. Sans ce filtre ce texte serait accepté tel quel
   // comme titre de poste.
-  const rawTitle =
-    titleCandidate && !isBlockPageTitle(titleCandidate) ? titleCandidate : undefined;
+  const blocked = Boolean(titleCandidate && isBlockPageTitle(titleCandidate));
+  const rawTitle = titleCandidate && !blocked ? titleCandidate : undefined;
   const siteName = extractMetaContent($, "og:site_name");
   const descriptionText =
     extractMetaContent($, "og:description") ?? extractMetaContent($, "description");
@@ -55,5 +56,6 @@ export function extractJobMetadataFromHtml(
     title: jsonLd?.title || split?.title || null,
     companyName: jsonLd?.companyName || siteNameAsCompany || split?.companyName || null,
     descriptionText: descriptionText || null,
+    blocked,
   };
 }

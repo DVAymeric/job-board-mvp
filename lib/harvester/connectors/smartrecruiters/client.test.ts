@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { fetchSmartRecruitersOffers, checkSmartRecruitersHealth } from "@/lib/harvester/connectors/smartrecruiters/client";
+import { logger } from "@/lib/logger";
 
 const query: HarvestQuery = {
   campaignId: "test",
@@ -101,14 +102,49 @@ describe("fetchSmartRecruitersOffers", () => {
     expect(detailUrls[0]).toContain("/postings/2");
   });
 
-  it("throws when the postings list request is not ok", async () => {
+  it("skips the company (does not throw) when the postings list request is not ok (JOB-168)", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response("nope", { status: 500 }));
-    const iterate = async () => {
-      for await (const _item of fetchSmartRecruitersOffers(query, { fetchImpl })) {
-        // drain
+
+    const results: unknown[] = [];
+    for await (const item of fetchSmartRecruitersOffers(query, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(0);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "harvester.smartrecruiters.target_skipped",
+      expect.objectContaining({ company: "MAZARS", reason: expect.stringContaining("HTTP 500") }),
+    );
+    warnSpy.mockRestore();
+  });
+
+  it("isolates a failing company instead of aborting the whole campaign (JOB-168)", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const twoCompaniesQuery: HarvestQuery = { ...query, targets: { smartrecruiters: ["BROKENCO", "MAZARS"] } };
+    const fetchImpl = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.includes("/BROKENCO/")) {
+        throw new Error("network down");
       }
-    };
-    await expect(iterate()).rejects.toThrow(/HTTP 500/);
+      if (url.includes("/postings?limit=50")) {
+        return new Response(JSON.stringify({ content: [{ id: "1", name: "Alternance Data Analyst H/F" }], totalFound: 1 }), { status: 200 });
+      }
+      return new Response(JSON.stringify({ id: "1", name: "Alternance Data Analyst H/F" }), { status: 200 });
+    });
+
+    const results: unknown[] = [];
+    for await (const item of fetchSmartRecruitersOffers(twoCompaniesQuery, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({ company: "MAZARS" });
+    expect(warnSpy).toHaveBeenCalledWith(
+      "harvester.smartrecruiters.target_skipped",
+      expect.objectContaining({ company: "BROKENCO" }),
+    );
+    warnSpy.mockRestore();
   });
 });
 

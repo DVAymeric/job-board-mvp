@@ -24,7 +24,7 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
-const EMPTY = { title: null, companyName: null, descriptionText: null };
+const EMPTY = { title: null, companyName: null, descriptionText: null, status: "error" };
 
 function makeBrowser({
   contentHtml = "",
@@ -73,6 +73,15 @@ describe("fetchMetadataViaPlaywright", () => {
 
     expect(result.title).toBe("Développeur Backend");
     expect(close).toHaveBeenCalled();
+  });
+
+  it("reports status: 'blocked' when the rendered page is an anti-bot interstitial (JOB-172)", async () => {
+    const { browser } = makeBrowser({ contentHtml: `<title>Just a moment...</title>` });
+    vi.mocked(chromium.launch).mockResolvedValue(browser as never);
+
+    const result = await fetchMetadataViaPlaywright("https://example.com/job");
+
+    expect(result).toEqual({ title: null, companyName: null, descriptionText: null, status: "blocked" });
   });
 
   it("returns empty metadata and still closes the browser when navigation fails", async () => {

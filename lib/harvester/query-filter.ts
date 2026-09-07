@@ -2,20 +2,12 @@ import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import type { NormalizedOffer } from "@/lib/harvester/normalized-offer";
 import { departmentFromPostalCode } from "@/lib/harvester/department-from-postal-code";
 
-// L'API n'accepte pas lat/lng en paramètre de recherche, seulement un code département.
-// Les labels de localisation des campagnes contiennent le code postal (ex. "Lille 59000") ;
-// on en extrait les deux premiers chiffres comme code département, sans filtre si absent.
-// Déplacé depuis francetravail/client.ts (JOB-73) pour être réutilisé par le filtre centralisé.
-// Distinct de departmentFromLabel (ci-dessous) : francetravail garde sa version simplifiée
-// (slice(0,2) systématique, pas de gestion DOM/TOM), hors scope du fix JOB-75/77.
-export function extractDepartement(label: string): string | undefined {
-  const match = label.match(/(\d{5})/);
-  return match ? match[1]!.slice(0, 2) : undefined;
-}
-
-// Même heuristique que extractDepartement (code postal 5 chiffres dans le label), mais
-// réutilise departmentFromPostalCode pour gérer correctement les départements DOM/TOM à 3
-// chiffres — utilisée par la cascade de localisation ci-dessous (JOB-75/77).
+// Les labels de localisation des campagnes contiennent le code postal (ex. "Lille 59000") ; on
+// en extrait un code département via departmentFromPostalCode, qui gère correctement les DOM/TOM
+// à 3 chiffres — utilisée par la cascade de localisation ci-dessous (JOB-75/77) et par le client
+// France Travail, qui n'accepte pas lat/lng en paramètre de recherche (JOB-167 : les deux
+// consommateurs partageaient auparavant deux implémentations distinctes, francetravail gardant
+// un slice(0,2) naïf qui tronquait les départements DOM/TOM à 2 chiffres).
 export function departmentFromLabel(label: string): string | undefined {
   const match = label.match(/(\d{5})/);
   return match ? departmentFromPostalCode(match[1]!) : undefined;

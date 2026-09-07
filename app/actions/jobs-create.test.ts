@@ -121,6 +121,7 @@ describe("createJob — enrichissement asynchrone (JOB-ASYNC-ENRICH)", () => {
       title: "Développeur Backend",
       companyName: "Acme",
       descriptionText: "Description.",
+    status: "ok",
     });
     vi.mocked(resolveCompanyLogo).mockResolvedValue(
       "https://logo.clearbit.com/example.com?size=128"
@@ -148,6 +149,7 @@ describe("createJob — enrichissement asynchrone (JOB-ASYNC-ENRICH)", () => {
       title: null,
       companyName: null,
       descriptionText: null,
+    status: "ok",
     });
     vi.mocked(resolveCompanyLogo).mockResolvedValue(null);
 
@@ -166,6 +168,7 @@ describe("createJob — enrichissement asynchrone (JOB-ASYNC-ENRICH)", () => {
       title: "Titre trouvé par le scraping",
       companyName: "Acme",
       descriptionText: null,
+    status: "ok",
     });
     vi.mocked(resolveCompanyLogo).mockResolvedValue(null);
 
@@ -194,6 +197,7 @@ describe("createJob — enrichissement asynchrone (JOB-ASYNC-ENRICH)", () => {
       title: "Développeur",
       companyName: null,
       descriptionText: null,
+    status: "ok",
     });
     vi.mocked(resolveCompanyLogo).mockResolvedValue(null);
     vi.mocked(prisma.job.update).mockRejectedValueOnce(new Error("DB down"));

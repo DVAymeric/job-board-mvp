@@ -16,6 +16,16 @@ const BLOCK_PAGE_TITLES = [
   "verify you are human",
   "checking your browser",
   "sorry, you have been blocked",
+  // JOB-173 : les cibles de ce Harvester sont majoritairement francophones — un challenge
+  // anti-bot localisé en français passait jusqu'ici inaperçu de ce filtre.
+  "accès refusé",
+  "accès non autorisé",
+  "accès interdit",
+  "vérification en cours",
+  "un instant",
+  "veuillez patienter",
+  "trafic inhabituel",
+  "vous avez été bloqué",
 ];
 
 export function isBlockPageTitle(title: string): boolean {

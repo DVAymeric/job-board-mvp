@@ -3,6 +3,7 @@ import type { HarvestQuery, WorkdayTarget } from "@/lib/harvester/harvest-query"
 import type { ContractType } from "@/lib/harvester/normalized-offer";
 import { WorkdaySearchResponseSchema, WorkdayJobDetailSchema } from "@/lib/harvester/connectors/workday/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
+import { logger } from "@/lib/logger";
 
 export const WORKDAY_CONNECTOR_ID = "workday";
 
@@ -66,6 +67,19 @@ async function fetchJobList(target: WorkdayTarget, searchText: string, fetchImpl
     if (parsed.jobPostings.length === 0) break;
     offset += LIST_PAGE_SIZE;
     if (offset >= parsed.total) break;
+    // JOB-166 : le run live qui a inspiré le plafond de JOB-32 avait ramené rawCount===limit sans
+    // qu'aucun signal ne le montre — on log désormais explicitement quand la dernière page
+    // autorisée est consommée alors que l'API annonce encore plus de résultats (`offset < total`).
+    if (page === MAX_LIST_PAGES - 1) {
+      logger.warn("harvester.workday.pagination_cap_reached", {
+        tenant: target.tenant,
+        site: target.site,
+        searchText,
+        fetched: items.length,
+        total: parsed.total,
+        maxListPages: MAX_LIST_PAGES,
+      });
+    }
   }
   return items;
 }
@@ -88,16 +102,26 @@ export async function* fetchWorkdayOffers(query: HarvestQuery, options: WorkdayC
   const targets = query.targets?.workday ?? [];
   const searchTerms = buildSearchTerms(query.contractTypes);
   for (const target of targets) {
-    const seenExternalPaths = new Set<string>();
-    for (const searchText of searchTerms) {
-      const listItems = await fetchJobList(target, searchText, fetchImpl);
-      for (const item of listItems) {
-        const listing = item as { externalPath?: string };
-        if (!listing.externalPath || seenExternalPaths.has(listing.externalPath)) continue;
-        seenExternalPaths.add(listing.externalPath);
-        const jobPostingInfo = await fetchJobDetail(target, listing.externalPath, fetchImpl);
-        yield { target, externalPath: listing.externalPath, jobPostingInfo };
+    // JOB-169 : un tenant en échec (timeout, renommé, supprimé) ne doit pas priver la campagne
+    // des offres des autres tenants ciblés dans le même run.
+    try {
+      const seenExternalPaths = new Set<string>();
+      for (const searchText of searchTerms) {
+        const listItems = await fetchJobList(target, searchText, fetchImpl);
+        for (const item of listItems) {
+          const listing = item as { externalPath?: string };
+          if (!listing.externalPath || seenExternalPaths.has(listing.externalPath)) continue;
+          seenExternalPaths.add(listing.externalPath);
+          const jobPostingInfo = await fetchJobDetail(target, listing.externalPath, fetchImpl);
+          yield { target, externalPath: listing.externalPath, jobPostingInfo };
+        }
       }
+    } catch (error) {
+      logger.warn("harvester.workday.target_skipped", {
+        tenant: target.tenant,
+        site: target.site,
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }
