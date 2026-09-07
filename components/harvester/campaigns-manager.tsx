@@ -112,7 +112,7 @@ export function CampaignsManager({ initialCampaigns }: { initialCampaigns: Campa
           Aucune campagne pour le moment — créez-en une pour commencer à recevoir des offres.
         </p>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext id="harvester-campaigns" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={campaigns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
             <ul className="space-y-2">
               {campaigns.map((campaign) => (
