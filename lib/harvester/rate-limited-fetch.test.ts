@@ -92,6 +92,28 @@ describe("createRateLimitedFetch", () => {
     expect(elapsed).toBeGreaterThanOrEqual(85); // ~30ms + ~60ms, minus small scheduling slack
   });
 
+  it("applies a per-hostname override instead of the global default bucket capacity (JOB-181)", async () => {
+    const baseFetch = vi.fn(async () => jsonResponse(200));
+    const rateLimitedFetch = createRateLimitedFetch(baseFetch as unknown as typeof fetch, {
+      bucketCapacity: 10, // large global default — should not throttle a.example.com
+      refillPerSecond: 100,
+      perHostOverrides: {
+        "a.example.com": { bucketCapacity: 1, refillPerSecond: 5 }, // 1 token every 200ms
+      },
+    });
+
+    const start = Date.now();
+    await rateLimitedFetch("https://a.example.com/jobs");
+    await rateLimitedFetch("https://a.example.com/jobs"); // overridden bucket empty, must wait
+    const afterOverriddenDomain = Date.now() - start;
+
+    await rateLimitedFetch("https://b.example.com/jobs"); // global default (capacity 10), no wait
+    const afterDefaultDomain = Date.now() - start;
+
+    expect(afterOverriddenDomain).toBeGreaterThanOrEqual(180);
+    expect(afterDefaultDomain - afterOverriddenDomain).toBeLessThan(100);
+  });
+
   it("logs a warning identifying the hostname when a 403 is received, without forcing a retry (JOB-174)", async () => {
     const baseFetch = vi.fn(async () => jsonResponse(403));
     const rateLimitedFetch = createRateLimitedFetch(baseFetch as unknown as typeof fetch, {

@@ -2,6 +2,7 @@ import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-he
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { LbaSearchResponseSchema } from "@/lib/harvester/connectors/labonnealternance/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
+import { logger } from "@/lib/logger";
 
 // Domaine fixe/codé en dur — voir la note équivalente dans le client francetravail sur le choix
 // de `fetch` direct plutôt que lib/safe-fetch.ts (JOB-42).
@@ -40,6 +41,11 @@ export async function* fetchLbaOffers(query: HarvestQuery, options: LbaClientOpt
   }
   const body = await response.json();
   const parsed = LbaSearchResponseSchema.parse(body);
+  // JOB-165 : l'API ne documente aucune pagination ni aucune limite de résultats par appel
+  // (vérifié contre le schéma OpenAPI officiel) — ce log est une observation, pas une alerte, à
+  // comparer sur plusieurs runs réels pour détecter empiriquement un éventuel cap serveur
+  // silencieux avant de supposer qu'il en existe un.
+  logger.info("harvester.labonnealternance.search_completed", { count: parsed.jobs.length });
   for (const job of parsed.jobs) {
     yield job;
   }

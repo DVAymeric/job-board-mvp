@@ -145,7 +145,10 @@ export async function runCampaign(
   let rejectedCount = 0;
   let filteredCount = 0;
   let unresolvedLocationCount = 0;
-  let errorMessage: string | undefined;
+  // JOB-183 : un tableau accumulé plutôt qu'une simple variable écrasée à chaque itération —
+  // sur une campagne multi-localisations, seule la dernière erreur était visible dans
+  // ConnectorRun.errorMessage, les précédentes disparaissaient silencieusement.
+  const errorMessages: string[] = [];
 
   let hasFetchedOnce = false;
   for (const location of locations) {
@@ -194,9 +197,11 @@ export async function runCampaign(
         }
       }
     } catch (error) {
-      errorMessage = error instanceof Error ? error.message : String(error);
+      errorMessages.push(`${location.label}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+
+  const errorMessage = errorMessages.length > 0 ? errorMessages.join(" | ") : undefined;
 
   if (unresolvedLocationCount > 0) {
     logger.warn("harvester.orchestrator.offers_rejected_location_unresolved", {

@@ -27,14 +27,22 @@ function decodeXmlEntities(text: string): string {
     .replace(/&amp;/g, "&");
 }
 
+// JOB-185 : le contenu d'un bloc CDATA est du texte littéral, jamais entity-encodé — le décoder
+// comme le reste (decodeXmlEntities) transformerait par erreur un "&" ou "<" déjà littéral. Un
+// tag sans CDATA suit l'entity-encoding XML standard et passe par decodeXmlEntities comme avant.
+function unwrapTagContent(text: string): string {
+  const cdata = text.match(/^<!\[CDATA\[([\s\S]*)\]\]>$/);
+  return cdata ? cdata[1]! : decodeXmlEntities(text);
+}
+
 function extractTag(itemXml: string, tag: string): string | undefined {
   const match = itemXml.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
-  return match?.[1] !== undefined ? decodeXmlEntities(match[1].trim()) : undefined;
+  return match?.[1] !== undefined ? unwrapTagContent(match[1].trim()) : undefined;
 }
 
 function extractAllTags(itemXml: string, tag: string): string[] {
   const matches = itemXml.matchAll(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, "g"));
-  return Array.from(matches, (m) => decodeXmlEntities((m[1] ?? "").trim()));
+  return Array.from(matches, (m) => unwrapTagContent((m[1] ?? "").trim()));
 }
 
 // JOB-31 (job-harvester) : vérifié en direct — format RSS standard du handler générique

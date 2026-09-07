@@ -1,9 +1,24 @@
+import { timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { runCampaignAcrossConnectors } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
 import { harvestEnv } from "@/lib/harvester/harvest-env";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
+
+// JOB-186 : comparaison à temps constant — une comparaison `!==` fuit la position du premier
+// octet différent via le temps d'exécution. Peu exploitable pour un outil mono-utilisateur (le
+// secret est long et généré par la plateforme), mais coûte une ligne à corriger correctement.
+function isValidCronSecret(authHeader: string | null): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || !authHeader) return false;
+  const expected = Buffer.from(`Bearer ${secret}`);
+  const actual = Buffer.from(authHeader);
+  // timingSafeEqual jette sur une longueur différente plutôt que de renvoyer false — un rejet
+  // anticipé ici ne fuit que la longueur du header envoyé, pas la position d'un octet du secret.
+  if (expected.length !== actual.length) return false;
+  return timingSafeEqual(expected, actual);
+}
 
 const CRON_LOCK_ID = "harvest";
 // Budget large d'une fonction serverless (cf. discover-targets.ts) : au-delà, un verrou n'a plus
@@ -45,7 +60,7 @@ async function releaseCronLock(): Promise<void> {
 // dans docs/decision-scheduling-harvester.md.
 export async function GET(request: Request): Promise<Response> {
   const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isValidCronSecret(authHeader)) {
     return new Response("Unauthorized", { status: 401 });
   }
 

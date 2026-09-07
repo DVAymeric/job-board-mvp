@@ -48,6 +48,25 @@ describe("GET /api/cron/harvest", () => {
     expect(response.status).toBe(401);
   });
 
+  it("accepts the correct secret via the constant-time comparison path (JOB-186)", async () => {
+    vi.mocked(prisma.campaign.findMany).mockResolvedValue([]);
+    const response = await GET(makeRequest("Bearer test-secret"));
+    expect(response.status).toBe(200);
+  });
+
+  // JOB-186 : timingSafeEqual jette une RangeError sur des buffers de longueur différente — ces
+  // deux cas prouvent que le garde de longueur ajouté avant l'appel les intercepte proprement
+  // (401 propre) plutôt que de laisser l'exception remonter non gérée.
+  it("returns 401 for a same-length but wrong secret, without crashing (JOB-186)", async () => {
+    const response = await GET(makeRequest("Bearer xxxxxxxxxxx")); // same length as "test-secret"
+    expect(response.status).toBe(401);
+  });
+
+  it("does not crash on a header longer than CRON_SECRET (JOB-186)", async () => {
+    const response = await GET(makeRequest("Bearer test-secret-but-way-too-long"));
+    expect(response.status).toBe(401);
+  });
+
   it("runs every scheduled campaign and returns a summary", async () => {
     vi.mocked(prisma.campaign.findMany).mockResolvedValue([
       { id: "c1", schedule: "0 7 * * *" },

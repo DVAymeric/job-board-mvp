@@ -48,6 +48,29 @@ describe("fetchTalentsoftOffers", () => {
     });
   });
 
+  it("strips CDATA wrapping from the description instead of leaving the literal markers (JOB-185)", async () => {
+    const cdataRssXml = `<?xml version="1.0"?>
+<rss><channel>
+  <item>
+    <title>Alternant Data Analyst H/F</title>
+    <link>https://recrutement.mgen.fr/offre-1</link>
+    <description><![CDATA[Rejoignez notre <b>équipe</b> data & analytics.]]></description>
+    <category>Alternance</category>
+  </item>
+</channel></rss>`;
+    const fetchImpl = fetchImplFor(talentsoftRootHtml, cdataRssXml);
+
+    const results: unknown[] = [];
+    for await (const item of fetchTalentsoftOffers(query, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      item: { description: "Rejoignez notre <b>équipe</b> data & analytics." },
+    });
+  });
+
   it("skips a target whose root page has none of the Talentsoft markers (JOB-31 false-positive guard)", async () => {
     const fetchImpl = fetchImplFor("<html><body>WordPress site, nothing here</body></html>", rssXml);
 

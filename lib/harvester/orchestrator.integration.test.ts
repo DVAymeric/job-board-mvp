@@ -221,6 +221,37 @@ describe("runCampaign", () => {
     warnSpy.mockRestore();
   });
 
+  it("accumulates errors across locations instead of only keeping the last one (JOB-183)", async () => {
+    const campaign = await makeCampaign({
+      config: {
+        locations: [
+          { label: "Lille", lat: 50.63, lng: 3.05, radiusKm: 30 },
+          { label: "Amiens", lat: 49.9, lng: 2.29, radiusKm: 30 },
+        ],
+      },
+    });
+    const failingConnector: Connector = {
+      id: "fake",
+      tier: 0,
+      supports: () => true,
+      // JOB-12 : locationScoped absent = true (défaut) — fetch() est appelé une fois par
+      // localisation, chaque appel peut donc échouer indépendamment.
+      async *fetch(query) {
+        throw new Error(`boom for ${query.location.label}`);
+      },
+      normalize: (raw) => raw.payload as NormalizedOffer,
+      async healthCheck() {
+        return { connectorId: "fake", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, failingConnector, prisma, {});
+
+    expect(summary.ok).toBe(false);
+    expect(summary.errorMessage).toContain("boom for Lille");
+    expect(summary.errorMessage).toContain("boom for Amiens");
+  });
+
   it("passes a guarded fetchImpl to the connector, not the raw global fetch (JOB-12)", async () => {
     const campaign = await makeCampaign();
     let receivedFetchImpl: typeof fetch | undefined;

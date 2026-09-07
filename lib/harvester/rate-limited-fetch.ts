@@ -53,6 +53,11 @@ export interface RateLimitedFetchOptions {
   refillPerSecond?: number;
   baseDelayMs?: number;
   maxAttempts?: number;
+  // JOB-181 : le seau à jetons par défaut est une valeur uniforme pour tous les domaines, sans
+  // lien avec une limite connue d'un site cible précis. Vide par défaut (aucun connecteur n'a
+  // aujourd'hui de besoin identifié) — permet d'affiner un domaine spécifique sans changer le
+  // défaut global des autres.
+  perHostOverrides?: Record<string, { bucketCapacity?: number; refillPerSecond?: number }>;
 }
 
 // JOB-12 (job-harvester) : un seau à jetons par hostname — le rate limiting est intégré au
@@ -63,13 +68,15 @@ export function createRateLimitedFetch(baseFetch: typeof fetch, options: RateLim
   const refillPerSecond: number = options.refillPerSecond ?? DEFAULT_REFILL_PER_SECOND;
   const baseDelayMs: number = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
   const maxAttempts: number = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
+  const perHostOverrides = options.perHostOverrides ?? {};
   const buckets = new Map<string, TokenBucket>();
 
   return async function rateLimitedFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
     const hostname = extractHostname(input);
     let bucket = buckets.get(hostname);
     if (!bucket) {
-      bucket = new TokenBucket(bucketCapacity, refillPerSecond);
+      const override = perHostOverrides[hostname];
+      bucket = new TokenBucket(override?.bucketCapacity ?? bucketCapacity, override?.refillPerSecond ?? refillPerSecond);
       buckets.set(hostname, bucket);
     }
 

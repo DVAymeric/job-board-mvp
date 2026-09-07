@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { fetchLbaOffers, checkLbaHealth } from "@/lib/harvester/connectors/labonnealternance/client";
+import { logger } from "@/lib/logger";
+
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
 
 const query: HarvestQuery = {
   campaignId: "test",
@@ -24,6 +29,19 @@ describe("fetchLbaOffers", () => {
     expect(results).toEqual([{ id: 1 }, { id: 2 }]);
     const [, init] = fetchImpl.mock.calls[0]!;
     expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer secret");
+  });
+
+  it("logs the result count on every search — pas de pagination côté API, observation d'un cap serveur silencieux (JOB-165)", async () => {
+    const jobs = Array.from({ length: 37 }, (_, i) => ({ id: i }));
+    const fetchImpl = vi.fn<typeof fetch>(async () =>
+      new Response(JSON.stringify({ jobs, recruiters: [], warnings: [] }), { status: 200 }),
+    );
+
+    for await (const _job of fetchLbaOffers(query, { apiKey: "secret", fetchImpl })) {
+      // drain
+    }
+
+    expect(logger.info).toHaveBeenCalledWith("harvester.labonnealternance.search_completed", expect.objectContaining({ count: 37 }));
   });
 
   it("throws when the HTTP response is not ok", async () => {

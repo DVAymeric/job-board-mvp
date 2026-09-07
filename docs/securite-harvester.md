@@ -47,11 +47,19 @@ d'une entrée utilisateur. Confirmé à nouveau ici, pas de changement.
 
 ## Rate limiting du déclenchement de collecte
 
-**Non applicable à ce ticket** : aucune action de déclenchement n'existe encore (tickets 9/14,
-JOB-47/JOB-52, à venir). Le rate limiting du déclenchement sera appliqué à ce moment-là, avec
-`lib/rate-limit.ts` (`InMemorySlidingWindowRateLimiter`), le même mécanisme déjà en place pour les
-autres Server Actions sensibles à l'abus — pas un nouveau mécanisme dédié. Noté ici pour
-traçabilité, à vérifier au moment de la revue des tickets 9/14.
+**Livré (JOB-46)** : `triggerCampaignCollection` (`app/actions/harvest.ts`) applique
+`TRIGGER_COLLECTION_RATE_LIMIT` (5 déclenchements / 60s par utilisateur) avant tout appel aux
+connecteurs. Depuis JOB-178, ce limiter spécifique est backé en base (`DbSlidingWindowRateLimiter`,
+`lib/rate-limit.ts`, modèle Prisma `RateLimitBucket`) plutôt qu'`InMemorySlidingWindowRateLimiter` :
+un rate limiter en mémoire process n'est pas fiable sous Vercel multi-instance (chaque instance a
+sa propre mémoire, la limite effective réelle serait N×limit). Les limiters de health-check
+(`CONNECTORS_HEALTH_RATE_LIMIT`, `CONNECTORS_HEALTH_GLOBAL_RATE_LIMIT`) restent en mémoire — coût
+d'un dépassement bien moindre (un simple ping).
+
+Le cron planifié (`app/api/cron/harvest/route.ts`, JOB-52) est protégé séparément : un verrou en
+base (`CronLock`, JOB-177) empêche deux exécutions concurrentes de traiter les mêmes campagnes en
+double, avec purge automatique d'un verrou périmé (>15 min, signe d'un crash plutôt que d'un run
+légitimement long) plutôt qu'un TTL fixe.
 
 ## Secrets tiers (clés API)
 
@@ -66,4 +74,7 @@ changement de code non demandé.
 
 ## Abus de la fonctionnalité de collecte
 
-Sans objet pour l'instant (pas de déclenchement exposé) — cf. section rate limiting ci-dessus.
+Couvert par le rate limiting du déclenchement ci-dessus (par utilisateur, partagé entre instances)
+et le verrou anti double-exécution du cron. L'authentification du cron (header
+`Authorization: Bearer $CRON_SECRET`) utilise une comparaison à temps constant
+(`node:crypto.timingSafeEqual`, JOB-186) plutôt qu'une égalité de chaîne directe.
