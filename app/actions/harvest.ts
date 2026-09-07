@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth/session";
 import { isUniqueConstraintError } from "@/lib/prisma-errors";
 import { logger } from "@/lib/logger";
-import { InMemorySlidingWindowRateLimiter } from "@/lib/rate-limit";
+import { InMemorySlidingWindowRateLimiter, DbSlidingWindowRateLimiter } from "@/lib/rate-limit";
 import { STATUS } from "@/lib/constants";
 import { runCampaignAcrossConnectors, type RunSummary } from "@/lib/harvester/orchestrator";
 import { ALL_CONNECTORS } from "@/lib/harvester/connectors";
@@ -33,7 +33,12 @@ import {
 // jobs-create.ts) pour empêcher des déclenchements en boucle d'épuiser les quotas tiers ou de
 // se faire bannir (JOB-46, item différé de la revue de sécurité jusqu'à l'existence de cette
 // action).
-const TRIGGER_COLLECTION_RATE_LIMIT = new InMemorySlidingWindowRateLimiter(5, 60_000);
+// JOB-178 : backé en base plutôt qu'en mémoire — un rate limiter in-memory n'est pas fiable sous
+// Vercel multi-instance (chaque instance a sa propre mémoire, la limite effective réelle est
+// alors N×limit). Seul ce limiter-ci est converti (le plus critique : déclenchement direct
+// d'appels vers des API tierces) ; les limiters de health-check restent en mémoire, coût
+// d'un dépassement bien moindre (un simple ping).
+const TRIGGER_COLLECTION_RATE_LIMIT = new DbSlidingWindowRateLimiter(prisma, "trigger_collection", 5, 60_000);
 
 // Chaque appel frappe l'API tierce de chaque connecteur enregistré (ALL_CONNECTORS) — même logique de
 // protection anti-abus que TRIGGER_COLLECTION_RATE_LIMIT, plafond un peu plus haut car un
@@ -73,7 +78,7 @@ export async function triggerCampaignCollection(
   const auth = await requireUser();
   if (!auth.ok) return auth;
 
-  const limit = TRIGGER_COLLECTION_RATE_LIMIT.check(auth.user.id);
+  const limit = await TRIGGER_COLLECTION_RATE_LIMIT.check(auth.user.id);
   if (!limit.allowed) {
     return actionError("RATE_LIMITED", rateLimitError(limit.retryAfterSeconds));
   }

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, afterAll, beforeAll } from "vitest";
+import { describe, it, expect, afterEach, afterAll, beforeAll, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { PrismaClient, type Campaign, type Prisma } from "@prisma/client";
 import type { Connector } from "@/lib/harvester/connector";
@@ -6,6 +6,7 @@ import type { RawOffer } from "@/lib/harvester/harvest-query";
 import type { NormalizedOffer } from "@/lib/harvester/normalized-offer";
 import { exactDedupKeyFromUrl } from "@/lib/harvester/dedup-key";
 import { runCampaign, runCampaignAcrossConnectors } from "@/lib/harvester/orchestrator";
+import { logger } from "@/lib/logger";
 
 const prisma = new PrismaClient();
 let userId: string;
@@ -70,6 +71,7 @@ function makeOffer(id: string, canonicalUrl: string, overrides: Partial<Normaliz
 
 describe("runCampaign", () => {
   it("normalizes, dedups exact matches, stores offers, then records a run", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
     const campaign = await makeCampaign();
     const rawOffers: RawOffer[] = [
       { source: "fake", payload: { id: "1", url: "https://example.com/jobs/1" } },
@@ -98,7 +100,14 @@ describe("runCampaign", () => {
     expect(summary).toMatchObject({ rawCount: 3, normalizedCount: 2, rejectedCount: 1, filteredCount: 0, ok: true });
     expect(summary.errorMessage).toBeUndefined();
     expect(await prisma.harvestedOffer.count({ where: { campaignId: campaign.id } })).toBe(1);
+    // JOB-171 : un échec de normalize() par offre était compté (rejectedCount) mais jamais
+    // détaillé — sans log, une dérive de schéma côté source n'est pas diagnosticable.
+    expect(logger.warn).toHaveBeenCalledWith(
+      "harvester.orchestrator.offer_normalize_failed",
+      expect.objectContaining({ connectorId: "fake", campaignId: campaign.id, reason: "invalid payload" }),
+    );
     expect(await prisma.connectorRun.count({ where: { campaignId: campaign.id } })).toBe(1);
+    warnSpy.mockRestore();
   });
 
   it("merges fuzzy duplicates (same company/title/city, different URLs) into a single row", async () => {
@@ -131,6 +140,33 @@ describe("runCampaign", () => {
     expect(rows[0]!.descriptionText).toBe("a much longer and more complete description");
   });
 
+  it("keeps campaignId pinned to the campaign that first found the offer, across a re-harvest by a different campaign (JOB-179)", async () => {
+    const campaignA = await makeCampaign();
+    const campaignB = await makeCampaign();
+    const offer = makeOffer("shared", "https://example.com/jobs/shared");
+    const connectorFor = (rawOffer: NormalizedOffer): Connector => ({
+      id: "fake",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        yield { source: "fake", payload: rawOffer };
+      },
+      normalize: (raw) => raw.payload as NormalizedOffer,
+      async healthCheck() {
+        return { connectorId: "fake", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    });
+
+    await runCampaign(campaignA, connectorFor(offer), prisma, {});
+    let row = await prisma.harvestedOffer.findFirst({ where: { userId, dedupKey: offer.dedupKey } });
+    expect(row?.campaignId).toBe(campaignA.id);
+
+    // Re-harvest of the exact same offer, discovered again by a different campaign.
+    await runCampaign(campaignB, connectorFor(offer), prisma, {});
+    row = await prisma.harvestedOffer.findFirst({ where: { userId, dedupKey: offer.dedupKey } });
+    expect(row?.campaignId).toBe(campaignA.id);
+  });
+
   it("records a failed run when connector.fetch throws, without rethrowing", async () => {
     const campaign = await makeCampaign();
     const brokenConnector: Connector = {
@@ -157,6 +193,32 @@ describe("runCampaign", () => {
     const run = await prisma.connectorRun.findFirst({ where: { campaignId: campaign.id } });
     expect(run).toMatchObject({ ok: false });
     expect(run?.errorMessage).toContain("network down");
+  });
+
+  it("logs a searchable signal when a connector run finishes ok with zero raw offers (JOB-175)", async () => {
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+    const campaign = await makeCampaign();
+    const emptyConnector: Connector = {
+      id: "empty",
+      tier: 0,
+      supports: () => true,
+      async *fetch() {
+        // no offers
+      },
+      normalize: (raw) => raw.payload as NormalizedOffer,
+      async healthCheck() {
+        return { connectorId: "empty", ok: true, latencyMs: 0, checkedAt: new Date().toISOString() };
+      },
+    };
+
+    const summary = await runCampaign(campaign, emptyConnector, prisma, {});
+
+    expect(summary).toMatchObject({ rawCount: 0, ok: true });
+    expect(logger.warn).toHaveBeenCalledWith(
+      "harvester.orchestrator.zero_results",
+      expect.objectContaining({ connectorId: "empty", campaignId: campaign.id }),
+    );
+    warnSpy.mockRestore();
   });
 
   it("passes a guarded fetchImpl to the connector, not the raw global fetch (JOB-12)", async () => {

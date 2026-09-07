@@ -297,6 +297,20 @@ enum DiscoveredTargetStatus {
   REJECTED
 }
 
+// Rate limiter partagé entre instances serverless (JOB-178) — `InMemorySlidingWindowRateLimiter`
+// (lib/rate-limit.ts) ne l'est pas : chaque instance a sa propre mémoire, donc la limite
+// effective sous Vercel multi-instance est (nombre d'instances × limit), pas un plafond global.
+// id = "{limiterId}:{key}:{bucketStart}" : fenêtre FIXE (pas glissante comme la version
+// in-memory) — compromis assumé pour un compteur partagé simple ; un pic aux deux bornes d'une
+// fenêtre peut laisser passer jusqu'à ~2x la limite sur un court instant. Acceptable pour un
+// anti-abus de premier niveau ; upgrade vers un stockage par timestamp individuel si la précision
+// devient un problème réel.
+model RateLimitBucket {
+  id        String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+}
+
 // Cache global de sondage, volontairement PAS scopé par userId : ne contient que des faits
 // publics et vérifiables sur l'infrastructure de recrutement d'entreprises réelles (ex.
 // "capgemini.com utilise myworkdayjobs.com"), jamais de donnée utilisateur. Partagé entre tous

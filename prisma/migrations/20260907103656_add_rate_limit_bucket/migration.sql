@@ -1,0 +1,8 @@
+-- CreateTable
+CREATE TABLE "RateLimitBucket" (
+    "id" TEXT NOT NULL,
+    "count" INTEGER NOT NULL DEFAULT 0,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RateLimitBucket_pkey" PRIMARY KEY ("id")
+);

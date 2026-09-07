@@ -73,6 +73,21 @@ describe("CampaignFormDialog — création", () => {
     expect(screen.getByLabelText("Ville")).toBeInTheDocument();
   });
 
+  it("explains that keywords are not applied the same way by every connector (JOB-180)", () => {
+    render(
+      <CampaignFormDialog
+        campaign="new"
+        onOpenChange={vi.fn()}
+        onCreated={vi.fn()}
+        onUpdated={vi.fn()}
+        onDeleted={vi.fn()}
+      />
+    );
+    expect(
+      screen.getByText(/directement sur Welcome to the Jungle[\s\S]*autres sources sont filtrées après coup/)
+    ).toBeInTheDocument();
+  });
+
   it("offers an optional display name field, distinct from the (absent) identifier field", () => {
     render(
       <CampaignFormDialog

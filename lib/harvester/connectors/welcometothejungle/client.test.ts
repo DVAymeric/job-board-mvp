@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { fetchWttjOffers, checkWttjHealth, getWttjCredentials } from "@/lib/harvester/connectors/welcometothejungle/client";
+import { logger } from "@/lib/logger";
+
+vi.mock("@/lib/logger", () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
 
 const query: HarvestQuery = {
   campaignId: "test",
@@ -149,14 +154,41 @@ describe("fetchWttjOffers", () => {
     expect(results).toHaveLength(2);
   });
 
-  it("throws when the algolia request is not ok", async () => {
+  it("skips the keyword (does not throw) when the algolia request is not ok (JOB-170)", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => new Response("nope", { status: 403 }));
-    const iterate = async () => {
-      for await (const _hit of fetchWttjOffers(query, credentials, { fetchImpl })) {
-        // drain
+
+    const results: unknown[] = [];
+    for await (const hit of fetchWttjOffers(query, credentials, { fetchImpl })) {
+      results.push(hit);
+    }
+
+    expect(results).toHaveLength(0);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "harvester.welcometothejungle.keyword_skipped",
+      expect.objectContaining({ searchText: "data", reason: expect.stringContaining("HTTP 403") }),
+    );
+  });
+
+  it("isolates a failing keyword instead of aborting the other keywords in the campaign (JOB-170)", async () => {
+    const twoKeywordsQuery: HarvestQuery = { ...query, keywords: ["broken", "data"] };
+    const fetchImpl = vi.fn<typeof fetch>(async (_input, init) => {
+      const body = JSON.parse((init!.body as string)) as { params: string };
+      if (new URLSearchParams(body.params).get("query") === "broken") {
+        throw new Error("network down");
       }
-    };
-    await expect(iterate()).rejects.toThrow(/HTTP 403/);
+      return algoliaResponse([hit()], 0, 1);
+    });
+
+    const results: unknown[] = [];
+    for await (const item of fetchWttjOffers(twoKeywordsQuery, credentials, { fetchImpl })) {
+      results.push(item);
+    }
+
+    expect(results).toHaveLength(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      "harvester.welcometothejungle.keyword_skipped",
+      expect.objectContaining({ searchText: "broken" }),
+    );
   });
 });
 

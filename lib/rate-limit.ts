@@ -1,3 +1,5 @@
+import type { PrismaClient } from "@prisma/client";
+
 export type RateLimitResult =
   | { allowed: true }
   | { allowed: false; retryAfterSeconds: number };
@@ -42,5 +44,36 @@ export class InMemorySlidingWindowRateLimiter implements RateLimiter {
   /** Vide tous les compteurs — usage tests uniquement (isoler les instances singleton entre cas). */
   reset(): void {
     this.hits.clear();
+  }
+}
+
+/**
+ * Rate limiter partagé entre instances serverless (JOB-178), backé par `RateLimitBucket`
+ * (voir schema.prisma pour le compromis fenêtre fixe vs glissante). N'implémente pas l'interface
+ * `RateLimiter` : `check()` y est nécessairement async (accès DB), contrairement à la version
+ * in-memory — les deux ne sont pas interchangeables sans toucher chaque appelant.
+ */
+export class DbSlidingWindowRateLimiter {
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly limiterId: string,
+    private readonly limit: number,
+    private readonly windowMs: number,
+  ) {}
+
+  async check(key: string): Promise<RateLimitResult> {
+    const bucketStart = Math.floor(Date.now() / this.windowMs) * this.windowMs;
+    const id = `${this.limiterId}:${key}:${bucketStart}`;
+    const bucket = await this.prisma.rateLimitBucket.upsert({
+      where: { id },
+      create: { id, count: 1, expiresAt: new Date(bucketStart + this.windowMs) },
+      update: { count: { increment: 1 } },
+    });
+
+    if (bucket.count > this.limit) {
+      const retryAfterMs = bucketStart + this.windowMs - Date.now();
+      return { allowed: false, retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)) };
+    }
+    return { allowed: true };
   }
 }

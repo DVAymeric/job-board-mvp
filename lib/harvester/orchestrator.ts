@@ -97,9 +97,14 @@ async function upsertOffer(
   });
   if (exactMatchRow) {
     const merged = mergeOffers(harvestedOfferToNormalizedOffer(exactMatchRow), normalized);
+    // JOB-179 : campaignId reste ancré sur la campagne qui a découvert l'offre en premier, pas
+    // sur celle du run courant — sans ça, deux campagnes du même utilisateur qui se recoupent
+    // font basculer silencieusement l'attribution de l'offre au grè des re-harvests, et l'offre
+    // peut disparaître d'une vue filtrée par campagne (review-queue-manager.tsx) sans raison
+    // apparente pour l'utilisateur.
     await prisma.harvestedOffer.update({
       where: { id: exactMatchRow.id },
-      data: normalizedOfferToHarvestedOfferData(merged, userId, campaignId),
+      data: normalizedOfferToHarvestedOfferData(merged, userId, exactMatchRow.campaignId),
     });
     return exactMatchRow.importedJobId === null && exactMatchRow.ignoredAt === null;
   }
@@ -108,9 +113,10 @@ async function upsertOffer(
   const fuzzyMatchRow = candidates.find((row) => isFuzzyDuplicate(harvestedOfferToNormalizedOffer(row), normalized));
   if (fuzzyMatchRow) {
     const merged = mergeOffers(harvestedOfferToNormalizedOffer(fuzzyMatchRow), normalized);
+    // JOB-179 : même raisonnement que ci-dessus pour le doublon flou.
     await prisma.harvestedOffer.update({
       where: { id: fuzzyMatchRow.id },
-      data: normalizedOfferToHarvestedOfferData(merged, userId, campaignId),
+      data: normalizedOfferToHarvestedOfferData(merged, userId, fuzzyMatchRow.campaignId),
     });
     return fuzzyMatchRow.importedJobId === null && fuzzyMatchRow.ignoredAt === null;
   }
@@ -175,8 +181,16 @@ export async function runCampaign(
           normalizedCount += 1;
           const isPending = await upsertOffer(prisma, campaign.userId, campaign.id, normalized);
           if (isPending) pendingCount += 1;
-        } catch {
+        } catch (error) {
           rejectedCount += 1;
+          // JOB-171 : le message d'erreur seul, pas raw.payload (cohérence avec la politique
+          // anti-PII de rawPayload, docs/securite-harvester.md) — suffisant pour repérer une
+          // dérive de schéma côté source sans avoir à reproduire le run en debug.
+          logger.warn("harvester.orchestrator.offer_normalize_failed", {
+            connectorId: connector.id,
+            campaignId: campaign.id,
+            reason: error instanceof Error ? error.message : String(error),
+          });
         }
       }
     } catch (error) {
@@ -193,6 +207,12 @@ export async function runCampaign(
   }
 
   const ok = errorMessage === undefined;
+  if (ok && rawCount === 0) {
+    // JOB-175 : signal cherchable distinguant "0 offre légitime" d'un blocage silencieux — pas
+    // encore une alerte automatique (nécessiterait une moyenne mobile historique, hors scope),
+    // mais rend la dérive détectable en fouillant les logs au lieu d'être totalement invisible.
+    logger.warn("harvester.orchestrator.zero_results", { connectorId: connector.id, campaignId: campaign.id });
+  }
   const run = await prisma.connectorRun.create({
     data: {
       campaignId: campaign.id,

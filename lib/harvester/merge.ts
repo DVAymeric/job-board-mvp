@@ -11,6 +11,13 @@ export function isExactDuplicate(a: NormalizedOffer, b: NormalizedOffer): boolea
 
 export function isFuzzyDuplicate(a: NormalizedOffer, b: NormalizedOffer): boolean {
   if (a.location.city.toLowerCase() !== b.location.city.toLowerCase()) return false;
+  // JOB-184 : quand les deux offres portent un code postal, une différence est un signal fort de
+  // lieux réellement distincts (deux offres au nom d'entreprise/titre génériques dans la même
+  // ville mais des arrondissements/quartiers différents) — le trigram seul ne peut pas le voir,
+  // et fusionner à tort perd silencieusement une offre réelle.
+  if (a.location.postalCode && b.location.postalCode && a.location.postalCode !== b.location.postalCode) {
+    return false;
+  }
   const companySimilarity = trigramSimilarity(normalizeCompanyName(a.company.name), normalizeCompanyName(b.company.name));
   const titleSimilarity = trigramSimilarity(a.title.toLowerCase(), b.title.toLowerCase());
   return companySimilarity >= FUZZY_MATCH_THRESHOLD && titleSimilarity >= FUZZY_MATCH_THRESHOLD;

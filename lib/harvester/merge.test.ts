@@ -45,6 +45,38 @@ describe("isDuplicate", () => {
     expect(isDuplicate(a, b)).toBe(true);
   });
 
+  it("does not fuzzy-match same city/title/company offers when postal codes differ (JOB-184)", () => {
+    const a = makeOffer({
+      title: "Vendeur",
+      location: { label: "Lille 59000", city: "Lille", postalCode: "59000" },
+    });
+    const b = makeOffer({
+      id: "01J0000000000000000000B0",
+      sourceOfferId: "def",
+      canonicalUrl: "https://acme.com/careers/1",
+      dedupKey: exactDedupKeyFromUrl("https://acme.com/careers/1"),
+      title: "Vendeur",
+      location: { label: "Lille 59800", city: "Lille", postalCode: "59800" },
+    });
+    expect(isDuplicate(a, b)).toBe(false);
+  });
+
+  it("still fuzzy-matches when postal codes agree (JOB-184, no regression)", () => {
+    const a = makeOffer({
+      canonicalUrl: "https://hellowork.com/jobs/1",
+      location: { label: "Lille 59000", city: "Lille", postalCode: "59000" },
+    });
+    const b = makeOffer({
+      id: "01J0000000000000000000B0",
+      sourceOfferId: "def",
+      canonicalUrl: "https://acme.com/careers/1",
+      dedupKey: exactDedupKeyFromUrl("https://acme.com/careers/1"),
+      company: { name: "ACME", normalizedName: "acme" },
+      location: { label: "Lille 59000", city: "Lille", postalCode: "59000" },
+    });
+    expect(isDuplicate(a, b)).toBe(true);
+  });
+
   it("does not match unrelated offers", () => {
     const a = makeOffer({});
     const b = makeOffer({

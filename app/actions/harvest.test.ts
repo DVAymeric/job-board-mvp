@@ -44,6 +44,7 @@ vi.mock("@/lib/prisma", () => ({
     campaign: { findUnique: vi.fn() },
     harvestedOffer: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
     job: { create: vi.fn() },
+    rateLimitBucket: { upsert: vi.fn() },
   },
 }));
 
@@ -88,6 +89,14 @@ beforeEach(() => {
   vi.mocked(prisma.job.create).mockReset();
   vi.mocked(runCampaignAcrossConnectors).mockReset();
   vi.mocked(discoverTargets).mockReset();
+  // JOB-178 : TRIGGER_COLLECTION_RATE_LIMIT est backé par prisma.rateLimitBucket.upsert — par
+  // défaut, toujours "sous la limite" (count: 1) ; le test dédié au rate limit ci-dessous
+  // remplace ce mock par un compteur réel pour exercer le dépassement.
+  vi.mocked(prisma.rateLimitBucket.upsert).mockReset().mockResolvedValue({
+    id: "test",
+    count: 1,
+    expiresAt: new Date(),
+  } as never);
 });
 
 describe("triggerCampaignCollection", () => {
@@ -197,6 +206,10 @@ describe("triggerCampaignCollection", () => {
     mockAuthedAs("trigger-user-ratelimit");
     vi.mocked(prisma.campaign.findUnique).mockResolvedValue({ id: "c1", userId: "trigger-user-ratelimit" } as never);
     vi.mocked(runCampaignAcrossConnectors).mockResolvedValue([]);
+    let hits = 0;
+    vi.mocked(prisma.rateLimitBucket.upsert).mockImplementation(
+      (async () => ({ id: "test", count: ++hits, expiresAt: new Date() })) as never,
+    );
 
     for (let i = 0; i < 5; i++) {
       const ok = await triggerCampaignCollection({ campaignId: "c1" });

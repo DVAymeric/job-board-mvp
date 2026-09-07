@@ -426,6 +426,15 @@ export function CampaignFormDialog({
               placeholder="data analyst, BI"
               disabled={saving}
             />
+            {/* JOB-180 : écart constaté en audit entre ce que l'UI laisse entendre (un filtre
+                homogène) et ce que chaque connecteur applique réellement — seul Welcome to the
+                Jungle interroge son API avec ces mots-clés ; les autres sources filtrent après
+                coup, et un code ROME renseigné ci-dessous les remplace côté France Travail. */}
+            <p className="text-sm text-muted-foreground">
+              Interrogés directement sur Welcome to the Jungle ; les autres sources sont filtrées
+              après coup, une fois leurs résultats récupérés. Un code ROME renseigné ci-dessous
+              remplace les mots-clés pour France Travail.
+            </p>
           </div>
 
           <div className="space-y-1.5">

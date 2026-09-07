@@ -2,6 +2,7 @@ import { timedHealthCheck, type ConnectorHealth } from "@/lib/harvester/timed-he
 import type { HarvestQuery } from "@/lib/harvester/harvest-query";
 import { WttjJobHitSchema, WttjSearchResponseSchema } from "@/lib/harvester/connectors/welcometothejungle/types";
 import { USER_AGENT } from "@/lib/harvester/user-agent";
+import { logger } from "@/lib/logger";
 
 export const WTTJ_CONNECTOR_ID = "welcometothejungle";
 const JOBS_INDEX = "wk_cms_jobs_production";
@@ -102,18 +103,28 @@ export async function* fetchWttjOffers(
   const seenObjectIds = new Set<string>();
 
   for (const searchText of searchTexts) {
-    for (let page = 0; page < MAX_PAGES; page++) {
-      const { hits, nbPages } = await queryJobsIndex(query, searchText, page, credentials, fetchImpl);
-      for (const hit of hits) {
-        const parsed = WttjJobHitSchema.safeParse(hit);
-        if (!parsed.success) continue;
-        if (seenObjectIds.has(parsed.data.objectID)) continue;
-        const searchableText = `${parsed.data.name} ${parsed.data.profile ?? ""}`;
-        if (!matchesKeywords(searchableText, query.keywords)) continue;
-        seenObjectIds.add(parsed.data.objectID);
-        yield hit;
+    // JOB-170 : un 429/5xx Algolia (ou une erreur réseau) sur un mot-clé ne doit pas annuler la
+    // collecte des autres mots-clés de la même campagne — incohérent sinon avec le safeParse déjà
+    // défensif ci-dessous, offre par offre.
+    try {
+      for (let page = 0; page < MAX_PAGES; page++) {
+        const { hits, nbPages } = await queryJobsIndex(query, searchText, page, credentials, fetchImpl);
+        for (const hit of hits) {
+          const parsed = WttjJobHitSchema.safeParse(hit);
+          if (!parsed.success) continue;
+          if (seenObjectIds.has(parsed.data.objectID)) continue;
+          const searchableText = `${parsed.data.name} ${parsed.data.profile ?? ""}`;
+          if (!matchesKeywords(searchableText, query.keywords)) continue;
+          seenObjectIds.add(parsed.data.objectID);
+          yield hit;
+        }
+        if (hits.length === 0 || page + 1 >= nbPages) break;
       }
-      if (hits.length === 0 || page + 1 >= nbPages) break;
+    } catch (error) {
+      logger.warn("harvester.welcometothejungle.keyword_skipped", {
+        searchText,
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

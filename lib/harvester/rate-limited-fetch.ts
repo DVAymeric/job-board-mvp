@@ -1,7 +1,12 @@
+import { logger } from "@/lib/logger";
+
 const DEFAULT_BUCKET_CAPACITY = 3;
 const DEFAULT_REFILL_PER_SECOND = 1;
-const DEFAULT_RETRY_DELAYS_MS: [number, number] = [500, 1000];
-const MAX_ATTEMPTS = 3;
+// JOB-182 : backoff exponentiel — delay = baseDelayMs * 2^(tentative-1), jitter complet. Les
+// valeurs par défaut reproduisent exactement l'ancien plafond fixe [500, 1000] pour MAX_ATTEMPTS
+// par défaut (3), mais continuent de doubler au lieu de plafonner si maxAttempts est augmenté.
+const DEFAULT_BASE_DELAY_MS = 500;
+const DEFAULT_MAX_ATTEMPTS = 3;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,7 +51,8 @@ function extractHostname(input: string | URL | Request): string {
 export interface RateLimitedFetchOptions {
   bucketCapacity?: number;
   refillPerSecond?: number;
-  retryDelaysMs?: [number, number];
+  baseDelayMs?: number;
+  maxAttempts?: number;
 }
 
 // JOB-12 (job-harvester) : un seau à jetons par hostname — le rate limiting est intégré au
@@ -55,7 +61,8 @@ export interface RateLimitedFetchOptions {
 export function createRateLimitedFetch(baseFetch: typeof fetch, options: RateLimitedFetchOptions = {}): typeof fetch {
   const bucketCapacity: number = options.bucketCapacity ?? DEFAULT_BUCKET_CAPACITY;
   const refillPerSecond: number = options.refillPerSecond ?? DEFAULT_REFILL_PER_SECOND;
-  const retryDelaysMs: [number, number] = options.retryDelaysMs ?? DEFAULT_RETRY_DELAYS_MS;
+  const baseDelayMs: number = options.baseDelayMs ?? DEFAULT_BASE_DELAY_MS;
+  const maxAttempts: number = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const buckets = new Map<string, TokenBucket>();
 
   return async function rateLimitedFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
@@ -67,13 +74,18 @@ export function createRateLimitedFetch(baseFetch: typeof fetch, options: RateLim
     }
 
     let response: Response | undefined;
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       await bucket.take();
       response = await baseFetch(input, init);
+      if (response.status === 403) {
+        // JOB-174 : un 403 (souvent un blocage anti-bot plutôt qu'un rate limit) était jusqu'ici
+        // traité comme un succès HTTP ordinaire, indiscernable d'un "0 résultat" légitime.
+        logger.warn("harvester.rate_limited_fetch.likely_blocked", { hostname, status: 403 });
+      }
       if (response.status !== 429 && response.status < 500) return response;
-      if (attempt < MAX_ATTEMPTS) {
-        const delayIndex = Math.min(attempt - 1, retryDelaysMs.length - 1);
-        await sleep(Math.random() * retryDelaysMs[delayIndex]!);
+      if (attempt < maxAttempts) {
+        const maxDelay = baseDelayMs * 2 ** (attempt - 1);
+        await sleep(Math.random() * maxDelay);
       }
     }
     return response as Response;
